@@ -110,13 +110,66 @@ const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 const LOCAL_STORAGE_KEYS = {
   BRANDS: 'espace_pastel_brands_v1',
-  SUBCATS: 'espace_pastel_subcats_v1',
+  SUBCATEGORIES: 'espace_pastel_subcategories_v1',
   PRODUCTS: 'espace_pastel_products_v1',
   REVIEWS: 'espace_pastel_reviews_v1',
   ORDERS: 'espace_pastel_orders_v1',
-  CART: 'espace_pastel_cart_v1',
-  WISHLIST: 'espace_pastel_wishlist_v1',
   USER: 'espace_pastel_user_v1',
+};
+
+const parseStoredCollection = <T,>(key: string): T[] => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) as T[] : [];
+  } catch {
+    return [];
+  }
+};
+
+const mergeBrandsFromApi = (apiBrands: Brand[]): Brand[] => {
+  const storedBrands = parseStoredCollection<Brand>(LOCAL_STORAGE_KEYS.BRANDS);
+  const merged = apiBrands.map((apiBrand) => {
+    const stored = storedBrands.find((item) => item.id === apiBrand.id || item.slug === apiBrand.slug);
+    if (!stored) return apiBrand;
+    return {
+      ...apiBrand,
+      ...stored,
+      logoUrl: stored.logoUrl || apiBrand.logoUrl || '',
+      bannerUrl: stored.bannerUrl || apiBrand.bannerUrl || '',
+    };
+  });
+  const extras = storedBrands.filter((stored) => !apiBrands.some((apiBrand) => apiBrand.id === stored.id || apiBrand.slug === stored.slug));
+  return [...merged, ...extras];
+};
+
+const mergeSubCategoriesFromApi = (apiSubCategories: SubCategory[]): SubCategory[] => {
+  const storedSubCategories = parseStoredCollection<SubCategory>(LOCAL_STORAGE_KEYS.SUBCATEGORIES);
+  const merged = apiSubCategories.map((apiSubCategory) => {
+    const stored = storedSubCategories.find((item) => item.id === apiSubCategory.id || item.slug === apiSubCategory.slug);
+    if (!stored) return apiSubCategory;
+    return {
+      ...apiSubCategory,
+      ...stored,
+      imageUrl: stored.imageUrl || apiSubCategory.imageUrl || '',
+    };
+  });
+  const extras = storedSubCategories.filter((stored) => !apiSubCategories.some((apiSubCategory) => apiSubCategory.id === stored.id || apiSubCategory.slug === stored.slug));
+  return [...merged, ...extras];
+};
+
+const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+const apiPath = (endpoint: string) => `${API_BASE}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+const syncApiMutation = (method: string, endpoint: string, body?: unknown) => {
+  const token = localStorage.getItem('espace_pastel_auth_token');
+  if (!token) return;
+  void fetch(apiPath(endpoint), {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  }).catch(() => {});
 };
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -218,6 +271,30 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem(LOCAL_STORAGE_KEYS.USER, JSON.stringify(currentUser));
   }, [currentUser]);
 
+  useEffect(() => {
+    let cancelled = false;
+    const loadCatalog = async () => {
+      try {
+        const [brandsResponse, subcategoriesResponse] = await Promise.all([
+          fetch(apiPath('/api/brands')),
+          fetch(apiPath('/api/subcategories')),
+        ]);
+        if (!brandsResponse.ok || !subcategoriesResponse.ok) return;
+        const [apiBrands, apiSubcategories] = await Promise.all([
+          brandsResponse.json(),
+          subcategoriesResponse.json(),
+        ]);
+        if (cancelled) return;
+        if (Array.isArray(apiBrands)) setBrands(mergeBrandsFromApi(apiBrands));
+        if (Array.isArray(apiSubcategories)) setSubCategories(mergeSubCategoriesFromApi(apiSubcategories));
+      } catch {
+        /* keep local fallback */
+      }
+    };
+    void loadCatalog();
+    return () => { cancelled = true; };
+  }, []);
+
   // Toast Helpers
   const addToast = (message: string, type: 'success' | 'info' | 'warning' | 'error' = 'success') => {
     const id = 'toast-' + Math.random().toString(36).substring(2, 9);
@@ -249,7 +326,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
       return [...prev, { productId: product.id, product, quantity }];
     });
-    addToast(`${product.name} ajouté au panier ✓`, 'success');
+    addToast(`${product.name} ajoutÃ© au panier âœ“`, 'success');
     setIsCartDrawerOpen(true);
   };
 
@@ -269,7 +346,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const item = cart.find(i => i.productId === productId);
     setCart(prev => prev.filter(i => i.productId !== productId));
     if (item) {
-      addToast(`${item.product.name} retiré du panier`, 'info');
+      addToast(`${item.product.name} retirÃ© du panier`, 'info');
     }
   };
 
@@ -289,10 +366,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setWishlist(prev => {
       const exists = prev.includes(productId);
       if (exists) {
-        addToast('Retiré de vos favoris', 'info');
+        addToast('RetirÃ© de vos favoris', 'info');
         return prev.filter(id => id !== productId);
       } else {
-        addToast('Ajouté à vos favoris ❤️', 'success');
+        addToast('AjoutÃ© Ã  vos favoris â¤ï¸', 'success');
         return [...prev, productId];
       }
     });
@@ -306,10 +383,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const setIsAdminMode = (admin: boolean) => {
     if (admin) {
       setCurrentUser(INITIAL_CUSTOMERS[1]); // Admin user
-      addToast('Mode Administrateur activé', 'info');
+      addToast('Mode Administrateur activÃ©', 'info');
     } else {
       setCurrentUser(INITIAL_CUSTOMERS[0]); // Customer user
-      addToast('Mode Client activé', 'info');
+      addToast('Mode Client activÃ©', 'info');
     }
   };
 
@@ -326,7 +403,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       email,
       phone: '55 542 000',
       role: 'customer',
-      addresses: [{ label: 'Adresse principale', address: '23 Rue de la Liberté', city: 'Menzah 5' }],
+      addresses: [{ label: 'Adresse principale', address: '23 Rue de la LibertÃ©', city: 'Menzah 5' }],
       createdAt: new Date().toISOString()
     };
     setCurrentUser(customer);
@@ -337,7 +414,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const logout = () => {
     localStorage.removeItem('espace_pastel_auth_token');
     setCurrentUser(null);
-    addToast('Vous êtes déconnecté', 'info');
+    addToast('Vous Ãªtes dÃ©connectÃ©', 'info');
     navigateTo({ type: 'home' });
   };
 
@@ -367,7 +444,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       );
     });
 
-    addToast(`Commande ${newOrderNumber} confirmée avec succès !`, 'success');
+    addToast(`Commande ${newOrderNumber} confirmÃ©e avec succÃ¨s !`, 'success');
     return newOrder;
   };
 
@@ -418,7 +495,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     setProducts(prev => [newProduct, ...prev]);
-    addToast(`Produit "${newProduct.name}" créé avec succès`, 'success');
+    addToast(`Produit "${newProduct.name}" crÃ©Ã© avec succÃ¨s`, 'success');
     return newProduct;
   };
 
@@ -426,13 +503,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setProducts(prev =>
       prev.map(p => (p.id === id ? { ...p, ...updates } : p))
     );
-    addToast('Produit mis à jour avec succès', 'success');
+    addToast('Produit mis Ã  jour avec succÃ¨s', 'success');
   };
 
   const deleteProduct = (id: string) => {
     const target = products.find(p => p.id === id);
     setProducts(prev => prev.filter(p => p.id !== id));
-    addToast(`Produit "${target?.name || ''}" supprimé`, 'info');
+    addToast(`Produit "${target?.name || ''}" supprimÃ©`, 'info');
   };
 
   // Brand CRUD
@@ -451,6 +528,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     setBrands(prev => [...prev, newBrand]);
+    syncApiMutation('POST', '/api/admin/brands', newBrand);
     addToast(`Marque "${newBrand.name}" ajoutée`, 'success');
     return newBrand;
   };
@@ -459,15 +537,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setBrands(prev =>
       prev.map(b => (b.id === id ? { ...b, ...updates } : b))
     );
+    syncApiMutation('PATCH', `/api/admin/brands/${id}`, updates);
     addToast('Marque mise à jour', 'success');
   };
 
   const deleteBrand = (id: string) => {
     const target = brands.find(b => b.id === id);
     setBrands(prev => prev.filter(b => b.id !== id));
+    syncApiMutation('DELETE', `/api/admin/brands/${id}`);
     addToast(`Marque "${target?.name || ''}" supprimée`, 'info');
   };
 
+  // SubCategory CRUD
   // SubCategory CRUD
   const addSubCategory = (subData: Omit<SubCategory, 'id' | 'slug'>): SubCategory => {
     const slug = subData.name
@@ -484,6 +565,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     setSubCategories(prev => [...prev, newSub]);
+    syncApiMutation('POST', '/api/admin/subcategories', newSub);
     addToast(`Sous-catégorie "${newSub.name}" créée`, 'success');
     return newSub;
   };
@@ -492,28 +574,31 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setSubCategories(prev =>
       prev.map(s => (s.id === id ? { ...s, ...updates } : s))
     );
+    syncApiMutation('PATCH', `/api/admin/subcategories/${id}`, updates);
     addToast('Sous-catégorie mise à jour', 'success');
   };
 
   const deleteSubCategory = (id: string) => {
     const target = subCategories.find(s => s.id === id);
     setSubCategories(prev => prev.filter(s => s.id !== id));
+    syncApiMutation('DELETE', `/api/admin/subcategories/${id}`);
     addToast(`Sous-catégorie "${target?.name || ''}" supprimée`, 'info');
   };
 
+  // Orders & Stocks
   // Orders & Stocks
   const updateOrderStatus = (orderId: string, status: OrderStatus) => {
     setOrders(prev =>
       prev.map(o => (o.id === orderId ? { ...o, status } : o))
     );
-    addToast(`Statut de commande mis à jour : ${status}`, 'success');
+    addToast(`Statut de commande mis Ã  jour : ${status}`, 'success');
   };
 
   const updateProductStock = (productId: string, newStock: number) => {
     setProducts(prev =>
       prev.map(p => (p.id === productId ? { ...p, stock: Math.max(0, newStock) } : p))
     );
-    addToast('Stock actualisé', 'info');
+    addToast('Stock actualisÃ©', 'info');
   };
 
   // Review Management
@@ -538,7 +623,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     setReviews(prev => [newRev, ...prev]);
-    addToast('Merci pour votre avis ! Il sera visible après validation par notre équipe.', 'info');
+    addToast('Merci pour votre avis ! Il sera visible aprÃ¨s validation par notre Ã©quipe.', 'info');
   };
 
   const updateReviewStatus = (reviewId: string, status: ReviewStatus) => {
@@ -564,12 +649,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     }
 
-    addToast(`Avis ${status === 'approved' ? 'approuvé' : 'refusé'}`, 'success');
+    addToast(`Avis ${status === 'approved' ? 'approuvÃ©' : 'refusÃ©'}`, 'success');
   };
 
   const deleteReview = (reviewId: string) => {
     setReviews(prev => prev.filter(r => r.id !== reviewId));
-    addToast('Avis supprimé', 'info');
+    addToast('Avis supprimÃ©', 'info');
   };
 
   const resetCatalogToDefault = () => {
@@ -583,7 +668,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.removeItem(LOCAL_STORAGE_KEYS.PRODUCTS);
     localStorage.removeItem(LOCAL_STORAGE_KEYS.REVIEWS);
     localStorage.removeItem(LOCAL_STORAGE_KEYS.ORDERS);
-    addToast('Catalogue réinitialisé avec les données de démonstration', 'info');
+    addToast('Catalogue rÃ©initialisÃ© avec les donnÃ©es de dÃ©monstration', 'info');
   };
 
   return (
@@ -658,4 +743,5 @@ export const useStore = () => {
   }
   return context;
 };
+
 

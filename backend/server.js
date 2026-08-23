@@ -1,5 +1,8 @@
 import 'dotenv/config';
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
@@ -18,15 +21,19 @@ app.set('trust proxy', 1);
 const origins = (process.env.CORS_ORIGIN || '').split(',').map((x) => x.trim()).filter(Boolean);
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({ origin(origin, done) { return !origin || origins.includes(origin) ? done(null, true) : done(new Error('Origine non autorisee.')); }, methods: ['GET', 'POST', 'PATCH', 'DELETE'], allowedHeaders: ['Content-Type', 'Authorization'] }));
-app.use(express.json({ limit: '100kb' }));
+app.use(express.json({ limit: '2mb' }));
 app.use(rateLimit({ windowMs: 900000, limit: 300, standardHeaders: 'draft-8', legacyHeaders: false }));
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const clientDist = path.resolve(__dirname, '..', 'dist');
+const hasClient = fs.existsSync(path.join(clientDist, 'index.html'));
 const pool = mysql.createPool(process.env.DATABASE_URL);
 const route = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 const uuid = z.string().uuid();
 const password = z.string().min(12).max(128).regex(/[a-z]/).regex(/[A-Z]/).regex(/[0-9]/);
 const userInput = z.object({ email: z.string().email().max(254), password, firstName: z.string().trim().min(1).max(80), lastName: z.string().trim().min(1).max(80), phone: z.string().trim().min(6).max(30).optional() });
-const brandInput = z.object({ name: z.string().trim().min(1).max(120), slug: z.string().regex(/^[a-z0-9-]+$/).max(140), description: z.string().trim().min(1).max(10000), logoUrl: z.string().url().nullable().optional(), bannerUrl: z.string().url().nullable().optional(), accentColor: z.string().max(20).nullable().optional(), status: z.enum(['active', 'draft']), order: z.number().int().min(0).max(100000) });
-const subcategoryInput = z.object({ brandId: uuid, name: z.string().trim().min(1).max(120), slug: z.string().regex(/^[a-z0-9-]+$/).max(140), description: z.string().trim().min(1).max(10000), imageUrl: z.string().url().nullable().optional(), status: z.enum(['active', 'draft']), order: z.number().int().min(0).max(100000) });
+const imageOrUrl = z.string().refine((value) => /^https?:\/\//i.test(value) || /^data:image\//i.test(value), { message: 'URL ou image base64 invalide.' });
+const brandInput = z.object({ name: z.string().trim().min(1).max(120), slug: z.string().regex(/^[a-z0-9-]+$/).max(140), description: z.string().trim().min(1).max(10000), logoUrl: imageOrUrl.nullable().optional(), bannerUrl: imageOrUrl.nullable().optional(), accentColor: z.string().max(20).nullable().optional(), status: z.enum(['active', 'draft']), order: z.number().int().min(0).max(100000) });
+const subcategoryInput = z.object({ brandId: uuid, name: z.string().trim().min(1).max(120), slug: z.string().regex(/^[a-z0-9-]+$/).max(140), description: z.string().trim().min(1).max(10000), imageUrl: imageOrUrl.nullable().optional(), status: z.enum(['active', 'draft']), order: z.number().int().min(0).max(100000) });
 const productBase = z.object({
   brandId: uuid, subCategoryId: uuid, name: z.string().trim().min(1).max(255), slug: z.string().regex(/^[a-z0-9-]+$/).max(255), category: z.enum(['Papeterie', 'Scolaire', 'Arts & Peinture', 'Librairie', 'Bureau & Organisation']), price: z.number().nonnegative().max(9999999), promoPrice: z.number().nonnegative().max(9999999).nullable().optional(), sku: z.string().trim().min(1).max(100), stock: z.number().int().min(0).max(100000),
   isNew: z.boolean().optional(), isPromo: z.boolean().optional(), isBestSeller: z.boolean().optional(), badge: z.string().max(80).nullable().optional(), images: z.array(z.string().url()).max(12), shortDescription: z.string().trim().min(1).max(2000), description: z.string().trim().min(1).max(20000), features: z.array(z.string().max(300)).max(30), sizes: z.array(z.string().max(100)).max(30).nullable().optional(), colors: z.array(z.object({ name: z.string().max(100), hex: z.string().regex(/^#[0-9a-fA-F]{6}$/) })).max(30).nullable().optional(),
@@ -79,6 +86,11 @@ app.patch('/api/admin/orders/:id/status', auth, admin, route(async (req, res) =>
 app.get('/api/admin/reviews', auth, admin, route(async (_q, res) => { const [rows] = await pool.execute('SELECT id, product_id AS productId, user_id AS userId, customer_name AS customerName, customer_email AS customerEmail, rating, comment, status, created_at AS date FROM reviews ORDER BY created_at DESC'); res.json(rows); }));
 app.patch('/api/admin/reviews/:id', auth, admin, route(async (req, res) => { uuid.parse(req.params.id); const { status } = z.object({ status: z.enum(['pending', 'approved', 'rejected']) }).parse(req.body); const [r] = await pool.execute('UPDATE reviews SET status = ? WHERE id = ?', [status, req.params.id]); if (!r.affectedRows) return res.status(404).json({ error: 'Avis introuvable.' }); res.status(204).end(); }));
 app.delete('/api/admin/reviews/:id', auth, admin, route(async (req, res) => { uuid.parse(req.params.id); const [r] = await pool.execute('DELETE FROM reviews WHERE id = ?', [req.params.id]); if (!r.affectedRows) return res.status(404).json({ error: 'Avis introuvable.' }); res.status(204).end(); }));
+if (hasClient) {
+  app.use(express.static(clientDist, { index: false, maxAge: '1h' }));
+  app.get(/^\/(?!api\/).*/, (_q, res) => res.sendFile(path.join(clientDist, 'index.html')));
+}
 app.use((_q, res) => res.status(404).json({ error: 'Route introuvable.' }));
 app.use((error, _q, res, _next) => { if (error instanceof z.ZodError) return res.status(400).json({ error: 'Donnees invalides.', details: error.flatten().fieldErrors }); if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Cette valeur existe deja.' }); if (error.code === 'ER_NO_REFERENCED_ROW_2') return res.status(400).json({ error: 'Reference invalide.' }); if (error.status) return res.status(error.status).json({ error: error.message }); console.error(error); return res.status(500).json({ error: 'Erreur interne.' }); });
 app.listen(Number(process.env.PORT || 3001), () => console.log('API Espace Pastel demarree.'));
+

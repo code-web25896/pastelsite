@@ -73,6 +73,10 @@ let state = await readState();
 
 const route = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 const uuid = z.string().uuid();
+const imageOrUrl = z.string().refine((value) => /^https?:\/\//i.test(value) || /^data:image\//i.test(value), { message: 'URL ou image base64 invalide.' });
+const brandInput = z.object({ name: z.string().trim().min(1).max(120), slug: z.string().regex(/^[a-z0-9-]+$/).max(140), description: z.string().trim().min(1).max(10000), logoUrl: imageOrUrl.nullable().optional(), bannerUrl: imageOrUrl.nullable().optional(), accentColor: z.string().max(20).nullable().optional(), status: z.enum(['active', 'draft']), order: z.number().int().min(0).max(100000) });
+const subcategoryInput = z.object({ brandId: uuid, name: z.string().trim().min(1).max(120), slug: z.string().regex(/^[a-z0-9-]+$/).max(140), description: z.string().trim().min(1).max(10000), imageUrl: imageOrUrl.nullable().optional(), status: z.enum(['active', 'draft']), order: z.number().int().min(0).max(100000) });
+
 
 function sign(user) {
   return jwt.sign({ sub: user.id, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN, issuer: 'espace-pastel-api', audience: 'espace-pastel-client' });
@@ -87,6 +91,11 @@ function auth(req, res, next) {
   } catch {
     return res.status(401).json({ error: 'Session invalide ou expiree.' });
   }
+}
+
+function admin(req, res, next) {
+  if (req.user?.role !== 'admin') return res.status(403).json({ error: 'Acces admin requis.' });
+  return next();
 }
 
 function publicUser(user) {
@@ -135,6 +144,55 @@ app.get('/api/auth/me', auth, route(async (req, res) => {
 
 app.get('/api/brands', route(async (_req, res) => res.json(state.brands.filter((brand) => brand.status === 'active'))));
 app.get('/api/subcategories', route(async (req, res) => res.json(state.subcategories.filter((subcategory) => subcategory.status === 'active' && (!req.query.brandId || subcategory.brandId === req.query.brandId)))));
+app.post('/api/admin/brands', auth, admin, route(async (req, res) => {
+  const body = brandInput.parse(req.body);
+  const brand = { id: crypto.randomUUID(), ...body };
+  state.brands.push(brand);
+  await persist();
+  res.status(201).json({ id: brand.id });
+}));
+app.patch('/api/admin/brands/:id', auth, admin, route(async (req, res) => {
+  uuid.parse(req.params.id);
+  const body = brandInput.partial().parse(req.body);
+  const brand = state.brands.find((item) => item.id === req.params.id);
+  if (!brand) return res.status(404).json({ error: 'Element introuvable.' });
+  Object.assign(brand, body);
+  await persist();
+  res.status(204).end();
+}));
+app.delete('/api/admin/brands/:id', auth, admin, route(async (req, res) => {
+  uuid.parse(req.params.id);
+  const before = state.brands.length;
+  state.brands = state.brands.filter((item) => item.id !== req.params.id);
+  if (state.brands.length === before) return res.status(404).json({ error: "Element introuvable." });
+  await persist();
+  res.status(204).end();
+}));
+app.post('/api/admin/subcategories', auth, admin, route(async (req, res) => {
+  const body = subcategoryInput.parse(req.body);
+  const subcategory = { id: crypto.randomUUID(), ...body };
+  state.subcategories.push(subcategory);
+  await persist();
+  res.status(201).json({ id: subcategory.id });
+}));
+app.patch('/api/admin/subcategories/:id', auth, admin, route(async (req, res) => {
+  uuid.parse(req.params.id);
+  const body = subcategoryInput.partial().parse(req.body);
+  const subcategory = state.subcategories.find((item) => item.id === req.params.id);
+  if (!subcategory) return res.status(404).json({ error: 'Element introuvable.' });
+  Object.assign(subcategory, body);
+  await persist();
+  res.status(204).end();
+}));
+app.delete('/api/admin/subcategories/:id', auth, admin, route(async (req, res) => {
+  uuid.parse(req.params.id);
+  const before = state.subcategories.length;
+  state.subcategories = state.subcategories.filter((item) => item.id !== req.params.id);
+  if (state.subcategories.length === before) return res.status(404).json({ error: "Element introuvable." });
+  await persist();
+  res.status(204).end();
+}));
+
 app.get('/api/products', route(async (req, res) => {
   const q = String(req.query.q || '').trim().toLowerCase();
   const filtered = state.products.filter((product) => product.status === 'published' && (!req.query.brandId || product.brandId === req.query.brandId) && (!req.query.subCategoryId || product.subCategoryId === req.query.subCategoryId) && (!q || [product.name, product.shortDescription, product.category].join(' ').toLowerCase().includes(q)));
