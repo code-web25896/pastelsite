@@ -34,11 +34,11 @@ const seed = () => {
     ],
     brands: [
       { id: 'brand-bomi', name: 'BOMI', slug: 'bomi', description: 'Papeterie et cartables pour la rentree.', logoUrl: '/brands/bomi.jpg', bannerUrl: '/brands/bomi.jpg', accentColor: '#F4A9C8', status: 'active', order: 1 },
-      { id: 'brand-wama', name: 'WAMA', slug: 'wama', description: 'Instruments d ecriture et fournitures techniques.', logoUrl: '/brands/wama.jpg', bannerUrl: '/brands/wama.jpg', accentColor: '#8FD8C3', status: 'active', order: 2 },
+      { id: 'brand-wama', name: 'WAMA', slug: 'wama', description: 'Instruments d ecriture et fournitures techniques.', logoUrl: '/brands/wama.jpeg', bannerUrl: '/brands/wama.jpeg', accentColor: '#8FD8C3', status: 'active', order: 2 },
     ],
     subcategories: [
       { id: 'sub-bomi-2026', brandId: 'brand-bomi', name: 'Collection 2026', slug: 'collection-2026', description: 'Nouveautes de la rentree.', imageUrl: '/brands/bomi.jpg', status: 'active', order: 1 },
-      { id: 'sub-wama-ink', brandId: 'brand-wama', name: 'Ecriture', slug: 'ecriture', description: 'Stylos, feutres et accessoires.', imageUrl: '/brands/wama.jpg', status: 'active', order: 1 },
+      { id: 'sub-wama-ink', brandId: 'brand-wama', name: 'Ecriture', slug: 'ecriture', description: 'Stylos, feutres et accessoires.', imageUrl: '/brands/wama.jpeg', status: 'active', order: 1 },
     ],
     products: [
       { id: 'prd-bomi-horizon', brandId: 'brand-bomi', subCategoryId: 'sub-bomi-2026', name: 'Cartable BOMI Horizon', slug: 'cartable-bomi-horizon', category: 'Cartables', price: 129.9, promoPrice: 109.9, sku: 'BOMI-HZN-001', stock: 14, isNew: true, isPromo: true, isBestSeller: true, badge: 'Nouveau', images: ['https://images.unsplash.com/photo-1514477917009-389c76a86b68?auto=format&fit=crop&w=900&q=80'], shortDescription: 'Cartable leger et robuste pour la rentree.', description: 'Un cartable compact avec plusieurs compartiments et finition durable.', features: ['Compartiment principal', 'Dos rembourre', 'Tissu resistant'], sizes: ['M'], colors: ['Rose', 'Bleu'], dimensions: '42 x 30 x 18 cm', weight: '0.9 kg', material: 'Polyester', actionType: null, customPhone: null, customWhatsapp: null, rareNote: null, status: 'published', createdAt: now },

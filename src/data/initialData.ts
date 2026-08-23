@@ -1,6 +1,6 @@
 import { Brand, SubCategory, Product, Review, Order, Customer } from '../types';
 const bomiImg = '/brands/bomi.jpg';
-const wamaImg = '/brands/wama.jpg';
+const wamaImg = '/brands/wama.jpeg';
 const fournitureImg = '/brands/fourniture.png';
 const artPeintureImg = '/brands/art-peinture.png';
 
