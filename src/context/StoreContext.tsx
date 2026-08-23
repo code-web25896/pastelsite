@@ -128,33 +128,33 @@ const parseStoredCollection = <T,>(key: string): T[] => {
 
 const mergeBrandsFromApi = (apiBrands: Brand[]): Brand[] => {
   const storedBrands = parseStoredCollection<Brand>(LOCAL_STORAGE_KEYS.BRANDS);
-  const merged = apiBrands.map((apiBrand) => {
+  const sourceBrands = apiBrands.length > 0 ? apiBrands : INITIAL_BRANDS;
+  return sourceBrands.map((apiBrand) => {
     const stored = storedBrands.find((item) => item.id === apiBrand.id || item.slug === apiBrand.slug);
-    if (!stored) return apiBrand;
+    const init = INITIAL_BRANDS.find((item) => item.id === apiBrand.id || item.slug === apiBrand.slug);
     return {
+      ...init,
       ...apiBrand,
       ...stored,
-      logoUrl: stored.logoUrl || apiBrand.logoUrl || '',
-      bannerUrl: stored.bannerUrl || apiBrand.bannerUrl || '',
+      logoUrl: stored?.logoUrl || apiBrand.logoUrl || init?.logoUrl || '',
+      bannerUrl: stored?.bannerUrl || apiBrand.bannerUrl || init?.bannerUrl || '',
     };
   });
-  const extras = storedBrands.filter((stored) => !apiBrands.some((apiBrand) => apiBrand.id === stored.id || apiBrand.slug === stored.slug));
-  return [...merged, ...extras];
 };
 
 const mergeSubCategoriesFromApi = (apiSubCategories: SubCategory[]): SubCategory[] => {
   const storedSubCategories = parseStoredCollection<SubCategory>(LOCAL_STORAGE_KEYS.SUBCATEGORIES);
-  const merged = apiSubCategories.map((apiSubCategory) => {
+  const sourceSubCategories = apiSubCategories.length > 0 ? apiSubCategories : INITIAL_SUBCATEGORIES;
+  return sourceSubCategories.map((apiSubCategory) => {
     const stored = storedSubCategories.find((item) => item.id === apiSubCategory.id || item.slug === apiSubCategory.slug);
-    if (!stored) return apiSubCategory;
+    const init = INITIAL_SUBCATEGORIES.find((item) => item.id === apiSubCategory.id || item.slug === apiSubCategory.slug);
     return {
+      ...init,
       ...apiSubCategory,
       ...stored,
-      imageUrl: stored.imageUrl || apiSubCategory.imageUrl || '',
+      imageUrl: stored?.imageUrl || apiSubCategory.imageUrl || init?.imageUrl || '',
     };
   });
-  const extras = storedSubCategories.filter((stored) => !apiSubCategories.some((apiSubCategory) => apiSubCategory.id === stored.id || apiSubCategory.slug === stored.slug));
-  return [...merged, ...extras];
 };
 
 const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
@@ -201,7 +201,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
 
   const [subCategories, setSubCategories] = useState<SubCategory[]>(() => {
-    const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.SUBCATS);
+    const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.SUBCATEGORIES);
     return saved ? JSON.parse(saved) : INITIAL_SUBCATEGORIES;
   });
 
@@ -244,7 +244,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [brands]);
 
   useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEYS.SUBCATS, JSON.stringify(subCategories));
+    localStorage.setItem(LOCAL_STORAGE_KEYS.SUBCATEGORIES, JSON.stringify(subCategories));
   }, [subCategories]);
 
   useEffect(() => {
