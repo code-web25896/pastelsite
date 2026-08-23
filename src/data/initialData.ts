@@ -1,8 +1,8 @@
 import { Brand, SubCategory, Product, Review, Order, Customer } from '../types';
-const bomiImg = '/brands/bomi.jpg';
-const wamaImg = '/brands/wama.jpg';
-const fournitureImg = '/brands/fourniture.png';
-const artPeintureImg = '/brands/art-peinture.png';
+import bomiImg from '../assets/brands/bomi.jpg';
+import wamaImg from '../assets/brands/wama.jpg';
+import fournitureImg from '../assets/brands/fourniture.png';
+import artPeintureImg from '../assets/brands/art-peinture.png';
 
 export const INITIAL_BRANDS: Brand[] = [
   {
