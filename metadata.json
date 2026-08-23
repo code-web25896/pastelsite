@@ -1,0 +1,6 @@
+{
+  "name": "Espace Pastel - Librairie & Papeterie",
+  "description": "Boutique en ligne officielle d'Espace Pastel : Librairie, Papeterie, Fournitures scolaires et Matériel artistique à Tunis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

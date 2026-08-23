@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-heading: 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif;
+    
+    /* Couleurs extraites de la couverture Espace Pastel */
+    --navy-ink: #0B1833;
+    --navy-night: #191E39;
+    --rose-pastel: #EFBED7;
+    --rose-blush: #F4A9C8;
+    --menthe-pastel: #8FD8C3;
+    --menthe-eau: #98D0CA;
+    --lavande-pastel: #C9BBDF;
+    --lavande-doux: #B58BC5;
+    --bleu-ciel: #D6E4F0;
+    --bleu-pastel: #7DB9DD;
+    --jaune-soleil: #F5E7A6;
+    --fond-canvas: #F4F6FB;
+    --fond-carte: #FFFFFF;
+    --border-subtle: #E2E6ED;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    color: #0B1833;
+    background-color: #F4F6FB;
+    background-image: 
+      radial-gradient(at 15% 15%, rgba(143, 216, 195, 0.08) 0px, transparent 55%),
+      radial-gradient(at 85% 25%, rgba(239, 190, 215, 0.08) 0px, transparent 55%),
+      radial-gradient(at 50% 85%, rgba(201, 187, 223, 0.06) 0px, transparent 60%);
+    background-attachment: fixed;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    letter-spacing: -0.02em;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F4F6FB;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C9BBDF80;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #0B1833;
+}
+
+

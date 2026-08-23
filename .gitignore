@@ -1,0 +1,17 @@
+﻿node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+mysql-8.4.11/
+mysql-bin-8.4.11/
+mysql-8.4.11-extracted/
+mysql-data/
+*.zip
+backend/mock-db.json
+
+bun.lock
