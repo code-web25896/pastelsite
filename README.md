@@ -56,12 +56,18 @@ Le backend sert alors automatiquement le dossier `dist/`.
 ### 3) Démarrage production
 
 ```bash
+node server.js
+```
+
+ou
+
+```bash
 npm start
 ```
 
 ### 4) Base de données
 
-Le backend de production utilise MySQL. Il faut donc créer les tables attendues dans la base `DATABASE_URL` puis lancer l’application avec `npm start`.
+Le backend de production utilise MySQL. Il faut donc créer les tables attendues dans la base `DATABASE_URL` puis lancer l’application avec `node server.js` ou `npm start`.
 
 ## Notes utiles
 
