@@ -33,11 +33,11 @@ const seed = () => {
       { id: 'usr-client', email: 'client@espacepastel.tn', passwordHash: bcrypt.hashSync('Client123!', 10), role: 'customer', firstName: 'Amina', lastName: 'Ben Ali', phone: '21600000000', createdAt: now },
     ],
     brands: [
-      { id: 'brand-bomi', name: 'BOMI', slug: 'bomi', description: 'Papeterie et cartables pour la rentree.', logoUrl: '/brands/bomi.jpg', bannerUrl: '/brands/bomi.jpg', accentColor: '#F4A9C8', status: 'active', order: 1 },
+      { id: 'brand-bomi', name: 'BOMI', slug: 'bomi', description: 'Papeterie et cartables pour la rentree.', logoUrl: '/brands/bomi.jpeg', bannerUrl: '/brands/bomi.jpeg', accentColor: '#F4A9C8', status: 'active', order: 1 },
       { id: 'brand-wama', name: 'WAMA', slug: 'wama', description: 'Instruments d ecriture et fournitures techniques.', logoUrl: '/brands/wama.jpg', bannerUrl: '/brands/wama.jpg', accentColor: '#8FD8C3', status: 'active', order: 2 },
     ],
     subcategories: [
-      { id: 'sub-bomi-2026', brandId: 'brand-bomi', name: 'Collection 2026', slug: 'collection-2026', description: 'Nouveautes de la rentree.', imageUrl: '/brands/bomi.jpg', status: 'active', order: 1 },
+      { id: 'sub-bomi-2026', brandId: 'brand-bomi', name: 'Collection 2026', slug: 'collection-2026', description: 'Nouveautes de la rentree.', imageUrl: '/brands/bomi.jpeg', status: 'active', order: 1 },
       { id: 'sub-wama-ink', brandId: 'brand-wama', name: 'Ecriture', slug: 'ecriture', description: 'Stylos, feutres et accessoires.', imageUrl: '/brands/wama.jpg', status: 'active', order: 1 },
     ],
     products: [

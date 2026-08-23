@@ -1,5 +1,6 @@
 import React from 'react';
-import officialLogoImg from '../assets/logo.webp';
+import fallbackLogoImg from '../assets/logo.webp';
+const officialLogoImg = encodeURI('/OIP (1).webp');
 
 interface LogoProps {
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'hero';
@@ -42,6 +43,7 @@ export const Logo: React.FC<LogoProps> = ({
       >
         <img
           src={officialLogoImg}
+          onError={(e) => { e.currentTarget.src = fallbackLogoImg; }}
           alt="Espace Pastel Logo"
           className="w-full h-full object-contain select-none"
           loading="eager"

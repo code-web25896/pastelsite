@@ -3,7 +3,6 @@ import { useStore } from '../context/StoreContext';
 import { BrandCard } from '../components/BrandCard';
 import { ProductCard } from '../components/ProductCard';
 import { Logo } from '../components/Logo';
-import coverHeaderImg from '../assets/cover-header.png';
 import { motion } from 'motion/react';
 import { 
   ArrowRight, 
@@ -21,6 +20,9 @@ import {
   CheckCircle2,
   Award
 } from 'lucide-react';
+
+const coverHeaderImg = encodeURI('/cover sous header.png');
+
 
 export const HomeView: React.FC = () => {
   const { navigateTo, brands, products, reviews, formatPrice } = useStore();
