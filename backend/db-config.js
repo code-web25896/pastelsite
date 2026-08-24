@@ -19,7 +19,11 @@ export function getMysqlConnectionConfig() {
   }
 
   return {
-    host: String(process.env.DB_HOST || 'localhost').trim() === '127.0.0.1' ? 'localhost' : String(process.env.DB_HOST || 'localhost').trim(),
+    host: (() => {
+      const rawHost = String(process.env.DB_HOST || '127.0.0.1').trim();
+      if (rawHost === 'localhost' || rawHost === '::1') return '127.0.0.1';
+      return rawHost;
+    })(),
     port,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
@@ -32,5 +36,6 @@ export function getMysqlConnectionConfig() {
     keepAliveInitialDelay: 0,
   };
 }
+
 
 
