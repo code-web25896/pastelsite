@@ -94,7 +94,8 @@ if (hasClient) {
 }
 app.use((_q, res) => res.status(404).json({ error: 'Route introuvable.' }));
 app.use((error, _q, res, _next) => { if (error instanceof z.ZodError) return res.status(400).json({ error: 'Donnees invalides.', details: error.flatten().fieldErrors }); if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Cette valeur existe deja.' }); if (error.code === 'ER_NO_REFERENCED_ROW_2') return res.status(400).json({ error: 'Reference invalide.' }); if (error.status) return res.status(error.status).json({ error: error.message }); console.error(error); return res.status(500).json({ error: 'Erreur interne.' }); });
-app.listen(Number(process.env.PORT || 3001), () => console.log('API Espace Pastel demarree.'));
+app.listen(Number(process.env.PORT || 3000), () => console.log('API Espace Pastel demarree.'));
+
 
 
 
