@@ -19,11 +19,12 @@ export function getMysqlConnectionConfig() {
   }
 
   return {
-    host: process.env.DB_HOST,
+    host: String(process.env.DB_HOST || 'localhost').trim() === '127.0.0.1' ? 'localhost' : String(process.env.DB_HOST || 'localhost').trim(),
     port,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
+    charset: 'utf8mb4',
     waitForConnections: true,
     connectionLimit: 10,
     decimalNumbers: false,
@@ -31,3 +32,5 @@ export function getMysqlConnectionConfig() {
     keepAliveInitialDelay: 0,
   };
 }
+
+
