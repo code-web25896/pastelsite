@@ -1,4 +1,4 @@
-# API Espace Pastel
+﻿# API Espace Pastel
 
 Backend Node.js/Express securise pour le front existant. Aucun fichier de src n'est modifie : le front reste en mode demonstration jusqu'a ce qu'une integration API soit demandee.
 
@@ -12,7 +12,7 @@ Backend Node.js/Express securise pour le front existant. Aucun fichier de src n'
 
 ## Deploiement Hostinger
 
-Creer une application Node.js (Node 20+), definir les variables dans le panneau Hostinger, executer npm install --omit=dev, importer le schema SQL, puis utiliser backend/server.js comme fichier de demarrage. Le domaine du front doit figurer exactement dans CORS_ORIGIN.
+Creer une application Node.js (Node 20+), definir les variables dans le panneau Hostinger, executer npm install --omit=dev, importer le schema SQL, puis utiliser backend/server.js comme fichier de demarrage. Tu peux utiliser soit DATABASE_URL, soit les variables separees DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD. Le domaine du front doit figurer exactement dans CORS_ORIGIN.
 
 ## Endpoints
 
@@ -26,3 +26,4 @@ Creer une application Node.js (Node 20+), definir les variables dans le panneau 
 Pour chaque route protegee, envoyer le jeton recu a la connexion avec l'en-tete Authorization: Bearer VOTRE_JETON.
 
 Les prix, le stock et les totaux sont toujours recalcules cote serveur. Les secrets restent exclusivement dans les variables d'environnement.
+

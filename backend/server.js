@@ -12,14 +12,15 @@ import jwt from 'jsonwebtoken';
 import mysql from 'mysql2/promise';
 import { z } from 'zod';
 import { initializeDatabase } from './init-db.js';
+import { getMysqlConnectionConfig } from './db-config.js';
 
-const missing = ['DATABASE_URL', 'JWT_SECRET', 'CORS_ORIGIN'].filter((key) => !process.env[key]);
+const missing = ['JWT_SECRET'].filter((key) => !process.env[key]);
 if (missing.length) throw new Error('Variables manquantes : ' + missing.join(', '));
 if (process.env.JWT_SECRET.length < 32) throw new Error('JWT_SECRET doit contenir au moins 32 caracteres.');
 const app = express();
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
-const origins = (process.env.CORS_ORIGIN || '').split(',').map((x) => x.trim()).filter(Boolean);
+const origins = (process.env.CORS_ORIGIN || 'http://127.0.0.1:3000,http://localhost:3000').split(',').map((x) => x.trim()).filter(Boolean);
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({ origin(origin, done) { return !origin || origins.includes(origin) ? done(null, true) : done(new Error('Origine non autorisee.')); }, methods: ['GET', 'POST', 'PATCH', 'DELETE'], allowedHeaders: ['Content-Type', 'Authorization'] }));
 app.use(express.json({ limit: '2mb' }));
@@ -27,7 +28,7 @@ app.use(rateLimit({ windowMs: 900000, limit: 300, standardHeaders: 'draft-8', le
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const clientDist = path.resolve(__dirname, '..', 'dist');
 const hasClient = fs.existsSync(path.join(clientDist, 'index.html'));
-const pool = mysql.createPool(process.env.DATABASE_URL);
+const pool = mysql.createPool(getMysqlConnectionConfig());
 await initializeDatabase(pool);
 const route = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 const uuid = z.string().uuid();
@@ -95,6 +96,7 @@ if (hasClient) {
 app.use((_q, res) => res.status(404).json({ error: 'Route introuvable.' }));
 app.use((error, _q, res, _next) => { if (error instanceof z.ZodError) return res.status(400).json({ error: 'Donnees invalides.', details: error.flatten().fieldErrors }); if (error.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Cette valeur existe deja.' }); if (error.code === 'ER_NO_REFERENCED_ROW_2') return res.status(400).json({ error: 'Reference invalide.' }); if (error.status) return res.status(error.status).json({ error: error.message }); console.error(error); return res.status(500).json({ error: 'Erreur interne.' }); });
 app.listen(Number(process.env.PORT || 3000), () => console.log('API Espace Pastel demarree.'));
+
 
 
 
