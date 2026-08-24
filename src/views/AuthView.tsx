@@ -18,8 +18,9 @@ export const AuthView: React.FC<{ initialMode?: Mode }> = ({ initialMode = 'logi
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+
     if (mode === 'forgot') {
-      addToast('La réinitialisation par e-mail nécessite la configuration SMTP du serveur.', 'info');
+      addToast('La reinitialisation par e-mail necessite la configuration SMTP du serveur.', 'info');
       return;
     }
 
@@ -55,7 +56,7 @@ export const AuthView: React.FC<{ initialMode?: Mode }> = ({ initialMode = 'logi
     }
   };
 
-  const title = mode === 'login' ? 'Connexion' : mode === 'register' ? 'Créer mon compte' : 'Mot de passe oublié';
+  const title = mode === 'login' ? 'Connexion' : mode === 'register' ? 'Creer mon compte' : 'Mot de passe oublie';
 
   return (
     <div className="max-w-md mx-auto px-4 py-12 sm:py-20">
@@ -67,17 +68,17 @@ export const AuthView: React.FC<{ initialMode?: Mode }> = ({ initialMode = 'logi
         <h1 className="font-['Outfit'] font-black text-2xl text-[#0B1833]">{title}</h1>
         <p className="text-sm text-gray-500 mt-2">
           {mode === 'login'
-            ? 'Accédez à votre espace client ou à l’administration.'
+            ? 'Accedez a votre espace client ou a l administration.'
             : mode === 'register'
-              ? 'Les comptes créés sont des comptes clients.'
-              : 'Saisissez votre adresse e-mail pour demander une réinitialisation.'}
+              ? 'Les comptes crees sont des comptes clients.'
+              : 'Saisissez votre adresse e-mail pour demander une reinitialisation.'}
         </p>
 
         <form onSubmit={submit} className="mt-7 space-y-4">
           {mode === 'register' && (
             <div className="grid grid-cols-2 gap-3">
               <label className="text-xs font-bold">
-                Prénom
+                Prenom
                 <input
                   required
                   value={firstName}
@@ -129,7 +130,7 @@ export const AuthView: React.FC<{ initialMode?: Mode }> = ({ initialMode = 'logi
               </div>
               {mode === 'register' && (
                 <span className="mt-1 block font-normal text-gray-500">
-                  12 caractères minimum, avec majuscule, minuscule et chiffre.
+                  12 caracteres minimum, avec majuscule, minuscule et chiffre.
                 </span>
               )}
             </label>
@@ -139,19 +140,19 @@ export const AuthView: React.FC<{ initialMode?: Mode }> = ({ initialMode = 'logi
             disabled={loading}
             className="w-full rounded-xl bg-[#0B1833] py-3.5 text-sm font-bold text-white disabled:opacity-60"
           >
-            {loading ? 'Veuillez patienter…' : mode === 'login' ? 'Se connecter' : mode === 'register' ? 'Créer mon compte' : 'Demander la réinitialisation'}
+            {loading ? 'Veuillez patienter...' : mode === 'login' ? 'Se connecter' : mode === 'register' ? 'Creer mon compte' : 'Demander la reinitialisation'}
           </button>
         </form>
 
         <div className="mt-5 flex flex-wrap gap-x-4 gap-y-2 text-xs font-semibold text-[#0B1833]">
           <button onClick={() => setMode('login')}>Connexion</button>
           <button onClick={() => setMode('register')}>Inscription</button>
-          <button onClick={() => setMode('forgot')}>Mot de passe oublié ?</button>
+          <button onClick={() => setMode('forgot')}>Mot de passe oublie ?</button>
         </div>
 
         <button onClick={() => navigateTo({ type: 'home' })} className="mt-6 flex items-center gap-1.5 text-xs text-gray-500">
           <ArrowLeft className="w-3.5 h-3.5" />
-          Retour à la boutique
+          Retour a la boutique
         </button>
       </div>
     </div>

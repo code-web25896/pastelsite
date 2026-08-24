@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import confetti from 'canvas-confetti';
 import { 
@@ -24,7 +24,8 @@ export const CheckoutView: React.FC = () => {
     createOrder, 
     navigateTo, 
     currentUser,
-    clearCart
+    clearCart,
+    addToast,
   } = useStore();
 
   // Form states
@@ -33,7 +34,7 @@ export const CheckoutView: React.FC = () => {
   const [email, setEmail] = useState(currentUser?.email || 'amira.b@outlook.com');
   const [phone, setPhone] = useState(currentUser?.phone || '55 542 000');
   const [city, setCity] = useState('Menzah 5, Tunis');
-  const [address, setAddress] = useState('23 Rue de la Liberté');
+  const [address, setAddress] = useState('23 Rue de la LibertÃ©');
   const [postalCode, setPostalCode] = useState('1004');
   const [notes, setNotes] = useState('');
   
@@ -63,13 +64,13 @@ export const CheckoutView: React.FC = () => {
   const shippingFee = deliveryType === 'pickup' || cartSubtotal >= FREE_SHIPPING_THRESHOLD ? 0 : 7.0;
   const total = cartSubtotal + shippingFee;
 
-  const handleSubmitOrder = (e: React.FormEvent) => {
+  const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (cart.length === 0) return;
 
     setIsSubmitting(true);
 
-    setTimeout(() => {
+    try {
       const orderItems = cart.map(item => ({
         productId: item.productId,
         productName: item.product.name,
@@ -79,7 +80,7 @@ export const CheckoutView: React.FC = () => {
         brandName: item.product.brandId
       }));
 
-      const newOrder = createOrder({
+      const newOrder = await createOrder({
         customer: {
           firstName,
           lastName,
@@ -99,19 +100,21 @@ export const CheckoutView: React.FC = () => {
       });
 
       setCompletedOrder(newOrder);
-      setIsSubmitting(false);
 
-      // Trigger celebratory confetti
       try {
         confetti({
           particleCount: 80,
           spread: 70,
           origin: { y: 0.6 }
         });
-      } catch (err) {
+      } catch {
         // silent
       }
-    }, 600);
+    } catch (error) {
+      addToast(error instanceof Error ? error.message : 'Erreur lors de la commande.', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // If order is completed, show order receipt confirmation
@@ -126,20 +129,20 @@ export const CheckoutView: React.FC = () => {
 
           <div className="space-y-2">
             <span className="text-xs font-black uppercase tracking-widest text-[#8FD8C3]">
-              COMMANDE CONFIRMÉE
+              COMMANDE CONFIRMÃ‰E
             </span>
             <h1 className="font-['Outfit'] font-black text-2xl sm:text-4xl text-[#0B1833] tracking-tight">
               Merci pour votre commande, {completedOrder.customer.firstName} !
             </h1>
             <p className="text-xs sm:text-sm text-gray-600 max-w-md mx-auto">
-              Votre commande <strong className="text-[#0B1833]">#{completedOrder.orderNumber}</strong> a été transmise avec succès à notre boutique Espace Pastel.
+              Votre commande <strong className="text-[#0B1833]">#{completedOrder.orderNumber}</strong> a Ã©tÃ© transmise avec succÃ¨s Ã  notre boutique Espace Pastel.
             </p>
           </div>
 
           {/* Order Details Receipt Box */}
           <div className="bg-[#F7F7F8] p-6 rounded-2xl text-left space-y-4 text-xs text-[#0B1833]">
             <div className="flex justify-between pb-3 border-b border-gray-200">
-              <span className="text-gray-500">Numéro de commande :</span>
+              <span className="text-gray-500">NumÃ©ro de commande :</span>
               <span className="font-bold">{completedOrder.orderNumber}</span>
             </div>
             
@@ -151,11 +154,11 @@ export const CheckoutView: React.FC = () => {
             </div>
 
             <div className="flex justify-between pb-3 border-b border-gray-200">
-              <span className="text-gray-500">Mode de règlement :</span>
+              <span className="text-gray-500">Mode de rÃ¨glement :</span>
               <span className="font-bold">
-                {completedOrder.paymentMethod === 'cod' && 'Espèces à la livraison'}
+                {completedOrder.paymentMethod === 'cod' && 'EspÃ¨ces Ã  la livraison'}
                 {completedOrder.paymentMethod === 'card' && 'Carte bancaire en ligne'}
-                {completedOrder.paymentMethod === 'pickup' && 'Règlement au retrait en boutique (Menzah 5)'}
+                {completedOrder.paymentMethod === 'pickup' && 'RÃ¨glement au retrait en boutique (Menzah 5)'}
               </span>
             </div>
 
@@ -168,12 +171,12 @@ export const CheckoutView: React.FC = () => {
             </div>
 
             <div className="space-y-2 pt-2">
-              <span className="font-bold text-gray-500 block">Articles commandés :</span>
+              <span className="font-bold text-gray-500 block">Articles commandÃ©s :</span>
               {completedOrder.items.map((item, idx) => (
                 <div key={idx} className="flex justify-between items-center text-xs">
                   <div className="flex items-center gap-2">
                     <img src={item.image} alt={item.productName} className="w-8 h-8 rounded-lg object-cover" />
-                    <span>{item.productName} <strong>×{item.quantity}</strong></span>
+                    <span>{item.productName} <strong>Ã—{item.quantity}</strong></span>
                   </div>
                   <span className="font-bold">{formatPrice(item.price * item.quantity)}</span>
                 </div>
@@ -181,7 +184,7 @@ export const CheckoutView: React.FC = () => {
             </div>
 
             <div className="pt-3 border-t border-gray-300 flex justify-between font-['Outfit'] font-black text-sm text-[#0B1833]">
-              <span>Total Réglé :</span>
+              <span>Total RÃ©glÃ© :</span>
               <span>{formatPrice(completedOrder.total)}</span>
             </div>
           </div>
@@ -216,7 +219,7 @@ export const CheckoutView: React.FC = () => {
           onClick={() => navigateTo({ type: 'shop' })}
           className="bg-[#0B1833] text-white px-6 py-2.5 rounded-full text-xs font-bold"
         >
-          Découvrir la boutique
+          DÃ©couvrir la boutique
         </button>
       </div>
     );
@@ -232,7 +235,7 @@ export const CheckoutView: React.FC = () => {
             PASSER LA COMMANDE
           </h1>
           <p className="text-xs text-gray-500">
-            Finalisez votre commande en toute sécurité chez Espace Pastel Tunis.
+            Finalisez votre commande en toute sÃ©curitÃ© chez Espace Pastel Tunis.
           </p>
         </div>
 
@@ -254,12 +257,12 @@ export const CheckoutView: React.FC = () => {
           <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-4">
             <h2 className="font-['Outfit'] font-bold text-base text-[#0B1833] flex items-center gap-2">
               <span className="w-6 h-6 rounded-full bg-[#0B1833] text-white text-xs flex items-center justify-center font-bold">1</span>
-              <span>Coordonnées de contact</span>
+              <span>CoordonnÃ©es de contact</span>
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-[#0B1833] mb-1">Prénom *</label>
+                <label className="block text-xs font-semibold text-[#0B1833] mb-1">PrÃ©nom *</label>
                 <input
                   type="text"
                   required
@@ -292,7 +295,7 @@ export const CheckoutView: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#0B1833] mb-1">Téléphone tunisien *</label>
+                <label className="block text-xs font-semibold text-[#0B1833] mb-1">TÃ©lÃ©phone tunisien *</label>
                 <input
                   type="tel"
                   required
@@ -320,13 +323,13 @@ export const CheckoutView: React.FC = () => {
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2 font-bold text-xs text-[#0B1833]">
                     <Truck className="w-4 h-4 text-[#8FD8C3]" />
-                    <span>Livraison à domicile</span>
+                    <span>Livraison Ã  domicile</span>
                   </div>
                   <span className="text-xs font-bold text-[#0B1833]">
                     {cartSubtotal >= FREE_SHIPPING_THRESHOLD ? <strong className="text-emerald-700">GRATUIT</strong> : '7,000 TND'}
                   </span>
                 </div>
-                <p className="text-[11px] text-gray-500">Expédition 24h/48h partout en Tunisie.</p>
+                <p className="text-[11px] text-gray-500">ExpÃ©dition 24h/48h partout en Tunisie.</p>
               </div>
 
               <div 
@@ -340,7 +343,7 @@ export const CheckoutView: React.FC = () => {
                   </div>
                   <span className="text-xs font-bold text-emerald-700">GRATUIT</span>
                 </div>
-                <p className="text-[11px] text-gray-500">Retrait sous 2h au 23 Rue de la Liberté.</p>
+                <p className="text-[11px] text-gray-500">Retrait sous 2h au 23 Rue de la LibertÃ©.</p>
               </div>
             </div>
 
@@ -368,7 +371,7 @@ export const CheckoutView: React.FC = () => {
                       required
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
-                      placeholder="Ex: 23 Rue de la Liberté, Résidence Les Fleurs"
+                      placeholder="Ex: 23 Rue de la LibertÃ©, RÃ©sidence Les Fleurs"
                       className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-[#0B1833]"
                     />
                   </div>
@@ -397,8 +400,8 @@ export const CheckoutView: React.FC = () => {
             ) : (
               <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1">
                 <strong>Adresse de retrait :</strong>
-                <p>ESPACE PASTEL — 23 Rue de la Liberté, Menzah 5, Tunis.</p>
-                <p className="text-[11px] text-amber-700">Horaires d'ouverture : Du Lundi au Samedi de 08h30 à 19h30.</p>
+                <p>ESPACE PASTEL â€” 23 Rue de la LibertÃ©, Menzah 5, Tunis.</p>
+                <p className="text-[11px] text-amber-700">Horaires d'ouverture : Du Lundi au Samedi de 08h30 Ã  19h30.</p>
               </div>
             )}
           </div>
@@ -423,8 +426,8 @@ export const CheckoutView: React.FC = () => {
                 />
                 <Banknote className="w-5 h-5 text-[#0B1833]" />
                 <div className="flex-1">
-                  <div className="font-bold text-xs text-[#0B1833]">Paiement en espèces à la livraison</div>
-                  <div className="text-[11px] text-gray-500">Réglez directement le livreur lors de la réception du colis.</div>
+                  <div className="font-bold text-xs text-[#0B1833]">Paiement en espÃ¨ces Ã  la livraison</div>
+                  <div className="text-[11px] text-gray-500">RÃ©glez directement le livreur lors de la rÃ©ception du colis.</div>
                 </div>
               </label>
 
@@ -441,7 +444,7 @@ export const CheckoutView: React.FC = () => {
                 <CreditCard className="w-5 h-5 text-[#0B1833]" />
                 <div className="flex-1">
                   <div className="font-bold text-xs text-[#0B1833]">Carte bancaire tunisienne (GIM-TEL)</div>
-                  <div className="text-[11px] text-gray-500">Paiement 100% sécurisé via passerelle bancaire tunisienne.</div>
+                  <div className="text-[11px] text-gray-500">Paiement 100% sÃ©curisÃ© via passerelle bancaire tunisienne.</div>
                 </div>
               </label>
             </div>
@@ -452,7 +455,7 @@ export const CheckoutView: React.FC = () => {
         {/* RIGHT COLUMN: Order Summary (5 cols) */}
         <div className="lg:col-span-5 bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6 sticky top-24">
           <h2 className="font-['Outfit'] font-bold text-base text-[#0B1833]">
-            Récapitulatif de votre commande ({cartCount})
+            RÃ©capitulatif de votre commande ({cartCount})
           </h2>
 
           {/* Cart items list */}
@@ -471,7 +474,7 @@ export const CheckoutView: React.FC = () => {
                       {item.product.name}
                     </h4>
                     <span className="text-[11px] text-gray-500">
-                      {formatPrice(unitPrice)} × {item.quantity}
+                      {formatPrice(unitPrice)} Ã— {item.quantity}
                     </span>
                   </div>
                   <span className="font-bold text-xs text-[#0B1833]">
@@ -530,3 +533,4 @@ export const CheckoutView: React.FC = () => {
     </div>
   );
 };
+

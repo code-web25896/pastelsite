@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+﻿import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
   Brand, 
   SubCategory, 
@@ -52,7 +52,7 @@ interface StoreContextType {
   setSearchQuery: (query: string) => void;
 
   // Checkout
-  createOrder: (orderData: Omit<Order, 'id' | 'orderNumber' | 'createdAt'>) => Order;
+  createOrder: (orderData: Omit<Order, 'id' | 'orderNumber' | 'createdAt'>) => Promise<Order>;
 
   // Auth & User
   currentUser: Customer | null;
@@ -295,6 +295,29 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return () => { cancelled = true; };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    const loadOrders = async () => {
+      const token = localStorage.getItem('espace_pastel_auth_token');
+      if (!token) return;
+      try {
+        const response = await fetch(apiPath('/api/orders'), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!cancelled && Array.isArray(data)) {
+          setOrders(data);
+        }
+      } catch {
+        /* keep local fallback */
+      }
+    };
+    void loadOrders();
+    return () => { cancelled = true; };
+  }, [currentUser]);
+
+
   // Toast Helpers
   const addToast = (message: string, type: 'success' | 'info' | 'warning' | 'error' = 'success') => {
     const id = 'toast-' + Math.random().toString(36).substring(2, 9);
@@ -326,7 +349,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
       return [...prev, { productId: product.id, product, quantity }];
     });
-    addToast(`${product.name} ajoutÃ© au panier âœ“`, 'success');
+    addToast(`${product.name} ajoutÃƒÂ© au panier Ã¢Å“â€œ`, 'success');
     setIsCartDrawerOpen(true);
   };
 
@@ -346,7 +369,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const item = cart.find(i => i.productId === productId);
     setCart(prev => prev.filter(i => i.productId !== productId));
     if (item) {
-      addToast(`${item.product.name} retirÃ© du panier`, 'info');
+      addToast(`${item.product.name} retirÃƒÂ© du panier`, 'info');
     }
   };
 
@@ -366,10 +389,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setWishlist(prev => {
       const exists = prev.includes(productId);
       if (exists) {
-        addToast('RetirÃ© de vos favoris', 'info');
+        addToast('RetirÃƒÂ© de vos favoris', 'info');
         return prev.filter(id => id !== productId);
       } else {
-        addToast('AjoutÃ© Ã  vos favoris â¤ï¸', 'success');
+        addToast('AjoutÃƒÂ© ÃƒÂ  vos favoris Ã¢ÂÂ¤Ã¯Â¸Â', 'success');
         return [...prev, productId];
       }
     });
@@ -383,10 +406,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const setIsAdminMode = (admin: boolean) => {
     if (admin) {
       setCurrentUser(INITIAL_CUSTOMERS[1]); // Admin user
-      addToast('Mode Administrateur activÃ©', 'info');
+      addToast('Mode Administrateur activÃƒÂ©', 'info');
     } else {
       setCurrentUser(INITIAL_CUSTOMERS[0]); // Customer user
-      addToast('Mode Client activÃ©', 'info');
+      addToast('Mode Client activÃƒÂ©', 'info');
     }
   };
 
@@ -403,50 +426,79 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       email,
       phone: '55 542 000',
       role: 'customer',
-      addresses: [{ label: 'Adresse principale', address: '23 Rue de la LibertÃ©', city: 'Menzah 5' }],
+      addresses: [{ label: 'Adresse principale', address: '23 Rue de la Liberté', city: 'Menzah 5' }],
       createdAt: new Date().toISOString()
     };
     setCurrentUser(customer);
-    addToast(`Bonjour ${customer.firstName} !`, 'success');
+    addToast(Bonjour  !, 'success');
     return true;
   };
 
   const logout = () => {
     localStorage.removeItem('espace_pastel_auth_token');
     setCurrentUser(null);
-    addToast('Vous Ãªtes dÃ©connectÃ©', 'info');
+    addToast('Vous êtes déconnecté', 'info');
     navigateTo({ type: 'home' });
   };
 
-  // Orders
-  const createOrder = (orderData: Omit<Order, 'id' | 'orderNumber' | 'createdAt'>): Order => {
-    const newOrderNumber = `EP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+  const createOrder = async (orderData: Omit<Order, 'id' | 'orderNumber' | 'createdAt'>): Promise<Order> => {
+    const token = localStorage.getItem('espace_pastel_auth_token');
+    if (!token) {
+      throw new Error('Vous devez vous connecter pour passer une commande.');
+    }
+
+    const response = await fetch(apiPath('/api/orders'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        customer: orderData.customer,
+        items: orderData.items.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+        })),
+        paymentMethod: orderData.paymentMethod,
+      }),
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.error || 'Impossible de creer la commande.');
+    }
+
     const newOrder: Order = {
       ...orderData,
-      id: 'ord-' + Date.now(),
-      orderNumber: newOrderNumber,
-      createdAt: new Date().toISOString()
+      id: data.id,
+      orderNumber: data.orderNumber,
+      createdAt: new Date().toISOString(),
+      subtotal: Number(data.subtotal ?? orderData.subtotal),
+      shippingFee: Number(data.shippingFee ?? orderData.shippingFee),
+      total: Number(data.total ?? orderData.total),
+      status: data.status ?? orderData.status,
     };
 
-    setOrders(prev => [newOrder, ...prev]);
+    setOrders((prev) => [newOrder, ...prev.filter((order) => order.id !== newOrder.id)]);
     clearCart();
-    
-    // Decrement stock for ordered items
-    orderData.items.forEach(item => {
-      setProducts(prevProducts =>
-        prevProducts.map(p => {
+
+    orderData.items.forEach((item) => {
+      setProducts((prevProducts) =>
+        prevProducts.map((p) => {
           if (p.id === item.productId) {
             const nextStock = Math.max(0, p.stock - item.quantity);
             return { ...p, stock: nextStock };
           }
           return p;
-        })
+        }),
       );
     });
 
-    addToast(`Commande ${newOrderNumber} confirmÃ©e avec succÃ¨s !`, 'success');
+    addToast('Commande confirmee avec succes !', 'success');
     return newOrder;
   };
+
+
 
   // Helpers
   const formatPrice = (price: number): string => {
@@ -495,7 +547,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     setProducts(prev => [newProduct, ...prev]);
-    addToast(`Produit "${newProduct.name}" crÃ©Ã© avec succÃ¨s`, 'success');
+    addToast(`Produit "${newProduct.name}" crÃƒÂ©ÃƒÂ© avec succÃƒÂ¨s`, 'success');
     return newProduct;
   };
 
@@ -503,13 +555,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setProducts(prev =>
       prev.map(p => (p.id === id ? { ...p, ...updates } : p))
     );
-    addToast('Produit mis Ã  jour avec succÃ¨s', 'success');
+    addToast('Produit mis ÃƒÂ  jour avec succÃƒÂ¨s', 'success');
   };
 
   const deleteProduct = (id: string) => {
     const target = products.find(p => p.id === id);
     setProducts(prev => prev.filter(p => p.id !== id));
-    addToast(`Produit "${target?.name || ''}" supprimÃ©`, 'info');
+    addToast(`Produit "${target?.name || ''}" supprimÃƒÂ©`, 'info');
   };
 
   // Brand CRUD
@@ -529,7 +581,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setBrands(prev => [...prev, newBrand]);
     syncApiMutation('POST', '/api/admin/brands', newBrand);
-    addToast(`Marque "${newBrand.name}" ajoutée`, 'success');
+    addToast(`Marque "${newBrand.name}" ajoutÃ©e`, 'success');
     return newBrand;
   };
 
@@ -538,14 +590,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       prev.map(b => (b.id === id ? { ...b, ...updates } : b))
     );
     syncApiMutation('PATCH', `/api/admin/brands/${id}`, updates);
-    addToast('Marque mise à jour', 'success');
+    addToast('Marque mise Ã  jour', 'success');
   };
 
   const deleteBrand = (id: string) => {
     const target = brands.find(b => b.id === id);
     setBrands(prev => prev.filter(b => b.id !== id));
     syncApiMutation('DELETE', `/api/admin/brands/${id}`);
-    addToast(`Marque "${target?.name || ''}" supprimée`, 'info');
+    addToast(`Marque "${target?.name || ''}" supprimÃ©e`, 'info');
   };
 
   // SubCategory CRUD
@@ -566,7 +618,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setSubCategories(prev => [...prev, newSub]);
     syncApiMutation('POST', '/api/admin/subcategories', newSub);
-    addToast(`Sous-catégorie "${newSub.name}" créée`, 'success');
+    addToast(`Sous-catÃ©gorie "${newSub.name}" crÃ©Ã©e`, 'success');
     return newSub;
   };
 
@@ -575,14 +627,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       prev.map(s => (s.id === id ? { ...s, ...updates } : s))
     );
     syncApiMutation('PATCH', `/api/admin/subcategories/${id}`, updates);
-    addToast('Sous-catégorie mise à jour', 'success');
+    addToast('Sous-catÃ©gorie mise Ã  jour', 'success');
   };
 
   const deleteSubCategory = (id: string) => {
     const target = subCategories.find(s => s.id === id);
     setSubCategories(prev => prev.filter(s => s.id !== id));
     syncApiMutation('DELETE', `/api/admin/subcategories/${id}`);
-    addToast(`Sous-catégorie "${target?.name || ''}" supprimée`, 'info');
+    addToast(`Sous-catÃ©gorie "${target?.name || ''}" supprimÃ©e`, 'info');
   };
 
   // Orders & Stocks
@@ -591,14 +643,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setOrders(prev =>
       prev.map(o => (o.id === orderId ? { ...o, status } : o))
     );
-    addToast(`Statut de commande mis Ã  jour : ${status}`, 'success');
+    addToast(`Statut de commande mis ÃƒÂ  jour : ${status}`, 'success');
   };
 
   const updateProductStock = (productId: string, newStock: number) => {
     setProducts(prev =>
       prev.map(p => (p.id === productId ? { ...p, stock: Math.max(0, newStock) } : p))
     );
-    addToast('Stock actualisÃ©', 'info');
+    addToast('Stock actualisÃƒÂ©', 'info');
   };
 
   // Review Management
@@ -623,7 +675,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     setReviews(prev => [newRev, ...prev]);
-    addToast('Merci pour votre avis ! Il sera visible aprÃ¨s validation par notre Ã©quipe.', 'info');
+    addToast('Merci pour votre avis ! Il sera visible aprÃƒÂ¨s validation par notre ÃƒÂ©quipe.', 'info');
   };
 
   const updateReviewStatus = (reviewId: string, status: ReviewStatus) => {
@@ -649,12 +701,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     }
 
-    addToast(`Avis ${status === 'approved' ? 'approuvÃ©' : 'refusÃ©'}`, 'success');
+    addToast(`Avis ${status === 'approved' ? 'approuvÃƒÂ©' : 'refusÃƒÂ©'}`, 'success');
   };
 
   const deleteReview = (reviewId: string) => {
     setReviews(prev => prev.filter(r => r.id !== reviewId));
-    addToast('Avis supprimÃ©', 'info');
+    addToast('Avis supprimÃƒÂ©', 'info');
   };
 
   const resetCatalogToDefault = () => {
@@ -664,11 +716,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setReviews(INITIAL_REVIEWS);
     setOrders(INITIAL_ORDERS);
     localStorage.removeItem(LOCAL_STORAGE_KEYS.BRANDS);
-    localStorage.removeItem(LOCAL_STORAGE_KEYS.SUBCATS);
+    localStorage.removeItem(LOCAL_STORAGE_KEYS.SUBCATEGORIES);
     localStorage.removeItem(LOCAL_STORAGE_KEYS.PRODUCTS);
     localStorage.removeItem(LOCAL_STORAGE_KEYS.REVIEWS);
     localStorage.removeItem(LOCAL_STORAGE_KEYS.ORDERS);
-    addToast('Catalogue rÃ©initialisÃ© avec les donnÃ©es de dÃ©monstration', 'info');
+    addToast('Catalogue rÃƒÂ©initialisÃƒÂ© avec les donnÃƒÂ©es de dÃƒÂ©monstration', 'info');
   };
 
   return (
@@ -743,5 +795,6 @@ export const useStore = () => {
   }
   return context;
 };
+
 
 
