@@ -2,6 +2,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 import helmet from 'helmet';
@@ -27,7 +28,16 @@ app.use(express.json({ limit: '2mb' }));
 app.use(rateLimit({ windowMs: 900000, limit: 300, standardHeaders: 'draft-8', legacyHeaders: false }));
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const clientDist = path.resolve(__dirname, '..', 'dist');
-const hasClient = fs.existsSync(path.join(clientDist, 'index.html'));
+let hasClient = fs.existsSync(path.join(clientDist, 'index.html'));
+async function ensureClientBuild() {
+  if (hasClient) return;
+  try {
+    execSync('npm run build', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
+  } catch (error) {
+    console.warn('Build client non execute automatiquement:', error?.message || error);
+  }
+  hasClient = fs.existsSync(path.join(clientDist, 'index.html'));
+}
 const pool = mysql.createPool(getMysqlConnectionConfig());
 const route = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 const uuid = z.string().uuid();
@@ -105,6 +115,7 @@ app.use((error, _q, res, _next) => {
 async function bootstrap() {
   try {
     await initializeDatabase(pool);
+    await ensureClientBuild();
   } catch (error) {
     console.warn('Initialisation MySQL non executee au demarrage:', error.message || error);
   }
@@ -113,4 +124,5 @@ async function bootstrap() {
 }
 
 void bootstrap();
+
 
