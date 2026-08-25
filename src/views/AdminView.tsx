@@ -42,8 +42,6 @@ export const AdminView: React.FC = () => {
     addBrand,
     addSubCategory,
     updateOrderStatus, 
-    approveReview, 
-    rejectReview, 
     formatPrice,
     navigateTo,
     addToast
@@ -60,19 +58,35 @@ export const AdminView: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isAddBrandOpen, setIsAddBrandOpen] = useState(false);
   const [isAddSubCategoryOpen, setIsAddSubCategoryOpen] = useState(false);
-  const [selectedBrandForSubCat, setSelectedBrandForSubCat] = useState<string>(brands[0]?.id || '');
+  const [selectedBrandForSubCat, setSelectedBrandForSubCat] = useState<string>(brands[0].id || '');
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
+
+  const tabClass = (tab: 'dashboard' | 'products' | 'orders' | 'brands' | 'reviews') => {
+    if (activeTab === tab) return 'px-4 py-3 rounded-t-2xl flex items-center gap-2 transition-all bg-white border-t-2 border-[#0B1833] text-[#0B1833] shadow-sm';
+    return 'px-4 py-3 rounded-t-2xl flex items-center gap-2 transition-all text-gray-500 hover:text-[#0B1833]';
+  };
+
+  const stockBadgeClass = (stock: number) => {
+    if (stock <= 5) return 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800';
+    return 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800';
+  };
+
+  const reviewBadgeClass = (status: Review['status']) => {
+    if (status === 'approved') return 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
+    if (status === 'rejected') return 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-800';
+    return 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800';
+  };
 
   // New Product Form state
   const [pName, setPName] = useState('');
   const [pSku, setPSku] = useState('');
-  const [pBrandId, setPBrandId] = useState(brands[0]?.id || '');
-  const [pSubCatId, setPSubCatId] = useState(subCategories[0]?.id || '');
+  const [pBrandId, setPBrandId] = useState(brands[0].id || '');
+  const [pSubCatId, setPSubCatId] = useState(subCategories[0].id || '');
   const [pCategory, setPCategory] = useState('Papeterie');
   const [pPrice, setPPrice] = useState('12.500');
   const [pPromoPrice, setPPromoPrice] = useState('');
   const [pStock, setPStock] = useState('20');
-  const [pImage, setPImage] = useState('https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80');
+  const [pImage, setPImage] = useState('https://images.unsplash.com/photo-1544716278-ca5e3f4abd8cauto=format&fit=crop&w=600&q=80');
   const [pShortDesc, setPShortDesc] = useState('');
   const [pDesc, setPDesc] = useState('');
   const [pBadge, setPBadge] = useState<Product['badge']>('AUCUN');
@@ -84,16 +98,19 @@ export const AdminView: React.FC = () => {
   const [bDesc, setBDesc] = useState('');
   const [bColor, setBColor] = useState('#8FD8C3');
   const [bLogo, setBLogo] = useState('');
-  const [bBanner, setBBanner] = useState('https://images.unsplash.com/photo-1516962215378-7fa2e137ae93?auto=format&fit=crop&w=800&q=80');
+  const [bBanner, setBBanner] = useState('https://images.unsplash.com/photo-1516962215378-7fa2e137ae93auto=format&fit=crop&w=800&q=80');
 
   // New SubCategory Form state
   const [scName, setScName] = useState('');
   const [scSlug, setScSlug] = useState('');
   const [scDesc, setScDesc] = useState('');
-  const [scImage, setScImage] = useState('https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=400&q=80');
+  const [scImage, setScImage] = useState('https://images.unsplash.com/photo-1544716278-ca5e3f4abd8cauto=format&fit=crop&w=400&q=80');
 
   // Stats Calculations
-  const totalRevenue = orders.reduce((sum, o) => o.status !== 'cancelled' ? sum + o.total : sum, 0);
+  const totalRevenue = orders.reduce((sum, o) => {
+    if (o.status !== 'cancelled') return sum + o.total;
+    return sum;
+  }, 0);
   const lowStockCount = products.filter(p => p.stock <= 5).length;
   const pendingOrdersCount = orders.filter(o => o.status === 'pending').length;
   const pendingReviewsCount = reviews.filter(r => r.status === 'pending').length;
@@ -111,7 +128,7 @@ export const AdminView: React.FC = () => {
         subCategoryId: pSubCatId,
         category: pCategory,
         price: parseFloat(pPrice) || 0,
-        promoPrice: pPromoPrice ? parseFloat(pPromoPrice) : undefined,
+        promoPrice: (pPromoPrice && parseFloat(pPromoPrice)) || undefined,
         stock: parseInt(pStock) || 0,
         images: [pImage],
         shortDescription: pShortDesc || pName,
@@ -120,7 +137,7 @@ export const AdminView: React.FC = () => {
         isNew: pIsNew,
         isPromo: Boolean(pPromoPrice)
       });
-      addToast('Produit mis Ã  jour avec succÃ¨s !', 'success');
+      addToast('Produit mis à jour avec succès !', 'success');
       setEditingProduct(null);
     } else {
       addProduct({
@@ -131,12 +148,12 @@ export const AdminView: React.FC = () => {
         subCategoryId: pSubCatId,
         category: pCategory,
         price: parseFloat(pPrice) || 0,
-        promoPrice: pPromoPrice ? parseFloat(pPromoPrice) : undefined,
+        promoPrice: (pPromoPrice && parseFloat(pPromoPrice)) || undefined,
         stock: parseInt(pStock) || 0,
         images: [pImage],
         shortDescription: pShortDesc || pName,
         description: pDesc || pShortDesc || pName,
-        features: ['QualitÃ© certifiÃ©e Espace Pastel', 'Usage scolaire et professionnel'],
+        features: ['Qualité certifiée Espace Pastel', 'Usage scolaire et professionnel'],
         rating: 5.0,
         reviewCount: 0,
         isNew: pIsNew,
@@ -145,7 +162,7 @@ export const AdminView: React.FC = () => {
         badge: pBadge,
         status: 'published'
       });
-      addToast('Nouveau produit ajoutÃ© au catalogue !', 'success');
+      addToast('Nouveau produit ajouté au catalogue !', 'success');
     }
 
     setIsAddProductOpen(false);
@@ -173,7 +190,8 @@ export const AdminView: React.FC = () => {
     setPSubCatId(prod.subCategoryId);
     setPCategory(prod.category);
     setPPrice(prod.price.toString());
-    setPPromoPrice(prod.promoPrice ? prod.promoPrice.toString() : '');
+    if (prod.promoPrice) setPPromoPrice(prod.promoPrice.toString());
+    else setPPromoPrice('');
     setPStock(prod.stock.toString());
     setPImage(prod.images[0] || '');
     setPShortDesc(prod.shortDescription);
@@ -196,7 +214,7 @@ export const AdminView: React.FC = () => {
       bannerUrl: bBanner
     });
 
-    addToast(`Marque ${bName} crÃ©Ã©e avec succÃ¨s !`, 'success');
+    addToast(`Marque ${bName} créée avec succès !`, 'success');
     setIsAddBrandOpen(false);
     setBName('');
     setBSlug('');
@@ -215,7 +233,7 @@ export const AdminView: React.FC = () => {
       imageUrl: scImage
     });
 
-    addToast(`Sous-catÃ©gorie ${scName} ajoutÃ©e !`, 'success');
+    addToast(`Sous-catégorie ${scName} ajoutée !`, 'success');
     setIsAddSubCategoryOpen(false);
     setScName('');
     setScSlug('');
@@ -248,7 +266,7 @@ export const AdminView: React.FC = () => {
             PANNEAU DE GESTION & BACKOFFICE
           </h1>
           <p className="text-xs text-white/70">
-            Gestion des stocks, commandes, marques, sous-catÃ©gories et modÃ©ration des avis.
+            Gestion des stocks, commandes, marques, sous-catégories et modération des avis.
           </p>
         </div>
 
@@ -265,7 +283,7 @@ export const AdminView: React.FC = () => {
       <div className="flex border-b border-gray-200 overflow-x-auto gap-2 text-xs font-bold">
         <button
           onClick={() => setActiveTab('dashboard')}
-          className={`px-4 py-3 rounded-t-2xl flex items-center gap-2 transition-all ${activeTab === 'dashboard' ? 'bg-white border-t-2 border-[#0B1833] text-[#0B1833] shadow-sm' : 'text-gray-500 hover:text-[#0B1833]'}`}
+          className={tabClass('dashboard')}
         >
           <LayoutDashboard className="w-4 h-4" />
           <span>Tableau de Bord</span>
@@ -273,7 +291,7 @@ export const AdminView: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('products')}
-          className={`px-4 py-3 rounded-t-2xl flex items-center gap-2 transition-all ${activeTab === 'products' ? 'bg-white border-t-2 border-[#0B1833] text-[#0B1833] shadow-sm' : 'text-gray-500 hover:text-[#0B1833]'}`}
+          className={tabClass('products')}
         >
           <Package className="w-4 h-4" />
           <span>Catalogue Produits ({products.length})</span>
@@ -281,7 +299,7 @@ export const AdminView: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('orders')}
-          className={`px-4 py-3 rounded-t-2xl flex items-center gap-2 transition-all ${activeTab === 'orders' ? 'bg-white border-t-2 border-[#0B1833] text-[#0B1833] shadow-sm' : 'text-gray-500 hover:text-[#0B1833]'}`}
+          className={tabClass('orders')}
         >
           <ShoppingBag className="w-4 h-4" />
           <span>Commandes ({orders.length})</span>
@@ -292,18 +310,18 @@ export const AdminView: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('brands')}
-          className={`px-4 py-3 rounded-t-2xl flex items-center gap-2 transition-all ${activeTab === 'brands' ? 'bg-white border-t-2 border-[#0B1833] text-[#0B1833] shadow-sm' : 'text-gray-500 hover:text-[#0B1833]'}`}
+          className={tabClass('brands')}
         >
           <Layers className="w-4 h-4" />
-          <span>Marques & Sous-catÃ©gories</span>
+          <span>Marques & Sous-catégories</span>
         </button>
 
         <button
           onClick={() => setActiveTab('reviews')}
-          className={`px-4 py-3 rounded-t-2xl flex items-center gap-2 transition-all ${activeTab === 'reviews' ? 'bg-white border-t-2 border-[#0B1833] text-[#0B1833] shadow-sm' : 'text-gray-500 hover:text-[#0B1833]'}`}
+          className={tabClass('reviews')}
         >
           <MessageSquare className="w-4 h-4" />
-          <span>ModÃ©ration Avis ({reviews.length})</span>
+          <span>Modération Avis ({reviews.length})</span>
           {pendingReviewsCount > 0 && (
             <span className="w-2 h-2 rounded-full bg-red-500" />
           )}
@@ -334,7 +352,7 @@ export const AdminView: React.FC = () => {
               <div className="font-['Outfit'] font-black text-2xl text-[#0B1833]">
                 {pendingOrdersCount}
               </div>
-              <span className="text-[11px] text-amber-600 font-semibold">Ã€ prÃ©parer rapidement</span>
+              <span className="text-[11px] text-amber-600 font-semibold">À préparer rapidement</span>
             </div>
 
             <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-2">
@@ -356,7 +374,7 @@ export const AdminView: React.FC = () => {
               <div className="font-['Outfit'] font-black text-2xl text-[#0B1833]">
                 {lowStockCount}
               </div>
-              <span className="text-[11px] text-red-600 font-semibold">Stock â‰¤ 5 unitÃ©s</span>
+              <span className="text-[11px] text-red-600 font-semibold">Stock ≤ 5 unités</span>
             </div>
           </div>
 
@@ -364,7 +382,7 @@ export const AdminView: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-8 bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-4">
               <h2 className="font-['Outfit'] font-bold text-base text-[#0B1833]">
-                DerniÃ¨res Commandes ReÃ§ues
+                Dernières Commandes Reçues
               </h2>
 
               <div className="overflow-x-auto">
@@ -426,7 +444,7 @@ export const AdminView: React.FC = () => {
                   className="w-full py-3 px-4 rounded-xl bg-[#F7F7F8] hover:bg-gray-200 text-[#0B1833] font-bold text-xs flex items-center justify-center gap-2 transition-all"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>Ajouter une sous-catÃ©gorie</span>
+                  <span>Ajouter une sous-catégorie</span>
                 </button>
               </div>
             </div>
@@ -487,15 +505,15 @@ export const AdminView: React.FC = () => {
                       <td className="py-3 font-bold text-[#0B1833] max-w-[200px] truncate">{p.name}</td>
                       <td className="py-3">
                         <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">
-                          {b?.name || p.brandId}
+                          {b.name || p.brandId}
                         </span>
                       </td>
                       <td className="py-3 font-bold">
-                        {formatPrice(p.promoPrice ?? p.price)}
+                        {formatPrice(p.promoPrice || p.price)}
                         {p.promoPrice && <span className="block text-[10px] text-red-500 line-through">{formatPrice(p.price)}</span>}
                       </td>
                       <td className="py-3">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${p.stock <= 5 ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                        <span className={stockBadgeClass(p.stock)}>
                           {p.stock} un.
                         </span>
                       </td>
@@ -515,9 +533,9 @@ export const AdminView: React.FC = () => {
                           </button>
                           <button
                             onClick={() => {
-                              if (confirm(`Supprimer ${p.name} ?`)) {
+                              if (confirm(`Supprimer ${p.name} `)) {
                                 deleteProduct(p.id);
-                                addToast('Produit supprimÃ©', 'info');
+                                addToast('Produit supprimé', 'info');
                               }
                             }}
                             className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg"
@@ -543,7 +561,7 @@ export const AdminView: React.FC = () => {
             <div className="relative max-w-sm w-full">
               <input
                 type="text"
-                placeholder="Rechercher numÃ©ro ou client..."
+                placeholder="Rechercher numéro ou client..."
                 value={orderSearch}
                 onChange={(e) => setOrderSearch(e.target.value)}
                 className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none focus:border-[#0B1833]"
@@ -556,13 +574,13 @@ export const AdminView: React.FC = () => {
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-gray-100 text-gray-400 font-semibold">
-                  <th className="py-3">NÂ° Commande</th>
+                  <th className="py-3">N° Commande</th>
                   <th className="py-3">Client</th>
-                  <th className="py-3">TÃ©lÃ©phone</th>
+                  <th className="py-3">Téléphone</th>
                   <th className="py-3">Ville</th>
                   <th className="py-3">Total</th>
                   <th className="py-3">Changer le statut</th>
-                  <th className="py-3 text-right">DÃ©tails</th>
+                  <th className="py-3 text-right">Détails</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -578,15 +596,15 @@ export const AdminView: React.FC = () => {
                         value={ord.status}
                         onChange={(e) => {
                           updateOrderStatus(ord.id, e.target.value as any);
-                          addToast(`Statut commande #${ord.orderNumber} mis Ã  jour !`, 'success');
+                          addToast(`Statut commande #${ord.orderNumber} mis à jour !`, 'success');
                         }}
                         className="bg-[#F7F7F8] border border-gray-200 text-xs font-semibold rounded-lg px-2 py-1 focus:outline-none"
                       >
                         <option value="pending">En attente</option>
-                        <option value="processing">En prÃ©paration</option>
+                        <option value="processing">En préparation</option>
                         <option value="shipped">En livraison</option>
-                        <option value="delivered">LivrÃ©e</option>
-                        <option value="cancelled">AnnulÃ©e</option>
+                        <option value="delivered">Livrée</option>
+                        <option value="cancelled">Annulée</option>
                       </select>
                     </td>
                     <td className="py-3 text-right">
@@ -634,7 +652,7 @@ export const AdminView: React.FC = () => {
                         <h3 className="font-bold text-sm text-[#0B1833]">{b.name}</h3>
                       </div>
                       <p className="text-xs text-gray-500 mt-1 line-clamp-1">{b.description}</p>
-                      <span className="text-[10px] text-gray-400">{bSubs.length} sous-catÃ©gories rattachÃ©es</span>
+                      <span className="text-[10px] text-gray-400">{bSubs.length} sous-catégories rattachées</span>
                     </div>
                   </div>
                 );
@@ -646,7 +664,7 @@ export const AdminView: React.FC = () => {
           <div className="lg:col-span-6 bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
               <h2 className="font-['Outfit'] font-bold text-base text-[#0B1833]">
-                Sous-CatÃ©gories ({subCategories.length})
+                Sous-Catégories ({subCategories.length})
               </h2>
               <button
                 onClick={() => setIsAddSubCategoryOpen(true)}
@@ -664,7 +682,7 @@ export const AdminView: React.FC = () => {
                   <div key={sc.id} className="p-3 rounded-xl border border-gray-100 flex items-center justify-between text-xs">
                     <div>
                       <span className="font-bold text-[#0B1833]">{sc.name}</span>
-                      <span className="text-[10px] text-gray-400 block">Marque : {b?.name}</span>
+                      <span className="text-[10px] text-gray-400 block">Marque : {b.name}</span>
                     </div>
                     <span className="text-[10px] font-mono text-gray-400">/{sc.slug}</span>
                   </div>
@@ -680,7 +698,7 @@ export const AdminView: React.FC = () => {
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
           <div className="pb-3 border-b border-gray-100">
             <h2 className="font-['Outfit'] font-bold text-base text-[#0B1833]">
-              ModÃ©ration des avis clients ({reviews.length})
+              Modération des avis clients ({reviews.length})
             </h2>
             <p className="text-xs text-gray-500">
               Approuvez ou refusez les avis soumis par les visiteurs avant publication.
@@ -697,12 +715,12 @@ export const AdminView: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-xs text-[#0B1833]">{rev.customerName}</span>
                         <span className="text-[10px] text-gray-400">({rev.customerEmail})</span>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${rev.status === 'approved' ? 'bg-emerald-100 text-emerald-800' : rev.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}`}>
+                        <span className={reviewBadgeClass(rev.status)}>
                           {rev.status}
                         </span>
                       </div>
                       <span className="text-[11px] text-gray-500">
-                        Produit : {p?.name || 'GÃ©nÃ©ral'} â€¢ Note : {rev.rating}/5
+                        Produit : {p.name || 'Général'} • Note : {rev.rating}/5
                       </span>
                     </div>
 
@@ -710,8 +728,8 @@ export const AdminView: React.FC = () => {
                       {rev.status !== 'approved' && (
                         <button
                           onClick={() => {
-                            approveReview(rev.id);
-                            addToast('Avis approuvÃ© !', 'success');
+                            updateReviewStatus(rev.id, 'approved');
+                            addToast('Avis approuvé !', 'success');
                           }}
                           className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center gap-1"
                         >
@@ -722,8 +740,8 @@ export const AdminView: React.FC = () => {
                       {rev.status !== 'rejected' && (
                         <button
                           onClick={() => {
-                            rejectReview(rev.id);
-                            addToast('Avis rejetÃ©', 'info');
+                            updateReviewStatus(rev.id, 'rejected');
+                            addToast('Avis rejeté', 'info');
                           }}
                           className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg flex items-center gap-1"
                         >
@@ -735,7 +753,7 @@ export const AdminView: React.FC = () => {
                   </div>
 
                   <p className="text-xs text-gray-700 italic bg-white p-3 rounded-xl border border-gray-100">
-                    Â« {rev.comment} Â»
+                    « {rev.comment} »
                   </p>
                 </div>
               );
@@ -750,7 +768,7 @@ export const AdminView: React.FC = () => {
           <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-4 border-b border-gray-100">
               <h3 className="font-['Outfit'] font-black text-lg text-[#0B1833]">
-                {editingProduct ? 'Modifier le produit' : 'Ajouter un nouveau produit'}
+                {editingProduct && 'Modifier le produit'}{!editingProduct && 'Ajouter un nouveau produit'}
               </h3>
               <button onClick={() => setIsAddProductOpen(false)} className="p-1 text-gray-400 hover:text-black">
                 <X className="w-5 h-5" />
@@ -798,7 +816,7 @@ export const AdminView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-gray-700 mb-1">Sous-catÃ©gorie *</label>
+                  <label className="block font-bold text-gray-700 mb-1">Sous-catégorie *</label>
                   <select
                     value={pSubCatId}
                     onChange={(e) => setPSubCatId(e.target.value)}
@@ -851,7 +869,7 @@ export const AdminView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-gray-700 mb-1">QuantitÃ© en stock *</label>
+                  <label className="block font-bold text-gray-700 mb-1">Quantité en stock *</label>
                   <input
                     type="number"
                     required
@@ -880,7 +898,7 @@ export const AdminView: React.FC = () => {
                   required
                   value={pShortDesc}
                   onChange={(e) => setPShortDesc(e.target.value)}
-                  placeholder="RÃ©sumÃ© accrocheur..."
+                  placeholder="Résumé accrocheur..."
                   className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl p-2.5 text-xs focus:outline-none"
                 />
               </div>
@@ -908,7 +926,7 @@ export const AdminView: React.FC = () => {
                       onChange={(e) => setPIsNew(e.target.checked)}
                       className="accent-[#0B1833]"
                     />
-                    <span className="font-bold text-gray-700">Afficher dans "Nos NouveautÃ©s"</span>
+                    <span className="font-bold text-gray-700">Afficher dans "Nos Nouveautés"</span>
                   </label>
                 </div>
               </div>
@@ -925,7 +943,7 @@ export const AdminView: React.FC = () => {
                   type="submit"
                   className="bg-[#0B1833] text-white px-6 py-2 rounded-xl font-bold hover:bg-[#8FD8C3] hover:text-[#0B1833] transition-colors"
                 >
-                  {editingProduct ? 'Enregistrer les modifications' : 'CrÃ©er le produit'}
+                  {editingProduct && 'Enregistrer les modifications'}{!editingProduct && 'Creer le produit'}
                 </button>
               </div>
             </form>
@@ -957,7 +975,7 @@ export const AdminView: React.FC = () => {
                   required
                   value={bDesc}
                   onChange={(e) => setBDesc(e.target.value)}
-                  placeholder="Gomme et papeterie crÃ©ative..."
+                  placeholder="Gomme et papeterie créative..."
                   className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl p-2 text-xs focus:outline-none"
                 />
               </div>
@@ -966,16 +984,16 @@ export const AdminView: React.FC = () => {
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={async (e) => { const file = e.target.files?.[0]; if (file) setBLogo(await readImageFile(file)); }}
+                  onChange={async (e) => { const file = e.currentTarget.files && e.currentTarget.files[0]; if (file) setBLogo(await readImageFile(file)); }}
                   className="w-full text-xs"
                 />
               </div>
               <div>
-                <label className="block font-bold text-gray-700 mb-1">Bannière / image marque</label>
+                <label className="block font-bold text-gray-700 mb-1">Banniï¿½re / image marque</label>
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={async (e) => { const file = e.target.files?.[0]; if (file) setBBanner(await readImageFile(file)); }}
+                  onChange={async (e) => { const file = e.currentTarget.files && e.currentTarget.files[0]; if (file) setBBanner(await readImageFile(file)); }}
                   className="w-full text-xs"
                 />
               </div>
@@ -990,7 +1008,7 @@ export const AdminView: React.FC = () => {
               </div>
               <div className="pt-2 flex justify-end gap-2">
                 <button type="button" onClick={() => setIsAddBrandOpen(false)} className="px-3 py-2 text-gray-500">Annuler</button>
-                <button type="submit" className="bg-[#0B1833] text-white px-4 py-2 rounded-xl font-bold">CrÃ©er la marque</button>
+                <button type="submit" className="bg-[#0B1833] text-white px-4 py-2 rounded-xl font-bold">Créer la marque</button>
               </div>
             </form>
           </div>
@@ -1001,7 +1019,7 @@ export const AdminView: React.FC = () => {
       {isAddSubCategoryOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-[#0B1833]/50 backdrop-blur-sm">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95">
-            <h3 className="font-['Outfit'] font-black text-lg text-[#0B1833]">Ajouter une Sous-catÃ©gorie</h3>
+            <h3 className="font-['Outfit'] font-black text-lg text-[#0B1833]">Ajouter une Sous-catégorie</h3>
             <form onSubmit={handleCreateSubCat} className="space-y-3 text-xs">
               <div>
                 <label className="block font-bold text-gray-700 mb-1">Marque parente *</label>
@@ -1016,7 +1034,7 @@ export const AdminView: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label className="block font-bold text-gray-700 mb-1">Nom de la sous-catÃ©gorie *</label>
+                <label className="block font-bold text-gray-700 mb-1">Nom de la sous-catégorie *</label>
                 <input
                   type="text"
                   required
@@ -1033,13 +1051,13 @@ export const AdminView: React.FC = () => {
                   required
                   value={scDesc}
                   onChange={(e) => setScDesc(e.target.value)}
-                  placeholder="Stylos gel pastel et pailletÃ©s..."
+                  placeholder="Stylos gel pastel et pailletés..."
                   className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl p-2 text-xs focus:outline-none"
                 />
               </div>
               <div className="pt-2 flex justify-end gap-2">
                 <button type="button" onClick={() => setIsAddSubCategoryOpen(false)} className="px-3 py-2 text-gray-500">Annuler</button>
-                <button type="submit" className="bg-[#0B1833] text-white px-4 py-2 rounded-xl font-bold">CrÃ©er la sous-catÃ©gorie</button>
+                <button type="submit" className="bg-[#0B1833] text-white px-4 py-2 rounded-xl font-bold">Créer la sous-catégorie</button>
               </div>
             </form>
           </div>
@@ -1070,7 +1088,7 @@ export const AdminView: React.FC = () => {
                 <span className="font-bold">{viewingOrder.customer.firstName} {viewingOrder.customer.lastName}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">TÃ©lÃ©phone :</span>
+                <span className="text-gray-500">Téléphone :</span>
                 <span className="font-bold">{viewingOrder.customer.phone}</span>
               </div>
               <div className="flex justify-between">
@@ -1093,7 +1111,7 @@ export const AdminView: React.FC = () => {
                 <div key={i} className="flex justify-between items-center text-xs py-1 border-b border-gray-100">
                   <div className="flex items-center gap-2">
                     <img src={it.image} alt={it.productName} className="w-8 h-8 rounded-lg object-cover" />
-                    <span>{it.productName} Ã— {it.quantity}</span>
+                    <span>{it.productName} × {it.quantity}</span>
                   </div>
                   <span className="font-bold">{formatPrice(it.price * it.quantity)}</span>
                 </div>
@@ -1101,7 +1119,7 @@ export const AdminView: React.FC = () => {
             </div>
 
             <div className="pt-2 flex justify-between font-['Outfit'] font-black text-base text-[#0B1833]">
-              <span>Total RÃ©glÃ© :</span>
+              <span>Total Réglé :</span>
               <span>{formatPrice(viewingOrder.total)}</span>
             </div>
 
@@ -1118,4 +1136,7 @@ export const AdminView: React.FC = () => {
     </div>
   );
 };
+
+
+
 

@@ -39,7 +39,7 @@ interface StoreContextType {
   cartSubtotal: number;
   isCartDrawerOpen: boolean;
   setIsCartDrawerOpen: (open: boolean) => void;
-  addToCart: (product: Product, quantity?: number) => void;
+  addToCart: (product: Product, quantity: number) => void;
   updateCartQuantity: (productId: string, quantity: number) => void;
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
@@ -57,7 +57,7 @@ interface StoreContextType {
   // Auth & User
   currentUser: Customer | null;
   setCurrentUser: (user: Customer | null) => void;
-  login: (email: string, role?: 'customer' | 'admin') => boolean;
+  login: (email: string, role: 'customer' | 'admin') => boolean;
   logout: () => void;
   isAdmin: boolean;
   setIsAdminMode: (admin: boolean) => void;
@@ -94,12 +94,12 @@ interface StoreContextType {
   getProductsByBrand: (brandId: string) => Product[];
   getProductsBySubCategory: (subCategoryId: string) => Product[];
   getProductById: (id: string) => Product | undefined;
-  getProductReviews: (productId: string, onlyApproved?: boolean) => Review[];
+  getProductReviews: (productId: string, onlyApproved: boolean) => Review[];
   formatPrice: (price: number) => string;
 
   // Toasts
   toasts: ToastNotification[];
-  addToast: (message: string, type?: 'success' | 'info' | 'warning' | 'error') => void;
+  addToast: (message: string, type: 'success' | 'info' | 'warning' | 'error') => void;
   removeToast: (id: string) => void;
 
   // Reset demo data
@@ -114,21 +114,26 @@ const LOCAL_STORAGE_KEYS = {
   PRODUCTS: 'espace_pastel_products_v1',
   REVIEWS: 'espace_pastel_reviews_v1',
   ORDERS: 'espace_pastel_orders_v1',
+  CART: 'espace_pastel_cart_v1',
+  WISHLIST: 'espace_pastel_wishlist_v1',
   USER: 'espace_pastel_user_v1',
 };
 
 const parseStoredCollection = <T,>(key: string): T[] => {
   try {
     const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) as T[] : [];
+    if (!raw) return [];
+    return JSON.parse(raw) as T[];
   } catch {
     return [];
   }
 };
 
+
 const mergeBrandsFromApi = (apiBrands: Brand[]): Brand[] => {
   const storedBrands = parseStoredCollection<Brand>(LOCAL_STORAGE_KEYS.BRANDS);
-  const sourceBrands = apiBrands.length > 0 ? apiBrands : INITIAL_BRANDS;
+  let sourceBrands = INITIAL_BRANDS;
+  if (apiBrands.length > 0) sourceBrands = apiBrands;
   return sourceBrands.map((apiBrand) => {
     const stored = storedBrands.find((item) => item.id === apiBrand.id || item.slug === apiBrand.slug);
     const init = INITIAL_BRANDS.find((item) => item.id === apiBrand.id || item.slug === apiBrand.slug);
@@ -136,15 +141,16 @@ const mergeBrandsFromApi = (apiBrands: Brand[]): Brand[] => {
       ...init,
       ...apiBrand,
       ...stored,
-      logoUrl: stored?.logoUrl || apiBrand.logoUrl || init?.logoUrl || '',
-      bannerUrl: stored?.bannerUrl || apiBrand.bannerUrl || init?.bannerUrl || '',
+      logoUrl: (stored && stored.logoUrl) || apiBrand.logoUrl || (init && init.logoUrl) || '',
+      bannerUrl: (stored && stored.bannerUrl) || apiBrand.bannerUrl || (init && init.bannerUrl) || '',
     };
   });
 };
 
 const mergeSubCategoriesFromApi = (apiSubCategories: SubCategory[]): SubCategory[] => {
   const storedSubCategories = parseStoredCollection<SubCategory>(LOCAL_STORAGE_KEYS.SUBCATEGORIES);
-  const sourceSubCategories = apiSubCategories.length > 0 ? apiSubCategories : INITIAL_SUBCATEGORIES;
+  let sourceSubCategories = INITIAL_SUBCATEGORIES;
+  if (apiSubCategories.length > 0) sourceSubCategories = apiSubCategories;
   return sourceSubCategories.map((apiSubCategory) => {
     const stored = storedSubCategories.find((item) => item.id === apiSubCategory.id || item.slug === apiSubCategory.slug);
     const init = INITIAL_SUBCATEGORIES.find((item) => item.id === apiSubCategory.id || item.slug === apiSubCategory.slug);
@@ -152,23 +158,66 @@ const mergeSubCategoriesFromApi = (apiSubCategories: SubCategory[]): SubCategory
       ...init,
       ...apiSubCategory,
       ...stored,
-      imageUrl: stored?.imageUrl || apiSubCategory.imageUrl || init?.imageUrl || '',
+      imageUrl: (stored && stored.imageUrl) || apiSubCategory.imageUrl || (init && init.imageUrl) || '',
     };
   });
 };
 
-const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
-const apiPath = (endpoint: string) => `${API_BASE}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-const syncApiMutation = (method: string, endpoint: string, body?: unknown) => {
+const normalizeCustomer = (value: unknown): Customer | null => {
+  if (!value || typeof value !== 'object') return null;
+  const candidate = value as Partial<Customer> & { addresses: unknown; address: unknown; city: unknown; postalCode: unknown };
+  let rawAddresses: unknown[] = [];
+  if (Array.isArray(candidate.addresses)) rawAddresses = candidate.addresses;
+  const addresses = rawAddresses
+    .filter((entry) => Boolean(entry) && typeof entry === 'object')
+    .map((entry) => {
+      const addressEntry = entry as Record<string, unknown>;
+      let postalCode: string | undefined = undefined;
+      if (typeof addressEntry.postalCode === 'string') postalCode = addressEntry.postalCode;
+      return {
+        label: String(addressEntry.label || 'Adresse principale'),
+        address: String(addressEntry.address || ''),
+        city: String(addressEntry.city || ''),
+        postalCode,
+        isDefault: Boolean(addressEntry.isDefault),
+      };
+    });
+  if (!candidate.id || !candidate.firstName || !candidate.lastName || !candidate.email || !candidate.phone || !candidate.role || !candidate.createdAt) return null;
+  let role: 'customer' | 'admin' = 'customer';
+  if (candidate.role === 'admin') role = 'admin';
+  let address: string | undefined = undefined;
+  if (typeof candidate.address === 'string') address = candidate.address;
+  let city: string | undefined = undefined;
+  if (typeof candidate.city === 'string') city = candidate.city;
+  let postalCode: string | undefined = undefined;
+  if (typeof candidate.postalCode === 'string') postalCode = candidate.postalCode;
+  return {
+    id: String(candidate.id),
+    firstName: String(candidate.firstName),
+    lastName: String(candidate.lastName),
+    email: String(candidate.email),
+    phone: String(candidate.phone),
+    role,
+    addresses,
+    address,
+    city,
+    postalCode,
+    createdAt: String(candidate.createdAt),
+  };
+};
+
+const syncApiMutation = (method: string, endpoint: string, body: unknown | undefined) => {
   const token = localStorage.getItem('espace_pastel_auth_token');
   if (!token) return;
+  let payload: string | undefined = undefined;
+  if (body !== undefined) payload = JSON.stringify(body);
   void fetch(apiPath(endpoint), {
     method,
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: payload,
   }).catch(() => {});
 };
 
@@ -189,8 +238,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           return {
             ...init,
             ...b,
-            logoUrl: b.logoUrl || init?.logoUrl,
-            bannerUrl: b.bannerUrl || init?.bannerUrl,
+            logoUrl: b.logoUrl || (init && init.logoUrl),
+            bannerUrl: b.bannerUrl || (init && init.bannerUrl),
           };
         });
       } catch {
@@ -202,74 +251,113 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const [subCategories, setSubCategories] = useState<SubCategory[]>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.SUBCATEGORIES);
-    return saved ? JSON.parse(saved) : INITIAL_SUBCATEGORIES;
+    if (saved) {
+      try {
+        return JSON.parse(saved) as SubCategory[];
+      } catch {
+        return INITIAL_SUBCATEGORIES;
+      }
+    }
+    return INITIAL_SUBCATEGORIES;
   });
 
   const [products, setProducts] = useState<Product[]>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.PRODUCTS);
-    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+    if (saved) {
+      try {
+        return JSON.parse(saved) as Product[];
+      } catch {
+        return INITIAL_PRODUCTS;
+      }
+    }
+    return INITIAL_PRODUCTS;
   });
 
   const [reviews, setReviews] = useState<Review[]>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.REVIEWS);
-    return saved ? JSON.parse(saved) : INITIAL_REVIEWS;
+    if (saved) {
+      try {
+        return JSON.parse(saved) as Review[];
+      } catch {
+        return INITIAL_REVIEWS;
+      }
+    }
+    return INITIAL_REVIEWS;
   });
 
   const [orders, setOrders] = useState<Order[]>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.ORDERS);
-    return saved ? JSON.parse(saved) : INITIAL_ORDERS;
+    if (saved) {
+      try {
+        return JSON.parse(saved) as Order[];
+      } catch {
+        return INITIAL_ORDERS;
+      }
+    }
+    return INITIAL_ORDERS;
   });
 
   const [cart, setCart] = useState<CartItem[]>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.CART);
-    return saved ? JSON.parse(saved) : [];
+    if (saved) {
+      try {
+        return JSON.parse(saved) as CartItem[];
+      } catch {
+        return [];
+      }
+    }
+    return [];
   });
 
   const [wishlist, setWishlist] = useState<string[]>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.WISHLIST);
-    return saved ? JSON.parse(saved) : [];
+    if (saved) {
+      try {
+        return JSON.parse(saved) as string[];
+      } catch {
+        return [];
+      }
+    }
+    return [];
   });
 
   const [currentUser, setCurrentUser] = useState<Customer | null>(() => {
     const token = localStorage.getItem('espace_pastel_auth_token');
     const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.USER);
-    return token && saved ? JSON.parse(saved) : null;
+    if (!token || !saved) return null;
+    try {
+      return normalizeCustomer(JSON.parse(saved));
+    } catch {
+      return null;
+    }
   });
-
-  const [toasts, setToasts] = useState<ToastNotification[]>([]);
-
-  // Sync to local storage
-  useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEYS.BRANDS, JSON.stringify(brands));
-  }, [brands]);
-
-  useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEYS.SUBCATEGORIES, JSON.stringify(subCategories));
-  }, [subCategories]);
-
-  useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
-  }, [products]);
-
-  useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEYS.REVIEWS, JSON.stringify(reviews));
-  }, [reviews]);
-
-  useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEYS.ORDERS, JSON.stringify(orders));
-  }, [orders]);
-
-  useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEYS.CART, JSON.stringify(cart));
-  }, [cart]);
-
-  useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEYS.WISHLIST, JSON.stringify(wishlist));
-  }, [wishlist]);
 
   useEffect(() => {
     localStorage.setItem(LOCAL_STORAGE_KEYS.USER, JSON.stringify(currentUser));
   }, [currentUser]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const hydrateCurrentUser = async () => {
+      const token = localStorage.getItem('espace_pastel_auth_token');
+      if (!token) return;
+      try {
+        const response = await fetch(apiPath('/api/auth/me'), {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!cancelled) {
+          const normalized = normalizeCustomer(data);
+          if (normalized) setCurrentUser(normalized);
+        }
+      } catch {
+        /* keep local fallback */
+      }
+    };
+    void hydrateCurrentUser();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -301,7 +389,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const token = localStorage.getItem('espace_pastel_auth_token');
       if (!token) return;
       try {
-        const response = await fetch(apiPath('/api/orders'), {
+        let endpoint = '/api/orders';
+        if (currentUser && currentUser.role === 'admin') endpoint = '/api/admin/orders';
+        const response = await fetch(apiPath(endpoint), {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!response.ok) return;
@@ -315,7 +405,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     void loadOrders();
     return () => { cancelled = true; };
-  }, [currentUser]);
+  }, [currentUser && currentUser.role]);
+
 
 
   // Toast Helpers
@@ -341,15 +432,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setCart(prev => {
       const existing = prev.find(item => item.productId === product.id);
       if (existing) {
-        return prev.map(item =>
-          item.productId === product.id
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
-        );
+        return prev.map(item => {
+          if (item.productId === product.id) {
+            return { ...item, quantity: item.quantity + quantity };
+          }
+          return item;
+        });
       }
       return [...prev, { productId: product.id, product, quantity }];
     });
-    addToast(`${product.name} ajoutÃƒÂ© au panier Ã¢Å“â€œ`, 'success');
+    addToast(`${product.name} ajouté au panier ✓`, 'success');
     setIsCartDrawerOpen(true);
   };
 
@@ -359,9 +451,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return;
     }
     setCart(prev =>
-      prev.map(item =>
-        item.productId === productId ? { ...item, quantity } : item
-      )
+      prev.map(item => {
+        if (item.productId === productId) {
+          return { ...item, quantity };
+        }
+        return item;
+      })
     );
   };
 
@@ -369,7 +464,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const item = cart.find(i => i.productId === productId);
     setCart(prev => prev.filter(i => i.productId !== productId));
     if (item) {
-      addToast(`${item.product.name} retirÃƒÂ© du panier`, 'info');
+      addToast(`${item.product.name} retiré du panier`, 'info');
     }
   };
 
@@ -380,7 +475,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const cartSubtotal = cart.reduce((sum, item) => {
-    const unitPrice = item.product.promoPrice ?? item.product.price;
+    const unitPrice = item.product.promoPrice || item.product.price;
     return sum + unitPrice * item.quantity;
   }, 0);
 
@@ -389,27 +484,26 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setWishlist(prev => {
       const exists = prev.includes(productId);
       if (exists) {
-        addToast('RetirÃƒÂ© de vos favoris', 'info');
+        addToast('Retiré de vos favoris', 'info');
         return prev.filter(id => id !== productId);
       } else {
-        addToast('AjoutÃƒÂ© ÃƒÂ  vos favoris Ã¢ÂÂ¤Ã¯Â¸Â', 'success');
+        addToast('Ajouté à vos favoris ❤', 'success');
         return [...prev, productId];
       }
     });
   };
 
-  const isInWishlist = (productId: string) => wishlist.includes(productId);
+  const isAdmin = Boolean(currentUser && currentUser.role === 'admin');
 
   // Auth
-  const isAdmin = currentUser?.role === 'admin';
 
   const setIsAdminMode = (admin: boolean) => {
     if (admin) {
       setCurrentUser(INITIAL_CUSTOMERS[1]); // Admin user
-      addToast('Mode Administrateur activÃƒÂ©', 'info');
+      addToast('Mode Administrateur activé', 'info');
     } else {
       setCurrentUser(INITIAL_CUSTOMERS[0]); // Customer user
-      addToast('Mode Client activÃƒÂ©', 'info');
+      addToast('Mode Client activé', 'info');
     }
   };
 
@@ -430,7 +524,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       createdAt: new Date().toISOString()
     };
     setCurrentUser(customer);
-    addToast(Bonjour  !, 'success');
+    addToast(`Bonjour ${customer.firstName} !`, 'success');
     return true;
   };
 
@@ -473,10 +567,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       id: data.id,
       orderNumber: data.orderNumber,
       createdAt: new Date().toISOString(),
-      subtotal: Number(data.subtotal ?? orderData.subtotal),
-      shippingFee: Number(data.shippingFee ?? orderData.shippingFee),
-      total: Number(data.total ?? orderData.total),
-      status: data.status ?? orderData.status,
+      subtotal: Number(data.subtotal || orderData.subtotal),
+      shippingFee: Number(data.shippingFee || orderData.shippingFee),
+      total: Number(data.total || orderData.total),
+      status: data.status || orderData.status,
     };
 
     setOrders((prev) => [newOrder, ...prev.filter((order) => order.id !== newOrder.id)]);
@@ -547,21 +641,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     setProducts(prev => [newProduct, ...prev]);
-    addToast(`Produit "${newProduct.name}" crÃƒÂ©ÃƒÂ© avec succÃƒÂ¨s`, 'success');
+    addToast(`Produit "${newProduct.name}" créé avec succès`, 'success');
     return newProduct;
   };
 
   const updateProduct = (id: string, updates: Partial<Product>) => {
     setProducts(prev =>
-      prev.map(p => (p.id === id ? { ...p, ...updates } : p))
+      prev.map(p => {
+        if (p.id === id) return { ...p, ...updates };
+        return p;
+      })
     );
-    addToast('Produit mis ÃƒÂ  jour avec succÃƒÂ¨s', 'success');
+    addToast('Produit mis a jour avec succes', 'success');
   };
 
   const deleteProduct = (id: string) => {
     const target = products.find(p => p.id === id);
     setProducts(prev => prev.filter(p => p.id !== id));
-    addToast(`Produit "${target?.name || ''}" supprimÃƒÂ©`, 'info');
+    addToast(`Produit "${(target && target.name) || ''}" supprime`, 'info');
   };
 
   // Brand CRUD
@@ -581,26 +678,28 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setBrands(prev => [...prev, newBrand]);
     syncApiMutation('POST', '/api/admin/brands', newBrand);
-    addToast(`Marque "${newBrand.name}" ajoutÃ©e`, 'success');
+    addToast(`Marque "${newBrand.name}" ajoutee`, 'success');
     return newBrand;
   };
 
   const updateBrand = (id: string, updates: Partial<Brand>) => {
     setBrands(prev =>
-      prev.map(b => (b.id === id ? { ...b, ...updates } : b))
+      prev.map(b => {
+        if (b.id === id) return { ...b, ...updates };
+        return b;
+      })
     );
     syncApiMutation('PATCH', `/api/admin/brands/${id}`, updates);
-    addToast('Marque mise Ã  jour', 'success');
+    addToast('Marque mise a jour', 'success');
   };
 
   const deleteBrand = (id: string) => {
     const target = brands.find(b => b.id === id);
     setBrands(prev => prev.filter(b => b.id !== id));
     syncApiMutation('DELETE', `/api/admin/brands/${id}`);
-    addToast(`Marque "${target?.name || ''}" supprimÃ©e`, 'info');
+    addToast(`Marque "${(target && target.name) || ''}" supprimee`, 'info');
   };
 
-  // SubCategory CRUD
   // SubCategory CRUD
   const addSubCategory = (subData: Omit<SubCategory, 'id' | 'slug'>): SubCategory => {
     const slug = subData.name
@@ -618,39 +717,49 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setSubCategories(prev => [...prev, newSub]);
     syncApiMutation('POST', '/api/admin/subcategories', newSub);
-    addToast(`Sous-catÃ©gorie "${newSub.name}" crÃ©Ã©e`, 'success');
+    addToast(`Sous-categorie "${newSub.name}" creee`, 'success');
     return newSub;
   };
 
   const updateSubCategory = (id: string, updates: Partial<SubCategory>) => {
     setSubCategories(prev =>
-      prev.map(s => (s.id === id ? { ...s, ...updates } : s))
+      prev.map(s => {
+        if (s.id === id) return { ...s, ...updates };
+        return s;
+      })
     );
     syncApiMutation('PATCH', `/api/admin/subcategories/${id}`, updates);
-    addToast('Sous-catÃ©gorie mise Ã  jour', 'success');
+    addToast('Sous-categorie mise a jour', 'success');
   };
 
   const deleteSubCategory = (id: string) => {
     const target = subCategories.find(s => s.id === id);
     setSubCategories(prev => prev.filter(s => s.id !== id));
     syncApiMutation('DELETE', `/api/admin/subcategories/${id}`);
-    addToast(`Sous-catÃ©gorie "${target?.name || ''}" supprimÃ©e`, 'info');
+    addToast(`Sous-categorie "${(target && target.name) || ''}" supprimee`, 'info');
   };
 
   // Orders & Stocks
-  // Orders & Stocks
   const updateOrderStatus = (orderId: string, status: OrderStatus) => {
     setOrders(prev =>
-      prev.map(o => (o.id === orderId ? { ...o, status } : o))
+      prev.map(o => {
+        if (o.id === orderId) return { ...o, status };
+        return o;
+      })
     );
-    addToast(`Statut de commande mis ÃƒÂ  jour : ${status}`, 'success');
+    syncApiMutation('PATCH', `/api/admin/orders/${orderId}/status`, { status });
+    addToast(`Statut de commande mis a jour : ${status}`, 'success');
   };
 
   const updateProductStock = (productId: string, newStock: number) => {
     setProducts(prev =>
-      prev.map(p => (p.id === productId ? { ...p, stock: Math.max(0, newStock) } : p))
+      prev.map(p => {
+        if (p.id === productId) return { ...p, stock: Math.max(0, newStock) };
+        return p;
+      })
     );
-    addToast('Stock actualisÃƒÂ©', 'info');
+    syncApiMutation('PATCH', `/api/admin/products/${productId}/stock`, { stock: Math.max(0, newStock) });
+    addToast('Stock actualise', 'info');
   };
 
   // Review Management
@@ -665,48 +774,57 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const newRev: Review = {
       id: 'rev-' + Date.now(),
       productId,
-      productName: prod?.name || 'Produit',
+      productName: (prod && prod.name) || 'Produit',
       customerName,
       customerEmail,
       rating,
       comment,
       date: new Date().toISOString().split('T')[0],
-      status: 'pending' // pending until admin approves
+      status: 'pending'
     };
 
     setReviews(prev => [newRev, ...prev]);
-    addToast('Merci pour votre avis ! Il sera visible aprÃƒÂ¨s validation par notre ÃƒÂ©quipe.', 'info');
+    addToast('Merci pour votre avis ! Il sera visible apres validation par notre equipe.', 'info');
   };
 
   const updateReviewStatus = (reviewId: string, status: ReviewStatus) => {
     setReviews(prev =>
-      prev.map(r => (r.id === reviewId ? { ...r, status } : r))
+      prev.map(r => {
+        if (r.id === reviewId) return { ...r, status };
+        return r;
+      })
     );
 
-    // Recalculate product rating if approved
     const targetReview = reviews.find(r => r.id === reviewId);
     if (targetReview) {
-      const approvedProductReviews = reviews
-        .filter(r => r.productId === targetReview.productId && (r.id === reviewId ? status === 'approved' : r.status === 'approved'));
+      const approvedProductReviews = reviews.filter(r => {
+        if (r.productId !== targetReview.productId) return false;
+        if (r.id === reviewId) return status === 'approved';
+        return r.status === 'approved';
+      });
 
       if (approvedProductReviews.length > 0) {
         const avg = approvedProductReviews.reduce((sum, r) => sum + r.rating, 0) / approvedProductReviews.length;
         setProducts(prev =>
-          prev.map(p =>
-            p.id === targetReview.productId
-              ? { ...p, rating: parseFloat(avg.toFixed(1)), reviewCount: approvedProductReviews.length }
-              : p
-          )
+          prev.map(p => {
+            if (p.id === targetReview.productId) {
+              return { ...p, rating: parseFloat(avg.toFixed(1)), reviewCount: approvedProductReviews.length };
+            }
+            return p;
+          })
         );
       }
     }
 
-    addToast(`Avis ${status === 'approved' ? 'approuvÃƒÂ©' : 'refusÃƒÂ©'}`, 'success');
+    syncApiMutation('PATCH', `/api/admin/reviews/${reviewId}`, { status });
+    let label = 'refuse';
+    if (status === 'approved') label = 'approuve';
+    addToast(`Avis ${label}`, 'success');
   };
 
   const deleteReview = (reviewId: string) => {
     setReviews(prev => prev.filter(r => r.id !== reviewId));
-    addToast('Avis supprimÃƒÂ©', 'info');
+    addToast('Avis supprimé', 'info');
   };
 
   const resetCatalogToDefault = () => {
@@ -720,7 +838,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.removeItem(LOCAL_STORAGE_KEYS.PRODUCTS);
     localStorage.removeItem(LOCAL_STORAGE_KEYS.REVIEWS);
     localStorage.removeItem(LOCAL_STORAGE_KEYS.ORDERS);
-    addToast('Catalogue rÃƒÂ©initialisÃƒÂ© avec les donnÃƒÂ©es de dÃƒÂ©monstration', 'info');
+    addToast('Catalogue réinitialisé avec les données de démonstration', 'info');
   };
 
   return (
@@ -795,6 +913,7 @@ export const useStore = () => {
   }
   return context;
 };
+
 
 
 

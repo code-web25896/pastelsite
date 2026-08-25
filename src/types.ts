@@ -26,9 +26,9 @@ export interface Brand {
   name: string;
   slug: string;
   description: string;
-  logoUrl?: string;
-  bannerUrl?: string;
-  accentColor?: string;
+  logoUrl: string;
+  bannerUrl: string;
+  accentColor: string;
   status: 'active' | 'draft';
   order: number;
 }
@@ -39,7 +39,7 @@ export interface SubCategory {
   name: string;
   slug: string;
   description: string;
-  imageUrl?: string;
+  imageUrl: string;
   status: 'active' | 'draft';
   order: number;
 }
@@ -52,13 +52,13 @@ export interface Product {
   subCategoryId: string;
   category: 'Papeterie' | 'Scolaire' | 'Arts & Peinture' | 'Librairie' | 'Bureau & Organisation';
   price: number; // In TND, e.g., 24.900
-  promoPrice?: number; // In TND, e.g., 19.900
+  promoPrice: number; // In TND, e.g., 19.900
   sku: string;
   stock: number;
-  isNew?: boolean;
-  isPromo?: boolean;
-  isBestSeller?: boolean;
-  badge?: ProductBadge;
+  isNew: boolean;
+  isPromo: boolean;
+  isBestSeller: boolean;
+  badge: ProductBadge;
   rating: number; // e.g. 4.8
   reviewCount: number;
   images: string[];
@@ -67,17 +67,17 @@ export interface Product {
   features: string[];
   
   // Options & Attributs riches
-  sizes?: string[]; // e.g. ['A4', 'A5', 'XL', 'Standard']
-  colors?: ProductColor[]; // e.g. [{ name: 'Rose Pastel', hex: '#EFBED7' }]
-  dimensions?: string; // e.g. '44 x 32 x 20 cm'
-  weight?: string; // e.g. '450g'
-  material?: string; // e.g. 'Polyester 600D imperméable'
+  sizes: string[]; // e.g. ['A4', 'A5', 'XL', 'Standard']
+  colors: ProductColor[]; // e.g. [{ name: 'Rose Pastel', hex: '#EFBED7' }]
+  dimensions: string; // e.g. '44 x 32 x 20 cm'
+  weight: string; // e.g. '450g'
+  material: string; // e.g. 'Polyester 600D imperméable'
   
   // Pièces Rares & Modes de commande (Choix de l'admin)
-  actionType?: ProductActionType; // 'buy_online' | 'rare_call' | 'rare_chat' | 'rare_both'
-  customPhone?: string; // Téléphone boutique si spécifique
-  customWhatsapp?: string; // WhatsApp boutique si spécifique
-  rareNote?: string; // Message d'information pièce rare
+  actionType: ProductActionType; // 'buy_online' | 'rare_call' | 'rare_chat' | 'rare_both'
+  customPhone: string; // Téléphone boutique si spécifique
+  customWhatsapp: string; // WhatsApp boutique si spécifique
+  rareNote: string; // Message d'information pièce rare
 
   status: 'published' | 'draft';
   createdAt: string;
@@ -107,7 +107,7 @@ export interface OrderItem {
   price: number;
   quantity: number;
   image: string;
-  brandName?: string;
+  brandName: string;
 }
 
 export interface Order {
@@ -120,8 +120,8 @@ export interface Order {
     phone: string;
     address: string;
     city: string; // e.g. "Tunis", "Ariana", "Menzah 5"
-    postalCode?: string;
-    notes?: string;
+    postalCode: string;
+    notes: string;
   };
   items: OrderItem[];
   subtotal: number;
@@ -143,7 +143,17 @@ export interface Customer {
     label: string;
     address: string;
     city: string;
+    postalCode: string;
+    isDefault: boolean;
   }[];
+  address: string;
+  city: string;
+  postalCode: string;
+  createdAt: string;
+  }[];
+  address: string;
+  city: string;
+  postalCode: string;
   createdAt: string;
 }
 
@@ -155,15 +165,15 @@ export interface ToastNotification {
 
 export type ViewType = 
   | { type: 'home' }
-  | { type: 'shop'; filterBrand?: string; filterSubCategory?: string; filterCategory?: string; searchQuery?: string; promoOnly?: boolean; isNewOnly?: boolean; brandId?: string; subCategoryId?: string; category?: any }
+  | { type: 'shop'; filterBrand: string; filterSubCategory: string; filterCategory: string; searchQuery: string; promoOnly: boolean; isNewOnly: boolean; brandId: string; subCategoryId: string; category: any }
   | { type: 'brand'; brandSlug: string }
   | { type: 'subcategory'; brandSlug: string; subCategorySlug: string }
   | { type: 'product'; productId: string }
   | { type: 'cart' }
-  | { type: 'auth'; mode?: 'login' | 'register' | 'forgot' }
+  | { type: 'auth'; mode: 'login' | 'register' | 'forgot' }
   | { type: 'checkout' }
-  | { type: 'account'; tab?: 'orders' | 'profile' | 'addresses' | 'reviews' }
-  | { type: 'admin'; tab?: 'dashboard' | 'products' | 'brands' | 'subcategories' | 'stocks' | 'orders' | 'reviews' }
+  | { type: 'account'; tab: 'orders' | 'profile' | 'addresses' | 'reviews' }
+  | { type: 'admin'; tab: 'dashboard' | 'products' | 'brands' | 'subcategories' | 'stocks' | 'orders' | 'reviews' }
   | { type: 'about' }
   | { type: 'contact' }
   | { type: 'shipping' }
