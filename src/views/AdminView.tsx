@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
-import { Product, Brand, SubCategory, Order, Review } from '../types';
+import { Product, Brand, SubCategory, Order, Review, ProductActionType } from '../types';
 import { 
   LayoutDashboard, 
   Package, 
@@ -21,7 +21,8 @@ import {
   Save,
   Tag,
   LogOut,
-  Upload
+  Upload,
+  Pencil
 } from 'lucide-react';
 
 const readImageFile = (file: File): Promise<string> => new Promise((resolve, reject) => {
@@ -42,7 +43,11 @@ export const AdminView: React.FC = () => {
     updateProduct, 
     deleteProduct, 
     addBrand,
+    updateBrand,
+    deleteBrand,
     addSubCategory,
+    updateSubCategory,
+    deleteSubCategory,
     updateOrderStatus, 
     formatPrice,
     navigateTo,
@@ -60,7 +65,9 @@ export const AdminView: React.FC = () => {
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isAddBrandOpen, setIsAddBrandOpen] = useState(false);
+  const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
   const [isAddSubCategoryOpen, setIsAddSubCategoryOpen] = useState(false);
+  const [editingSubCat, setEditingSubCat] = useState<SubCategory | null>(null);
   const [selectedBrandForSubCat, setSelectedBrandForSubCat] = useState<string>(brands[0]?.id || '');
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
 
@@ -245,39 +252,98 @@ export const AdminView: React.FC = () => {
     e.preventDefault();
     if (!bName) return;
 
-    addBrand({
-      name: bName,
-      slug: bSlug || bName.toLowerCase().replace(/\s+/g, '-'),
-      description: bDesc,
-      accentColor: bColor,
-      logoUrl: bLogo || bBanner,
-      bannerUrl: bBanner
-    });
+    if (editingBrand) {
+      updateBrand(editingBrand.id, {
+        name: bName,
+        description: bDesc,
+        accentColor: bColor,
+        logoUrl: bLogo || editingBrand.logoUrl,
+        bannerUrl: bBanner || editingBrand.bannerUrl
+      });
+      addToast(`Marque "${bName}" mise à jour !`, 'success');
+      setEditingBrand(null);
+    } else {
+      addBrand({
+        name: bName,
+        slug: bSlug || bName.toLowerCase().replace(/\s+/g, '-'),
+        description: bDesc,
+        accentColor: bColor,
+        logoUrl: bLogo || bBanner,
+        bannerUrl: bBanner
+      });
+      addToast(`Marque "${bName}" créée avec succès !`, 'success');
+    }
 
-    addToast(`Marque ${bName} créée avec succès !`, 'success');
     setIsAddBrandOpen(false);
     setBName('');
     setBSlug('');
     setBDesc('');
+    setBColor('#8FD8C3');
+    setBLogo('');
+  };
+
+  const handleEditBrandClick = (b: Brand) => {
+    setEditingBrand(b);
+    setBName(b.name);
+    setBSlug(b.slug);
+    setBDesc(b.description);
+    setBColor(b.accentColor || '#8FD8C3');
+    setBLogo(b.logoUrl || '');
+    setBBanner(b.bannerUrl || '');
+    setIsAddBrandOpen(true);
+  };
+
+  const handleDeleteBrand = (id: string, name: string) => {
+    if (window.confirm(`Supprimer la marque "${name}" ? Les produits associés resteront mais sans marque.`)) {
+      deleteBrand(id);
+    }
   };
 
   const handleCreateSubCat = (e: React.FormEvent) => {
     e.preventDefault();
     if (!scName || !selectedBrandForSubCat) return;
 
-    addSubCategory({
-      brandId: selectedBrandForSubCat,
-      name: scName,
-      slug: scSlug || scName.toLowerCase().replace(/\s+/g, '-'),
-      description: scDesc,
-      imageUrl: scImage
-    });
+    if (editingSubCat) {
+      updateSubCategory(editingSubCat.id, {
+        brandId: selectedBrandForSubCat,
+        name: scName,
+        slug: scSlug || scName.toLowerCase().replace(/\s+/g, '-'),
+        description: scDesc,
+        imageUrl: scImage || editingSubCat.imageUrl
+      });
+      addToast(`Sous-catégorie "${scName}" mise à jour !`, 'success');
+      setEditingSubCat(null);
+    } else {
+      addSubCategory({
+        brandId: selectedBrandForSubCat,
+        name: scName,
+        slug: scSlug || scName.toLowerCase().replace(/\s+/g, '-'),
+        description: scDesc,
+        imageUrl: scImage
+      });
+      addToast(`Sous-catégorie "${scName}" ajoutée !`, 'success');
+    }
 
-    addToast(`Sous-catégorie ${scName} ajoutée !`, 'success');
     setIsAddSubCategoryOpen(false);
     setScName('');
     setScSlug('');
     setScDesc('');
+  };
+
+  const handleEditSubCatClick = (sc: SubCategory) => {
+    setEditingSubCat(sc);
+    setScName(sc.name);
+    setScSlug(sc.slug);
+    setScDesc(sc.description);
+    setScImage(sc.imageUrl || '');
+    setSelectedBrandForSubCat(sc.brandId);
+    setIsAddSubCategoryOpen(true);
+  };
+
+  const handleDeleteSubCat = (id: string, name: string) => {
+    if (window.confirm(`Supprimer la sous-catégorie "${name}" ?`)) {
+      deleteSubCategory(id);
+    }
   };
 
   // Filtered Products
@@ -691,18 +757,34 @@ export const AdminView: React.FC = () => {
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-[480px] overflow-y-auto pr-1">
               {brands.map(b => {
                 const bSubs = subCategories.filter(s => s.brandId === b.id);
                 return (
-                  <div key={b.id} className="p-4 rounded-2xl border border-gray-100 bg-[#F7F7F8]/50 flex items-center justify-between">
-                    <div>
+                  <div key={b.id} className="p-4 rounded-2xl border border-gray-100 bg-[#F7F7F8]/50 flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: b.accentColor }} />
-                        <h3 className="font-bold text-sm text-[#0B1833]">{b.name}</h3>
+                        <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: b.accentColor }} />
+                        <h3 className="font-bold text-sm text-[#0B1833] truncate">{b.name}</h3>
                       </div>
                       <p className="text-xs text-gray-500 mt-1 line-clamp-1">{b.description}</p>
-                      <span className="text-[10px] text-gray-400">{bSubs.length} sous-catégories rattachées</span>
+                      <span className="text-[10px] text-gray-400">{bSubs.length} sous-catégorie{bSubs.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <button
+                        onClick={() => handleEditBrandClick(b)}
+                        className="p-1.5 rounded-lg text-gray-500 hover:bg-[#0B1833] hover:text-white transition-colors cursor-pointer"
+                        title="Modifier"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteBrand(b.id, b.name)}
+                        className="p-1.5 rounded-lg text-gray-500 hover:bg-red-600 hover:text-white transition-colors cursor-pointer"
+                        title="Supprimer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
                 );
@@ -717,24 +799,39 @@ export const AdminView: React.FC = () => {
                 Sous-Catégories ({subCategories.length})
               </h2>
               <button
-                onClick={() => setIsAddSubCategoryOpen(true)}
-                className="bg-[#0B1833] text-white text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1"
+                onClick={() => { setEditingSubCat(null); setScName(''); setScSlug(''); setScDesc(''); setIsAddSubCategoryOpen(true); }}
+                className="bg-[#0B1833] text-white text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Ajouter</span>
               </button>
             </div>
 
-            <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
+            <div className="space-y-2.5 max-h-[480px] overflow-y-auto pr-1">
               {subCategories.map(sc => {
                 const b = brands.find(x => x.id === sc.brandId);
                 return (
-                  <div key={sc.id} className="p-3 rounded-xl border border-gray-100 flex items-center justify-between text-xs">
-                    <div>
-                      <span className="font-bold text-[#0B1833]">{sc.name}</span>
-                      <span className="text-[10px] text-gray-400 block">Marque : {b.name}</span>
+                  <div key={sc.id} className="p-3 rounded-xl border border-gray-100 flex items-center justify-between text-xs gap-3">
+                    <div className="flex-1 min-w-0">
+                      <span className="font-bold text-[#0B1833] block truncate">{sc.name}</span>
+                      <span className="text-[10px] text-gray-400">Marque : {b?.name || '—'} • /{sc.slug}</span>
                     </div>
-                    <span className="text-[10px] font-mono text-gray-400">/{sc.slug}</span>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <button
+                        onClick={() => handleEditSubCatClick(sc)}
+                        className="p-1.5 rounded-lg text-gray-500 hover:bg-[#0B1833] hover:text-white transition-colors cursor-pointer"
+                        title="Modifier"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSubCat(sc.id, sc.name)}
+                        className="p-1.5 rounded-lg text-gray-500 hover:bg-red-600 hover:text-white transition-colors cursor-pointer"
+                        title="Supprimer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 );
               })}
@@ -1122,11 +1219,22 @@ export const AdminView: React.FC = () => {
         </div>
       )}
 
-      {/* Add Brand Modal */}
+      {/* Add / Edit Brand Modal */}
       {isAddBrandOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-[#0B1833]/50 backdrop-blur-sm">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95">
-            <h3 className="font-sans font-black text-lg text-[#0B1833]">Ajouter une Marque</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-sans font-black text-lg text-[#0B1833]">
+                {editingBrand ? `Modifier "${editingBrand.name}"` : 'Ajouter une Marque'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => { setIsAddBrandOpen(false); setEditingBrand(null); }}
+                className="p-1 text-gray-400 hover:text-black cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             <form onSubmit={handleCreateBrand} className="space-y-3 text-xs">
               <div>
                 <label className="block font-bold text-gray-700 mb-1">Nom de la marque *</label>
@@ -1152,6 +1260,9 @@ export const AdminView: React.FC = () => {
               </div>
               <div>
                 <label className="block font-bold text-gray-700 mb-1">Logo de la marque</label>
+                {editingBrand?.logoUrl && (
+                  <img src={editingBrand.logoUrl} alt="Logo actuel" className="w-12 h-12 rounded-lg object-cover mb-1 border border-gray-200" />
+                )}
                 <input
                   type="file"
                   accept="image/*"
@@ -1161,6 +1272,9 @@ export const AdminView: React.FC = () => {
               </div>
               <div>
                 <label className="block font-bold text-gray-700 mb-1">Bannière / image marque</label>
+                {editingBrand?.bannerUrl && (
+                  <img src={editingBrand.bannerUrl} alt="Bannière actuelle" className="w-full h-16 rounded-lg object-cover mb-1 border border-gray-200" />
+                )}
                 <input
                   type="file"
                   accept="image/*"
@@ -1170,27 +1284,49 @@ export const AdminView: React.FC = () => {
               </div>
               <div>
                 <label className="block font-bold text-gray-700 mb-1">Couleur d'accent (Hex)</label>
-                <input
-                  type="text"
-                  value={bColor}
-                  onChange={(e) => setBColor(e.target.value)}
-                  className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none"
-                />
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={bColor}
+                    onChange={(e) => setBColor(e.target.value)}
+                    className="w-10 h-9 rounded-lg border border-gray-200 cursor-pointer p-0.5"
+                  />
+                  <input
+                    type="text"
+                    value={bColor}
+                    onChange={(e) => setBColor(e.target.value)}
+                    className="flex-1 bg-[#F7F7F8] border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none"
+                    placeholder="#8FD8C3"
+                  />
+                </div>
               </div>
               <div className="pt-2 flex justify-end gap-2">
-                <button type="button" onClick={() => setIsAddBrandOpen(false)} className="px-3 py-2 text-gray-500">Annuler</button>
-                <button type="submit" className="bg-[#0B1833] text-white px-4 py-2 rounded-xl font-bold">Créer la marque</button>
+                <button type="button" onClick={() => { setIsAddBrandOpen(false); setEditingBrand(null); }} className="px-3 py-2 text-gray-500 hover:bg-gray-100 rounded-xl cursor-pointer">Annuler</button>
+                <button type="submit" className="bg-[#0B1833] text-white px-4 py-2 rounded-xl font-bold hover:bg-[#8FD8C3] hover:text-[#0B1833] transition-colors cursor-pointer">
+                  {editingBrand ? 'Enregistrer les modifications' : 'Créer la marque'}
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Add SubCategory Modal */}
+      {/* Add / Edit SubCategory Modal */}
       {isAddSubCategoryOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-[#0B1833]/50 backdrop-blur-sm">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95">
-            <h3 className="font-sans font-black text-lg text-[#0B1833]">Ajouter une Sous-catégorie</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-sans font-black text-lg text-[#0B1833]">
+                {editingSubCat ? `Modifier "${editingSubCat.name}"` : 'Ajouter une Sous-catégorie'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => { setIsAddSubCategoryOpen(false); setEditingSubCat(null); }}
+                className="p-1 text-gray-400 hover:text-black cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             <form onSubmit={handleCreateSubCat} className="space-y-3 text-xs">
               <div>
                 <label className="block font-bold text-gray-700 mb-1">Marque parente *</label>
@@ -1216,10 +1352,9 @@ export const AdminView: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block font-bold text-gray-700 mb-1">Description *</label>
+                <label className="block font-bold text-gray-700 mb-1">Description</label>
                 <textarea
                   rows={2}
-                  required
                   value={scDesc}
                   onChange={(e) => setScDesc(e.target.value)}
                   placeholder="Stylos gel pastel et pailletés..."
@@ -1227,8 +1362,10 @@ export const AdminView: React.FC = () => {
                 />
               </div>
               <div className="pt-2 flex justify-end gap-2">
-                <button type="button" onClick={() => setIsAddSubCategoryOpen(false)} className="px-3 py-2 text-gray-500">Annuler</button>
-                <button type="submit" className="bg-[#0B1833] text-white px-4 py-2 rounded-xl font-bold">Créer la sous-catégorie</button>
+                <button type="button" onClick={() => { setIsAddSubCategoryOpen(false); setEditingSubCat(null); }} className="px-3 py-2 text-gray-500 hover:bg-gray-100 rounded-xl cursor-pointer">Annuler</button>
+                <button type="submit" className="bg-[#0B1833] text-white px-4 py-2 rounded-xl font-bold hover:bg-[#8FD8C3] hover:text-[#0B1833] transition-colors cursor-pointer">
+                  {editingSubCat ? 'Enregistrer les modifications' : 'Créer la sous-catégorie'}
+                </button>
               </div>
             </form>
           </div>
