@@ -463,7 +463,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
       return [...prev, { productId: product.id, product, quantity }];
     });
-    addToast(`${product.name} ajoutÃ© au panier âœ“`, 'success');
+    addToast(`${product.name} ajouté au panier ✓`, 'success');
     setIsCartDrawerOpen(true);
   };
 
@@ -486,7 +486,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const item = cart.find(i => i.productId === productId);
     setCart(prev => prev.filter(i => i.productId !== productId));
     if (item) {
-      addToast(`${item.product.name} retirÃ© du panier`, 'info');
+      addToast(`${item.product.name} retiré du panier`, 'info');
     }
   };
 
@@ -506,10 +506,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setWishlist(prev => {
       const exists = prev.includes(productId);
       if (exists) {
-        addToast('RetirÃ© de vos favoris', 'info');
+        addToast('Retiré de vos favoris', 'info');
         return prev.filter(id => id !== productId);
       } else {
-        addToast('AjoutÃ© Ã  vos favoris â¤', 'success');
+        addToast('Ajouté à vos favoris ❤️', 'success');
         return [...prev, productId];
       }
     });
@@ -524,10 +524,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const setIsAdminMode = (admin: boolean) => {
     if (admin) {
       setCurrentUser(INITIAL_CUSTOMERS[1]); // Admin user
-      addToast('Mode Administrateur activÃ©', 'info');
+      addToast('Mode Administrateur activé', 'info');
     } else {
       setCurrentUser(INITIAL_CUSTOMERS[0]); // Customer user
-      addToast('Mode Client activÃ©', 'info');
+      addToast('Mode Client activé', 'info');
     }
   };
 
@@ -544,7 +544,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       email,
       phone: '55 542 000',
       role: 'customer',
-      addresses: [{ label: 'Adresse principale', address: '23 Rue de la LibertÃ©', city: 'Menzah 5' }],
+      addresses: [{ label: 'Adresse principale', address: '23 Rue de la Liberté', city: 'Menzah 5' }],
       createdAt: new Date().toISOString()
     };
     setCurrentUser(customer);
@@ -555,7 +555,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const logout = () => {
     localStorage.removeItem('espace_pastel_auth_token');
     setCurrentUser(null);
-    addToast('Vous Ãªtes dÃ©connectÃ©', 'info');
+    addToast('Vous êtes déconnecté', 'info');
     navigateTo({ type: 'home' });
   };
 
@@ -871,7 +871,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.removeItem(LOCAL_STORAGE_KEYS.PRODUCTS);
     localStorage.removeItem(LOCAL_STORAGE_KEYS.REVIEWS);
     localStorage.removeItem(LOCAL_STORAGE_KEYS.ORDERS);
-    addToast('Catalogue rÃ©initialisÃ© avec les donnÃ©es de dÃ©monstration', 'info');
+    addToast('Catalogue réinitialisé avec les données de démonstration', 'info');
   };
 
   return (
