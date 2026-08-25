@@ -100,10 +100,7 @@ app.patch('/api/admin/reviews/:id', auth, admin, route(async (req, res) => { uui
 app.delete('/api/admin/reviews/:id', auth, admin, route(async (req, res) => { uuid.parse(req.params.id); const [r] = await pool.execute('DELETE FROM reviews WHERE id = ?', [req.params.id]); if (!r.affectedRows) return res.status(404).json({ error: 'Avis introuvable.' }); res.status(204).end(); }));
 if (hasClient) {
   app.use(express.static(clientDist, { index: false, maxAge: '1h' }));
-  app.get(/^\/(?!api\/).*/, (_q, res) => {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.sendFile(path.join(clientDist, 'index.html'));
-  });
+  app.get(/^\/(?!api\/).*/, (_q, res) => res.sendFile(path.join(clientDist, 'index.html')));
 }
 app.use((_q, res) => res.status(404).json({ error: 'Route introuvable.' }));
 app.use((error, _q, res, _next) => {
@@ -127,6 +124,5 @@ async function bootstrap() {
 }
 
 void bootstrap();
-
 
 
