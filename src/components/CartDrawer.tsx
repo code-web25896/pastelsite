@@ -71,7 +71,7 @@ export const CartDrawer: React.FC = () => {
           <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-[#F7F7F8]">
             <div className="flex items-center gap-2">
               <ShoppingBag className="w-5 h-5 text-[#0B1833]" />
-              <h2 className="font-['Outfit'] font-bold text-lg text-[#0B1833]">
+              <h2 className="font-sans font-bold text-lg text-[#0B1833]">
                 Mon Panier ({cartCount})
               </h2>
             </div>
@@ -118,7 +118,7 @@ export const CartDrawer: React.FC = () => {
                   <ShoppingBag className="w-8 h-8" />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="font-['Outfit'] font-bold text-base text-[#0B1833]">
+                  <h3 className="font-sans font-bold text-base text-[#0B1833]">
                     Votre panier est vide
                   </h3>
                   <p className="text-xs text-gray-500 max-w-xs mx-auto">
@@ -193,7 +193,7 @@ export const CartDrawer: React.FC = () => {
 
                         {/* Line Total & Remove */}
                         <div className="flex items-center gap-3">
-                          <span className="font-['Outfit'] font-bold text-xs text-[#0B1833]">
+                          <span className="font-sans font-bold text-xs text-[#0B1833]">
                             {formatPrice(lineTotal)}
                           </span>
                           <button
@@ -268,7 +268,7 @@ export const CartDrawer: React.FC = () => {
                   </span>
                 </div>
 
-                <div className="flex justify-between text-sm font-['Outfit'] font-extrabold text-[#0B1833] pt-2 border-t border-gray-200">
+                <div className="flex justify-between text-sm font-sans font-extrabold text-[#0B1833] pt-2 border-t border-gray-200">
                   <span>Total</span>
                   <span>{formatPrice(finalTotal)}</span>
                 </div>
@@ -301,3 +301,4 @@ export const CartDrawer: React.FC = () => {
     </div>
   );
 };
+

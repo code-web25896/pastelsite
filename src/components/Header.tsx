@@ -189,7 +189,7 @@ export const Header: React.FC = () => {
                               />
                             </div>
                             <div className="flex-1 flex items-center justify-between">
-                              <span className="font-['Outfit'] font-bold text-sm sm:text-base text-[#0B1833] group-hover/card:text-[#B58BC5] transition-colors">
+                              <span className="font-sans font-bold text-sm sm:text-base text-[#0B1833] group-hover/card:text-[#B58BC5] transition-colors">
                                 {brand.name}
                               </span>
                               <span 
@@ -394,7 +394,7 @@ export const Header: React.FC = () => {
               aria-label="Panier"
             >
               <ShoppingBag className="w-4 h-4 text-[#8FD8C3] group-hover:scale-110 transition-transform" />
-              <span className="text-xs font-bold font-['Outfit']">
+              <span className="text-xs font-bold font-sans">
                 {cartCount}
               </span>
             </button>
@@ -522,3 +522,4 @@ export const Header: React.FC = () => {
     </header>
   );
 };
+

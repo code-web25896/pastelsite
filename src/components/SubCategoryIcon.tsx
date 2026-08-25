@@ -153,3 +153,4 @@ export const SubCategoryIcon: React.FC<SubCategoryIconProps> = ({
 
   return <IconComponent className={`${sizeClasses[size]} ${className}`} />;
 };
+

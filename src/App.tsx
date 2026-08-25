@@ -87,7 +87,7 @@ const MainContent: React.FC = () => {
 export default function App() {
   return (
     <StoreProvider>
-      <div className="min-h-screen bg-[#F7F7F8] text-[#0B1833] font-['Plus_Jakarta_Sans'] flex flex-col selection:bg-[#8FD8C3] selection:text-[#0B1833]">
+      <div className="min-h-screen bg-[#F7F7F8] text-[#0B1833] font-sans flex flex-col selection:bg-[#8FD8C3] selection:text-[#0B1833]">
         <Header />
         <MainContent />
         <Footer />
@@ -98,3 +98,4 @@ export default function App() {
     </StoreProvider>
   );
 }
+

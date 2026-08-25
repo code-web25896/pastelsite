@@ -107,10 +107,10 @@ export const HomeView: React.FC = () => {
                     transition={{ duration: 0.5, delay: 0.5 }}
                     className="space-y-0.5 sm:space-y-1"
                   >
-                    <h1 className="font-['Outfit'] font-extrabold text-base sm:text-2xl md:text-3xl lg:text-4xl text-[#0B1833] tracking-tight leading-tight drop-shadow-xs">
+                    <h1 className="font-sans font-extrabold text-base sm:text-2xl md:text-3xl lg:text-4xl text-[#0B1833] tracking-tight leading-tight drop-shadow-xs">
                       ESPACE PASTEL
                     </h1>
-                    <p className="font-['Outfit'] text-[10px] sm:text-xs md:text-sm text-gray-600 font-medium max-w-xs sm:max-w-sm mx-auto leading-tight hidden xs:block">
+                    <p className="font-sans text-[10px] sm:text-xs md:text-sm text-gray-600 font-medium max-w-xs sm:max-w-sm mx-auto leading-tight hidden xs:block">
                       Tout pour lire, apprendre et créer au quotidien.
                     </p>
                   </motion.div>
@@ -178,7 +178,7 @@ export const HomeView: React.FC = () => {
               <Truck className="w-6 h-6 text-[#0B1833]" />
             </div>
             <div>
-              <h3 className="font-['Outfit'] font-bold text-sm sm:text-base text-[#0B1833]">Livraison rapide</h3>
+              <h3 className="font-sans font-bold text-sm sm:text-base text-[#0B1833]">Livraison rapide</h3>
               <p className="text-xs text-[#0B1833]/60 mt-0.5">Expédition soignée sur tout le territoire tunisien</p>
             </div>
           </div>
@@ -188,7 +188,7 @@ export const HomeView: React.FC = () => {
               <ShieldCheck className="w-6 h-6 text-[#0B1833]" />
             </div>
             <div>
-              <h3 className="font-['Outfit'] font-bold text-sm sm:text-base text-[#0B1833]">Sélection avec soin</h3>
+              <h3 className="font-sans font-bold text-sm sm:text-base text-[#0B1833]">Sélection avec soin</h3>
               <p className="text-xs text-[#0B1833]/60 mt-0.5">Papeterie d'excellence et articles testés</p>
             </div>
           </div>
@@ -198,7 +198,7 @@ export const HomeView: React.FC = () => {
               <Headphones className="w-6 h-6 text-[#0B1833]" />
             </div>
             <div>
-              <h3 className="font-['Outfit'] font-bold text-sm sm:text-base text-[#0B1833]">Service client disponible</h3>
+              <h3 className="font-sans font-bold text-sm sm:text-base text-[#0B1833]">Service client disponible</h3>
               <p className="text-xs text-[#0B1833]/60 mt-0.5">À votre écoute au 55 542 000</p>
             </div>
           </div>
@@ -208,7 +208,7 @@ export const HomeView: React.FC = () => {
               <CreditCard className="w-6 h-6 text-[#0B1833]" />
             </div>
             <div>
-              <h3 className="font-['Outfit'] font-bold text-sm sm:text-base text-[#0B1833]">Paiement sécurisé</h3>
+              <h3 className="font-sans font-bold text-sm sm:text-base text-[#0B1833]">Paiement sécurisé</h3>
               <p className="text-xs text-[#0B1833]/60 mt-0.5">Paiement à la livraison ou retrait en magasin</p>
             </div>
           </div>
@@ -224,7 +224,7 @@ export const HomeView: React.FC = () => {
             <div className="text-xs font-extrabold uppercase tracking-widest text-[#B58BC5] mb-1">
               Univers & Partenaires
             </div>
-            <h2 className="font-['Outfit'] font-black text-2xl sm:text-4xl text-[#0B1833] tracking-tight">
+            <h2 className="font-sans font-black text-2xl sm:text-4xl text-[#0B1833] tracking-tight">
               NOS MARQUES
             </h2>
             <p className="text-sm text-[#0B1833]/70 mt-1">
@@ -250,14 +250,14 @@ export const HomeView: React.FC = () => {
       </section>
 
 
-      {/* 25. HOMEPAGE — NOUVEAUTÉS */}
+      {/* 25. HOMEPAGE - NOUVEAUTÉS */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
           <div>
             <div className="text-xs font-extrabold uppercase tracking-widest text-[#8FD8C3] mb-1">
               Arrivages Récents
             </div>
-            <h2 className="font-['Outfit'] font-black text-2xl sm:text-4xl text-[#0B1833] tracking-tight">
+            <h2 className="font-sans font-black text-2xl sm:text-4xl text-[#0B1833] tracking-tight">
               NOS NOUVEAUTÉS
             </h2>
             <p className="text-sm text-[#0B1833]/70 mt-1">
@@ -293,7 +293,7 @@ export const HomeView: React.FC = () => {
               Atelier Créatif & Beaux-Arts
             </span>
             
-            <h2 className="font-['Outfit'] font-black text-2xl sm:text-3xl lg:text-4xl text-white tracking-tight">
+            <h2 className="font-sans font-black text-2xl sm:text-3xl lg:text-4xl text-white tracking-tight">
               Exprimez votre talent avec notre sélection Beaux-Arts
             </h2>
             
@@ -315,14 +315,14 @@ export const HomeView: React.FC = () => {
       </section>
 
 
-      {/* 26. HOMEPAGE — PROMOTIONS */}
+      {/* 26. HOMEPAGE - PROMOTIONS */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
           <div>
             <div className="text-xs font-extrabold uppercase tracking-widest text-[#F4A9C8] mb-1">
               Bons Plans
             </div>
-            <h2 className="font-['Outfit'] font-black text-2xl sm:text-4xl text-[#0B1833] tracking-tight">
+            <h2 className="font-sans font-black text-2xl sm:text-4xl text-[#0B1833] tracking-tight">
               NOS OFFRES DU MOMENT
             </h2>
             <p className="text-sm text-[#0B1833]/70 mt-1">
@@ -348,13 +348,13 @@ export const HomeView: React.FC = () => {
       </section>
 
 
-      {/* 27. HOMEPAGE — AVIS CLIENTS (ILS PARLENT DE NOUS) */}
+      {/* 27. HOMEPAGE - AVIS CLIENTS (ILS PARLENT DE NOUS) */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-xl mx-auto mb-10">
           <div className="text-xs font-extrabold uppercase tracking-widest text-[#8FD8C3] mb-1">
             Témoignages
           </div>
-          <h2 className="font-['Outfit'] font-black text-2xl sm:text-3xl text-[#0B1833] tracking-tight">
+          <h2 className="font-sans font-black text-2xl sm:text-3xl text-[#0B1833] tracking-tight">
             ILS PARLENT DE NOUS
           </h2>
           <p className="text-xs sm:text-sm text-[#0B1833]/70 mt-1">
@@ -387,8 +387,8 @@ export const HomeView: React.FC = () => {
               </div>
 
               <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
-                <span className="font-['Outfit'] font-bold text-xs text-[#0B1833]">
-                  — {review.customerName}
+                <span className="font-sans font-bold text-xs text-[#0B1833]">
+                  - {review.customerName}
                 </span>
                 <span className="text-[10px] text-gray-400">
                   {review.date}
@@ -409,7 +409,7 @@ export const HomeView: React.FC = () => {
               <span>Boutique Physique à Tunis</span>
             </div>
             
-            <h3 className="font-['Outfit'] font-black text-2xl text-[#0B1833] tracking-tight">
+            <h3 className="font-sans font-black text-2xl text-[#0B1833] tracking-tight">
               Venez nous rendre visite à Menzah 5
             </h3>
             
@@ -440,3 +440,4 @@ export const HomeView: React.FC = () => {
     </div>
   );
 };
+

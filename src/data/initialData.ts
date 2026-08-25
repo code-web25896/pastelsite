@@ -88,7 +88,7 @@ export const INITIAL_SUBCATEGORIES: SubCategory[] = [
     brandId: 'brand-bomi',
     name: 'PIÈCES RARES',
     slug: 'pieces-rares',
-    description: 'Éditions limitées, collector et modèles d\'exception numérotés — Appeler ou Discuter avec la boutique.',
+    description: 'Éditions limitées, collector et modèles d\'exception numérotés - Appeler ou Discuter avec la boutique.',
     imageUrl: 'https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=600&q=80',
     status: 'active',
     order: 4
@@ -889,3 +889,4 @@ export const INITIAL_CUSTOMERS: Customer[] = [
     createdAt: '2025-09-01'
   }
 ];
+

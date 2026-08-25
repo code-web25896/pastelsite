@@ -47,7 +47,7 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
             <span className="px-3.5 py-1.5 rounded-full bg-[#8FD8C3]/20 text-[#0B1833] text-xs font-black uppercase tracking-widest inline-block">
               NOTRE HISTOIRE
             </span>
-            <h1 className="font-['Outfit'] font-black text-3xl sm:text-5xl text-[#0B1833] tracking-tight">
+            <h1 className="font-sans font-black text-3xl sm:text-5xl text-[#0B1833] tracking-tight">
               Bienvenue chez Espace Pastel
             </h1>
             <p className="text-sm text-gray-600 leading-relaxed">
@@ -65,7 +65,7 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
             </div>
 
             <div className="space-y-4 text-xs sm:text-sm text-[#0B1833]/80 leading-relaxed">
-              <h2 className="font-['Outfit'] font-black text-2xl text-[#0B1833]">
+              <h2 className="font-sans font-black text-2xl text-[#0B1833]">
                 Notre Vision & Notre Engagement
               </h2>
               <p>
@@ -96,7 +96,7 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
             <span className="text-xs font-black uppercase tracking-widest text-[#B58BC5]">
               NOUS CONTACTER
             </span>
-            <h1 className="font-['Outfit'] font-black text-3xl sm:text-4xl text-[#0B1833]">
+            <h1 className="font-sans font-black text-3xl sm:text-4xl text-[#0B1833]">
               Une question ? Notre équipe est à votre écoute
             </h1>
             <p className="text-xs text-gray-500">
@@ -108,7 +108,7 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
             
             {/* Contact Coordinates (5 cols) */}
             <div className="lg:col-span-5 bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
-              <h2 className="font-['Outfit'] font-bold text-lg text-[#0B1833]">
+              <h2 className="font-sans font-bold text-lg text-[#0B1833]">
                 Coordonnées de la boutique
               </h2>
 
@@ -151,8 +151,8 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
                   </div>
                   <div>
                     <strong className="block text-sm">Horaires d'ouverture</strong>
-                    <p className="text-gray-600">Lundi – Samedi : 08h30 – 19h30</p>
-                    <p className="text-gray-600">Dimanche : 09h00 – 14h00</p>
+                    <p className="text-gray-600">Lundi - Samedi : 08h30 - 19h30</p>
+                    <p className="text-gray-600">Dimanche : 09h00 - 14h00</p>
                   </div>
                 </div>
               </div>
@@ -160,7 +160,7 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
 
             {/* Form (7 cols) */}
             <div className="lg:col-span-7 bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-4">
-              <h2 className="font-['Outfit'] font-bold text-lg text-[#0B1833]">
+              <h2 className="font-sans font-bold text-lg text-[#0B1833]">
                 Envoyez-nous un message
               </h2>
 
@@ -261,14 +261,14 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
             <span className="text-xs font-black uppercase tracking-widest text-[#8FD8C3]">
               POLITIQUE DE LIVRAISON
             </span>
-            <h1 className="font-['Outfit'] font-black text-2xl sm:text-3xl text-[#0B1833]">
+            <h1 className="font-sans font-black text-2xl sm:text-3xl text-[#0B1833]">
               Livraisons et Délais en Tunisie
             </h1>
           </div>
 
           <div className="space-y-6 text-xs sm:text-sm text-[#0B1833]/80 leading-relaxed">
             <div>
-              <h2 className="font-['Outfit'] font-bold text-base text-[#0B1833] mb-2">
+              <h2 className="font-sans font-bold text-base text-[#0B1833] mb-2">
                 1. Tarifs et Délais d'expédition
               </h2>
               <p>
@@ -281,7 +281,7 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
             </div>
 
             <div>
-              <h2 className="font-['Outfit'] font-bold text-base text-[#0B1833] mb-2">
+              <h2 className="font-sans font-bold text-base text-[#0B1833] mb-2">
                 2. Retrait Gratuit en Magasin (Click & Collect)
               </h2>
               <p>
@@ -290,7 +290,7 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
             </div>
 
             <div>
-              <h2 className="font-['Outfit'] font-bold text-base text-[#0B1833] mb-2">
+              <h2 className="font-sans font-bold text-base text-[#0B1833] mb-2">
                 3. Suivi de votre colis
               </h2>
               <p>
@@ -308,7 +308,7 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
             <span className="text-xs font-black uppercase tracking-widest text-[#B58BC5]">
               INFORMATIONS JURIDIQUES
             </span>
-            <h1 className="font-['Outfit'] font-black text-2xl sm:text-3xl text-[#0B1833]">
+            <h1 className="font-sans font-black text-2xl sm:text-3xl text-[#0B1833]">
               Mentions Légales & Confidentialité
             </h1>
           </div>
@@ -328,3 +328,4 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
     </div>
   );
 };
+

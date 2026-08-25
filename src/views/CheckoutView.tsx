@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import confetti from 'canvas-confetti';
 import { 
@@ -175,7 +175,7 @@ export const CheckoutView: React.FC = () => {
             <span className="text-xs font-black uppercase tracking-widest text-[#8FD8C3]">
               COMMANDE CONFIRMÉE
             </span>
-            <h1 className="font-['Outfit'] font-black text-2xl sm:text-4xl text-[#0B1833] tracking-tight">
+            <h1 className="font-sans font-black text-2xl sm:text-4xl text-[#0B1833] tracking-tight">
               Merci pour votre commande, {completedOrder.customer.firstName} !
             </h1>
             <p className="text-xs sm:text-sm text-gray-600 max-w-md mx-auto">
@@ -227,7 +227,7 @@ export const CheckoutView: React.FC = () => {
               ))}
             </div>
 
-            <div className="pt-3 border-t border-gray-300 flex justify-between font-['Outfit'] font-black text-sm text-[#0B1833]">
+            <div className="pt-3 border-t border-gray-300 flex justify-between font-sans font-black text-sm text-[#0B1833]">
               <span>Total Réglé :</span>
               <span>{formatPrice(completedOrder.total)}</span>
             </div>
@@ -257,7 +257,7 @@ export const CheckoutView: React.FC = () => {
   if (cart.length === 0) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 text-center space-y-4">
-        <h2 className="font-['Outfit'] font-bold text-2xl text-[#0B1833]">Votre panier est vide</h2>
+        <h2 className="font-sans font-bold text-2xl text-[#0B1833]">Votre panier est vide</h2>
         <p className="text-sm text-gray-500">Ajoutez des produits au panier pour passer une commande.</p>
         <button
           onClick={() => navigateTo({ type: 'shop' })}
@@ -275,7 +275,7 @@ export const CheckoutView: React.FC = () => {
       {/* Title */}
       <div className="flex items-center justify-between pb-4 border-b border-gray-100">
         <div>
-          <h1 className="font-['Outfit'] font-black text-2xl sm:text-3xl text-[#0B1833]">
+          <h1 className="font-sans font-black text-2xl sm:text-3xl text-[#0B1833]">
             PASSER LA COMMANDE
           </h1>
           <p className="text-xs text-gray-500">
@@ -299,7 +299,7 @@ export const CheckoutView: React.FC = () => {
           
           {/* 1. Customer details */}
           <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-4">
-            <h2 className="font-['Outfit'] font-bold text-base text-[#0B1833] flex items-center gap-2">
+            <h2 className="font-sans font-bold text-base text-[#0B1833] flex items-center gap-2">
               <span className="w-6 h-6 rounded-full bg-[#0B1833] text-white text-xs flex items-center justify-center font-bold">1</span>
               <span>Coordonnées de contact</span>
             </h2>
@@ -354,7 +354,7 @@ export const CheckoutView: React.FC = () => {
 
           {/* 2. Mode de livraison */}
           <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-4">
-            <h2 className="font-['Outfit'] font-bold text-base text-[#0B1833] flex items-center gap-2">
+            <h2 className="font-sans font-bold text-base text-[#0B1833] flex items-center gap-2">
               <span className="w-6 h-6 rounded-full bg-[#0B1833] text-white text-xs flex items-center justify-center font-bold">2</span>
               <span>Mode de livraison</span>
             </h2>
@@ -454,7 +454,7 @@ export const CheckoutView: React.FC = () => {
 
           {/* 3. Mode de paiement */}
           <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-4">
-            <h2 className="font-['Outfit'] font-bold text-base text-[#0B1833] flex items-center gap-2">
+            <h2 className="font-sans font-bold text-base text-[#0B1833] flex items-center gap-2">
               <span className="w-6 h-6 rounded-full bg-[#0B1833] text-white text-xs flex items-center justify-center font-bold">3</span>
               <span>Mode de paiement</span>
             </h2>
@@ -500,7 +500,7 @@ export const CheckoutView: React.FC = () => {
 
         {/* RIGHT COLUMN: Order Summary (5 cols) */}
         <div className="lg:col-span-5 bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6 sticky top-24">
-          <h2 className="font-['Outfit'] font-bold text-base text-[#0B1833]">
+          <h2 className="font-sans font-bold text-base text-[#0B1833]">
             Récapitulatif de votre commande ({cartCount})
           </h2>
 
@@ -546,7 +546,7 @@ export const CheckoutView: React.FC = () => {
               </span>
             </div>
 
-            <div className="flex justify-between text-base font-['Outfit'] font-black text-[#0B1833] pt-3 border-t border-gray-200">
+            <div className="flex justify-between text-base font-sans font-black text-[#0B1833] pt-3 border-t border-gray-200">
               <span>Total TTC</span>
               <span>{formatPrice(total)}</span>
             </div>
@@ -578,6 +578,7 @@ export const CheckoutView: React.FC = () => {
     </div>
   );
 };
+
 
 
 

@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { LockKeyhole, Mail, ArrowLeft, ShieldCheck } from 'lucide-react';
 import { useStore } from '../context/StoreContext';
 
@@ -65,7 +65,7 @@ export const AuthView: React.FC<{ initialMode?: Mode }> = ({ initialMode = 'logi
           <ShieldCheck />
         </div>
 
-        <h1 className="font-['Outfit'] font-black text-2xl text-[#0B1833]">{title}</h1>
+        <h1 className="font-sans font-black text-2xl text-[#0B1833]">{title}</h1>
         <p className="text-sm text-gray-500 mt-2">
           {mode === 'login'
             ? 'Accedez a votre espace client ou a l administration.'
@@ -158,3 +158,4 @@ export const AuthView: React.FC<{ initialMode?: Mode }> = ({ initialMode = 'logi
     </div>
   );
 };
+

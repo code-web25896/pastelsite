@@ -218,7 +218,7 @@ export const MobileBottomNav: React.FC = () => {
                     <Layers className="w-4 h-4 text-[#8FD8C3]" />
                   </div>
                   <div>
-                    <h3 className="font-['Outfit'] font-black text-base text-[#0B1833]">
+                    <h3 className="font-sans font-black text-base text-[#0B1833]">
                       Nos Marques & Rayons
                     </h3>
                     <p className="text-[11px] text-gray-500">
@@ -351,3 +351,4 @@ export const MobileBottomNav: React.FC = () => {
     </>
   );
 };
+

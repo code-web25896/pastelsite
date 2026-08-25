@@ -2,8 +2,8 @@
 
 @layer base {
   :root {
-    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-    --font-heading: 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-sans: system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+    --font-heading: system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
     
     /* Couleurs extraites de la couverture Espace Pastel */
     --navy-ink: #0B1833;
@@ -36,7 +36,7 @@
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
   }
 }
 
@@ -58,5 +58,7 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #0B1833;
 }
+
+
 
 

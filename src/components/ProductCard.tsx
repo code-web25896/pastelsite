@@ -135,7 +135,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           {/* Title */}
           <h3 
             onClick={() => navigateTo({ type: 'product', productId: product.id })}
-            className="font-['Outfit'] font-bold text-sm text-[#0B1833] group-hover:text-[#B58BC5] transition-colors line-clamp-2 cursor-pointer mb-2"
+            className="font-sans font-bold text-sm text-[#0B1833] group-hover:text-[#B58BC5] transition-colors line-clamp-2 cursor-pointer mb-2"
           >
             {product.name}
           </h3>
@@ -162,7 +162,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         {/* Pricing & Add to Cart Footer */}
         <div className="pt-3 border-t border-gray-100 flex items-center justify-between gap-2 mt-auto">
           <div>
-            <div className="font-['Outfit'] font-extrabold text-base text-[#0B1833]">
+            <div className="font-sans font-extrabold text-base text-[#0B1833]">
               {formatPrice(currentPrice)}
             </div>
             {product.promoPrice && (
@@ -191,3 +191,4 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     </motion.div>
   );
 };
+

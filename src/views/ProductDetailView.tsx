@@ -53,7 +53,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
   if (!product) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 text-center space-y-4">
-        <h2 className="font-['Outfit'] font-bold text-2xl text-[#0B1833]">Produit introuvable</h2>
+        <h2 className="font-sans font-bold text-2xl text-[#0B1833]">Produit introuvable</h2>
         <p className="text-sm text-gray-500">Ce produit n'existe plus ou a été retiré du catalogue.</p>
         <button
           onClick={() => navigateTo({ type: 'shop' })}
@@ -199,7 +199,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
           </div>
 
           {/* Product Name */}
-          <h1 className="font-['Outfit'] font-black text-2xl sm:text-3xl text-[#0B1833] tracking-tight leading-tight">
+          <h1 className="font-sans font-black text-2xl sm:text-3xl text-[#0B1833] tracking-tight leading-tight">
             {product.name}
           </h1>
 
@@ -230,7 +230,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
           {/* Pricing Box */}
           <div className="p-4 rounded-2xl bg-white border border-gray-100 flex items-center justify-between">
             <div>
-              <div className="font-['Outfit'] font-black text-2xl sm:text-3xl text-[#0B1833]">
+              <div className="font-sans font-black text-2xl sm:text-3xl text-[#0B1833]">
                 {formatPrice(currentPrice)}
               </div>
               {product.promoPrice && (
@@ -390,7 +390,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
             {/* Reviews Summary Header */}
             <div className="bg-[#F7F7F8] p-6 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-6">
               <div className="flex items-center gap-4">
-                <div className="font-['Outfit'] font-black text-4xl text-[#0B1833]">
+                <div className="font-sans font-black text-4xl text-[#0B1833]">
                   {product.rating.toFixed(1)}
                 </div>
                 <div>
@@ -415,7 +415,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
 
             {/* Approved Reviews List */}
             <div className="space-y-4">
-              <h3 className="font-['Outfit'] font-bold text-base text-[#0B1833]">
+              <h3 className="font-sans font-bold text-base text-[#0B1833]">
                 Commentaires des clients ({approvedReviews.length})
               </h3>
 
@@ -453,7 +453,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
 
             {/* Leave a Review Form */}
             <div className="pt-6 border-t border-gray-100">
-              <h3 className="font-['Outfit'] font-bold text-base text-[#0B1833] mb-4">
+              <h3 className="font-sans font-bold text-base text-[#0B1833] mb-4">
                 Laisser un avis sur ce produit
               </h3>
 
@@ -547,7 +547,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
       {similarProducts.length > 0 && (
         <section className="space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="font-['Outfit'] font-black text-2xl text-[#0B1833]">
+            <h2 className="font-sans font-black text-2xl text-[#0B1833]">
               PRODUITS SIMILAIRES
             </h2>
             <button
@@ -570,3 +570,4 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
     </div>
   );
 };
+

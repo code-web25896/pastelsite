@@ -294,7 +294,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
           <label className="font-bold text-xs uppercase tracking-wider text-[#0B1833]/80">
             Prix Max
           </label>
-          <span className="font-bold text-xs text-[#0B1833] font-['Outfit']">
+          <span className="font-bold text-xs text-[#0B1833] font-sans">
             {formatPrice(maxPrice)}
           </span>
         </div>
@@ -368,7 +368,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
           <div className="text-xs font-bold uppercase tracking-widest text-[#8FD8C3]">
             Catalogue Espace Pastel
           </div>
-          <h1 className="font-['Outfit'] font-black text-2xl sm:text-4xl text-[#0B1833] tracking-tight">
+          <h1 className="font-sans font-black text-2xl sm:text-4xl text-[#0B1833] tracking-tight">
             NOTRE BOUTIQUE
           </h1>
           <p className="text-xs sm:text-sm text-[#0B1833]/70 max-w-xl">
@@ -399,7 +399,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
         {/* Desktop Sidebar (3 cols) */}
         <aside className="hidden lg:block lg:col-span-3 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm sticky top-24">
           <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-6">
-            <h2 className="font-['Outfit'] font-bold text-sm uppercase tracking-wider text-[#0B1833] flex items-center gap-2">
+            <h2 className="font-sans font-bold text-sm uppercase tracking-wider text-[#0B1833] flex items-center gap-2">
               <SlidersHorizontal className="w-4 h-4 text-[#8FD8C3]" />
               <span>Filtres</span>
             </h2>
@@ -504,7 +504,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
               <div className="w-16 h-16 rounded-full bg-[#F7F7F8] flex items-center justify-center mx-auto text-gray-400">
                 <Search className="w-8 h-8" />
               </div>
-              <h3 className="font-['Outfit'] font-bold text-lg text-[#0B1833]">
+              <h3 className="font-sans font-bold text-lg text-[#0B1833]">
                 Aucun produit ne correspond à vos critères
               </h3>
               <p className="text-xs text-gray-500 max-w-sm mx-auto">
@@ -532,7 +532,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
           <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
             <div className="w-screen max-w-xs bg-white shadow-2xl flex flex-col p-6 overflow-y-auto">
               <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-6">
-                <h3 className="font-['Outfit'] font-bold text-base text-[#0B1833]">Filtres</h3>
+                <h3 className="font-sans font-bold text-base text-[#0B1833]">Filtres</h3>
                 <button 
                   onClick={() => setIsMobileFilterOpen(false)}
                   className="p-1 rounded-full text-gray-500 hover:text-black"
@@ -557,3 +557,4 @@ export const ShopView: React.FC<ShopViewProps> = ({
     </div>
   );
 };
+

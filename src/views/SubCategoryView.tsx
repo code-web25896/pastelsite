@@ -30,7 +30,7 @@ export const SubCategoryView: React.FC<SubCategoryViewProps> = ({
   if (!brand || !subCategory) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 text-center space-y-4">
-        <h2 className="font-['Outfit'] font-bold text-2xl text-[#0B1833]">Catégorie introuvable</h2>
+        <h2 className="font-sans font-bold text-2xl text-[#0B1833]">Catégorie introuvable</h2>
         <p className="text-sm text-gray-500">Cette sous-catégorie n'existe pas pour cette marque.</p>
         <button
           onClick={() => navigateTo({ type: 'shop' })}
@@ -89,8 +89,8 @@ export const SubCategoryView: React.FC<SubCategoryViewProps> = ({
               accentColor={brand.accentColor}
               className="shadow-xs"
             />
-            <h1 className="font-['Outfit'] font-black text-2xl sm:text-4xl text-[#0B1833] tracking-tight">
-              {brand.name} — {subCategory.name}
+            <h1 className="font-sans font-black text-2xl sm:text-4xl text-[#0B1833] tracking-tight">
+              {brand.name} - {subCategory.name}
             </h1>
           </div>
 
@@ -169,3 +169,4 @@ export const SubCategoryView: React.FC<SubCategoryViewProps> = ({
     </div>
   );
 };
+

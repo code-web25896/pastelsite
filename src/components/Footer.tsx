@@ -31,7 +31,7 @@ export const Footer: React.FC = () => {
               <Truck className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-sm font-bold text-white font-['Outfit']">Livraison Rapide</h4>
+              <h4 className="text-sm font-bold text-white font-sans">Livraison Rapide</h4>
               <p className="text-xs text-white/60 mt-0.5">Partout en Tunisie en 24h/48h</p>
             </div>
           </div>
@@ -41,7 +41,7 @@ export const Footer: React.FC = () => {
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-sm font-bold text-white font-['Outfit']">Produits Certifiés</h4>
+              <h4 className="text-sm font-bold text-white font-sans">Produits Certifiés</h4>
               <p className="text-xs text-white/60 mt-0.5">Grandes marques originales</p>
             </div>
           </div>
@@ -51,7 +51,7 @@ export const Footer: React.FC = () => {
               <Headphones className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-sm font-bold text-white font-['Outfit']">Conseils d'Experts</h4>
+              <h4 className="text-sm font-bold text-white font-sans">Conseils d'Experts</h4>
               <p className="text-xs text-white/60 mt-0.5">Au 55 542 000 ou en magasin</p>
             </div>
           </div>
@@ -61,7 +61,7 @@ export const Footer: React.FC = () => {
               <RotateCcw className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-sm font-bold text-white font-['Outfit']">Paiement Flexible</h4>
+              <h4 className="text-sm font-bold text-white font-sans">Paiement Flexible</h4>
               <p className="text-xs text-white/60 mt-0.5">À la livraison ou en boutique</p>
             </div>
           </div>
@@ -160,7 +160,7 @@ export const Footer: React.FC = () => {
 
         {/* Bottom bar */}
         <div className="pt-8 mt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/50">
-          <p>© {new Date().getFullYear()} ESPACE PASTEL — Tous droits réservés. Boutique e-commerce tunisienne.</p>
+          <p>© {new Date().getFullYear()} ESPACE PASTEL - Tous droits réservés. Boutique e-commerce tunisienne.</p>
           <div className="flex items-center gap-4">
             <span className="text-white/70 font-medium">Moyens de paiement acceptés :</span>
             <span className="px-2 py-0.5 bg-white/10 rounded text-[11px] text-white">Espèces à la livraison</span>
@@ -171,3 +171,4 @@ export const Footer: React.FC = () => {
     </footer>
   );
 };
+

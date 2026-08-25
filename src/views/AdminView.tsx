@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { Product, Brand, SubCategory, Order, Review } from '../types';
 import { 
@@ -262,7 +262,7 @@ export const AdminView: React.FC = () => {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[#8FD8C3] text-xs font-bold uppercase tracking-wider">
             <span>Administration Espace Pastel</span>
           </div>
-          <h1 className="font-['Outfit'] font-black text-2xl sm:text-3xl text-white tracking-tight">
+          <h1 className="font-sans font-black text-2xl sm:text-3xl text-white tracking-tight">
             PANNEAU DE GESTION & BACKOFFICE
           </h1>
           <p className="text-xs text-white/70">
@@ -338,7 +338,7 @@ export const AdminView: React.FC = () => {
                 <span>Chiffre d'Affaires</span>
                 <TrendingUp className="w-4 h-4 text-emerald-600" />
               </div>
-              <div className="font-['Outfit'] font-black text-2xl text-[#0B1833]">
+              <div className="font-sans font-black text-2xl text-[#0B1833]">
                 {formatPrice(totalRevenue)}
               </div>
               <span className="text-[11px] text-emerald-600 font-semibold">Toutes commandes confondues</span>
@@ -349,7 +349,7 @@ export const AdminView: React.FC = () => {
                 <span>Commandes en attente</span>
                 <ShoppingBag className="w-4 h-4 text-amber-500" />
               </div>
-              <div className="font-['Outfit'] font-black text-2xl text-[#0B1833]">
+              <div className="font-sans font-black text-2xl text-[#0B1833]">
                 {pendingOrdersCount}
               </div>
               <span className="text-[11px] text-amber-600 font-semibold">À préparer rapidement</span>
@@ -360,7 +360,7 @@ export const AdminView: React.FC = () => {
                 <span>Produits au catalogue</span>
                 <Package className="w-4 h-4 text-[#8FD8C3]" />
               </div>
-              <div className="font-['Outfit'] font-black text-2xl text-[#0B1833]">
+              <div className="font-sans font-black text-2xl text-[#0B1833]">
                 {products.length}
               </div>
               <span className="text-[11px] text-gray-500 font-semibold">Sur 4 marques principales</span>
@@ -371,7 +371,7 @@ export const AdminView: React.FC = () => {
                 <span>Alertes Stock Faible</span>
                 <AlertTriangle className="w-4 h-4 text-red-500" />
               </div>
-              <div className="font-['Outfit'] font-black text-2xl text-[#0B1833]">
+              <div className="font-sans font-black text-2xl text-[#0B1833]">
                 {lowStockCount}
               </div>
               <span className="text-[11px] text-red-600 font-semibold">Stock ≤ 5 unités</span>
@@ -381,7 +381,7 @@ export const AdminView: React.FC = () => {
           {/* Quick Actions & Recent Orders Table */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             <div className="lg:col-span-8 bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-4">
-              <h2 className="font-['Outfit'] font-bold text-base text-[#0B1833]">
+              <h2 className="font-sans font-bold text-base text-[#0B1833]">
                 Dernières Commandes Reçues
               </h2>
 
@@ -416,7 +416,7 @@ export const AdminView: React.FC = () => {
             </div>
 
             <div className="lg:col-span-4 bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-4">
-              <h2 className="font-['Outfit'] font-bold text-base text-[#0B1833]">
+              <h2 className="font-sans font-bold text-base text-[#0B1833]">
                 Raccourcis Rapides
               </h2>
               <div className="space-y-2">
@@ -629,7 +629,7 @@ export const AdminView: React.FC = () => {
           {/* Brands list (6 cols) */}
           <div className="lg:col-span-6 bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <h2 className="font-['Outfit'] font-bold text-base text-[#0B1833]">
+              <h2 className="font-sans font-bold text-base text-[#0B1833]">
                 Marques Officielles ({brands.length})
               </h2>
               <button
@@ -663,7 +663,7 @@ export const AdminView: React.FC = () => {
           {/* Subcategories list (6 cols) */}
           <div className="lg:col-span-6 bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <h2 className="font-['Outfit'] font-bold text-base text-[#0B1833]">
+              <h2 className="font-sans font-bold text-base text-[#0B1833]">
                 Sous-Catégories ({subCategories.length})
               </h2>
               <button
@@ -697,7 +697,7 @@ export const AdminView: React.FC = () => {
       {activeTab === 'reviews' && (
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
           <div className="pb-3 border-b border-gray-100">
-            <h2 className="font-['Outfit'] font-bold text-base text-[#0B1833]">
+            <h2 className="font-sans font-bold text-base text-[#0B1833]">
               Modération des avis clients ({reviews.length})
             </h2>
             <p className="text-xs text-gray-500">
@@ -767,7 +767,7 @@ export const AdminView: React.FC = () => {
         <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-[#0B1833]/50 backdrop-blur-sm">
           <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-4 border-b border-gray-100">
-              <h3 className="font-['Outfit'] font-black text-lg text-[#0B1833]">
+              <h3 className="font-sans font-black text-lg text-[#0B1833]">
                 {editingProduct && 'Modifier le produit'}{!editingProduct && 'Ajouter un nouveau produit'}
               </h3>
               <button onClick={() => setIsAddProductOpen(false)} className="p-1 text-gray-400 hover:text-black">
@@ -955,7 +955,7 @@ export const AdminView: React.FC = () => {
       {isAddBrandOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-[#0B1833]/50 backdrop-blur-sm">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95">
-            <h3 className="font-['Outfit'] font-black text-lg text-[#0B1833]">Ajouter une Marque</h3>
+            <h3 className="font-sans font-black text-lg text-[#0B1833]">Ajouter une Marque</h3>
             <form onSubmit={handleCreateBrand} className="space-y-3 text-xs">
               <div>
                 <label className="block font-bold text-gray-700 mb-1">Nom de la marque *</label>
@@ -989,7 +989,7 @@ export const AdminView: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block font-bold text-gray-700 mb-1">Banniï¿½re / image marque</label>
+                <label className="block font-bold text-gray-700 mb-1">Bannière / image marque</label>
                 <input
                   type="file"
                   accept="image/*"
@@ -1019,7 +1019,7 @@ export const AdminView: React.FC = () => {
       {isAddSubCategoryOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-[#0B1833]/50 backdrop-blur-sm">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-in zoom-in-95">
-            <h3 className="font-['Outfit'] font-black text-lg text-[#0B1833]">Ajouter une Sous-catégorie</h3>
+            <h3 className="font-sans font-black text-lg text-[#0B1833]">Ajouter une Sous-catégorie</h3>
             <form onSubmit={handleCreateSubCat} className="space-y-3 text-xs">
               <div>
                 <label className="block font-bold text-gray-700 mb-1">Marque parente *</label>
@@ -1070,7 +1070,7 @@ export const AdminView: React.FC = () => {
           <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl animate-in zoom-in-95">
             <div className="flex items-center justify-between pb-4 border-b border-gray-100">
               <div>
-                <h3 className="font-['Outfit'] font-black text-lg text-[#0B1833]">
+                <h3 className="font-sans font-black text-lg text-[#0B1833]">
                   Commande #{viewingOrder.orderNumber}
                 </h3>
                 <span className="text-xs text-gray-500">
@@ -1118,7 +1118,7 @@ export const AdminView: React.FC = () => {
               ))}
             </div>
 
-            <div className="pt-2 flex justify-between font-['Outfit'] font-black text-base text-[#0B1833]">
+            <div className="pt-2 flex justify-between font-sans font-black text-base text-[#0B1833]">
               <span>Total Réglé :</span>
               <span>{formatPrice(viewingOrder.total)}</span>
             </div>
@@ -1136,6 +1136,7 @@ export const AdminView: React.FC = () => {
     </div>
   );
 };
+
 
 
 

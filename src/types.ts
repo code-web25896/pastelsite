@@ -178,3 +178,4 @@ export type ViewType =
   | { type: 'contact' }
   | { type: 'shipping' }
   | { type: 'legal' };
+

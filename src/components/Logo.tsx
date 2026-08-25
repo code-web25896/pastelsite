@@ -84,10 +84,10 @@ export const Logo: React.FC<LogoProps> = ({
         className={`flex flex-col leading-none select-none ${onClick ? 'cursor-pointer' : ''} ${className}`}
       >
         <div className="flex items-center gap-1.5">
-          <span className={`font-['Outfit'] font-black tracking-tight ${dimensions.text} ${isWhite ? 'text-white' : 'text-[#0B1833]'}`}>
+          <span className={`font-sans font-black tracking-tight ${dimensions.text} ${isWhite ? 'text-white' : 'text-[#0B1833]'}`}>
             ESPACE
           </span>
-          <span className={`font-['Great_Vibes'] text-2xl sm:text-3xl font-normal ${isWhite ? 'text-[#F4A9C8]' : 'text-[#0B1833]'}`}>
+          <span className={`font-sans text-2xl sm:text-3xl font-normal ${isWhite ? 'text-[#F4A9C8]' : 'text-[#0B1833]'}`}>
             Pastel
           </span>
         </div>
@@ -109,10 +109,10 @@ export const Logo: React.FC<LogoProps> = ({
       {/* Brand Wordmark (Clean without slogan) */}
       <div className="flex flex-col leading-tight">
         <div className="flex items-baseline gap-1.5">
-          <span className={`font-['Outfit'] font-extrabold tracking-tight ${dimensions.text} ${isWhite ? 'text-white' : 'text-[#0B1833]'}`}>
+          <span className={`font-sans font-extrabold tracking-tight ${dimensions.text} ${isWhite ? 'text-white' : 'text-[#0B1833]'}`}>
             ESPACE
           </span>
-          <span className={`font-['Great_Vibes'] font-normal text-2xl sm:text-3xl ${isWhite ? 'text-[#F4A9C8]' : 'text-[#0B1833]'}`}>
+          <span className={`font-sans font-normal text-2xl sm:text-3xl ${isWhite ? 'text-[#F4A9C8]' : 'text-[#0B1833]'}`}>
             Pastel
           </span>
         </div>
@@ -125,3 +125,4 @@ export const Logo: React.FC<LogoProps> = ({
     </div>
   );
 };
+

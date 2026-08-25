@@ -31,7 +31,7 @@ export const BrandView: React.FC<BrandViewProps> = ({ brandSlug }) => {
   if (!brand) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 text-center space-y-4">
-        <h2 className="font-['Outfit'] font-bold text-2xl text-[#0B1833]">Marque introuvable</h2>
+        <h2 className="font-sans font-bold text-2xl text-[#0B1833]">Marque introuvable</h2>
         <p className="text-sm text-gray-500">La marque demandée n'existe pas ou a été déplacée.</p>
         <button
           onClick={() => navigateTo({ type: 'shop' })}
@@ -75,7 +75,7 @@ export const BrandView: React.FC<BrandViewProps> = ({ brandSlug }) => {
           >
             UNIVERS OFFICIEL {brand.name}
           </span>
-          <h1 className="font-['Outfit'] font-black text-3xl sm:text-5xl text-white tracking-tight">
+          <h1 className="font-sans font-black text-3xl sm:text-5xl text-white tracking-tight">
             {brand.name}
           </h1>
           <p className="text-xs sm:text-sm text-white/80 leading-relaxed">
@@ -106,7 +106,7 @@ export const BrandView: React.FC<BrandViewProps> = ({ brandSlug }) => {
               <div className="text-xs font-bold uppercase tracking-widest text-[#B58BC5]">
                 Rayons dédiés
               </div>
-              <h2 className="font-['Outfit'] font-black text-2xl text-[#0B1833]">
+              <h2 className="font-sans font-black text-2xl text-[#0B1833]">
                 NOS CATÉGORIES {brand.name}
               </h2>
             </div>
@@ -142,7 +142,7 @@ export const BrandView: React.FC<BrandViewProps> = ({ brandSlug }) => {
                   </div>
 
                   <div>
-                    <h3 className="font-['Outfit'] font-bold text-sm text-[#0B1833] group-hover:text-[#B58BC5] transition-colors truncate">
+                    <h3 className="font-sans font-bold text-sm text-[#0B1833] group-hover:text-[#B58BC5] transition-colors truncate">
                       {sub.name}
                     </h3>
                     <p className="text-[11px] text-gray-500 line-clamp-1 mt-0.5">
@@ -165,7 +165,7 @@ export const BrandView: React.FC<BrandViewProps> = ({ brandSlug }) => {
       <section className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
           <div>
-            <h2 className="font-['Outfit'] font-black text-2xl text-[#0B1833]">
+            <h2 className="font-sans font-black text-2xl text-[#0B1833]">
               PRODUITS {brand.name}
             </h2>
             <p className="text-xs text-gray-500">
@@ -212,3 +212,4 @@ export const BrandView: React.FC<BrandViewProps> = ({ brandSlug }) => {
     </div>
   );
 };
+
