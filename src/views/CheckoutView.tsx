@@ -40,14 +40,14 @@ export const CheckoutView: React.FC = () => {
 
   useEffect(() => {
     if (!currentUser) return;
-    const defaultAddress = currentUser.addresses.find((entry) => entry.isDefault) || currentUser.addresses[0];
+    const defaultAddress = currentUser.addresses?.find((entry) => entry.isDefault) || currentUser.addresses?.[0];
     setFirstName(currentUser.firstName || '');
     setLastName(currentUser.lastName || '');
     setEmail(currentUser.email || '');
     setPhone(currentUser.phone || '');
-    setCity(defaultAddress.city || currentUser.city || 'Tunis');
-    setAddress(defaultAddress.address || currentUser.address || '');
-    setPostalCode(defaultAddress.postalCode || currentUser.postalCode || '');
+    setCity(defaultAddress?.city || currentUser.city || 'Tunis');
+    setAddress(defaultAddress?.address || currentUser.address || '');
+    setPostalCode(defaultAddress?.postalCode || currentUser.postalCode || '');
   }, [currentUser]);
   
   // Delivery & Payment
@@ -176,7 +176,7 @@ export const CheckoutView: React.FC = () => {
               COMMANDE CONFIRMÉE
             </span>
             <h1 className="font-sans font-black text-2xl sm:text-4xl text-[#0B1833] tracking-tight">
-              Merci pour votre commande, {completedOrder.customer.firstName} !
+              Merci pour votre commande, {completedOrder.customer?.firstName || ''} !
             </h1>
             <p className="text-xs sm:text-sm text-gray-600 max-w-md mx-auto">
               Votre commande <strong className="text-[#0B1833]">#{completedOrder.orderNumber}</strong> a été transmise avec succès à notre boutique Espace Pastel.
@@ -209,8 +209,8 @@ export const CheckoutView: React.FC = () => {
             <div className="flex justify-between pb-3 border-b border-gray-200">
               <span className="text-gray-500">Destinataire :</span>
               <span className="font-semibold text-right">
-                {completedOrder.customer.firstName} {completedOrder.customer.lastName} ({completedOrder.customer.phone})<br />
-                {completedOrder.customer.address}, {completedOrder.customer.city}
+                {completedOrder.customer?.firstName || ''} {completedOrder.customer?.lastName || ''} ({completedOrder.customer?.phone || ''})<br />
+                {completedOrder.customer?.address || ''}, {completedOrder.customer?.city || ''}
               </span>
             </div>
 
