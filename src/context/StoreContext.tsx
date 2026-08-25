@@ -493,8 +493,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
   };
 
+  const isInWishlist = (productId: string) => wishlist.includes(productId);
+
   const isAdmin = Boolean(currentUser && currentUser.role === 'admin');
-  const isWishlist = isInWishlist;
 
   // Auth
 
@@ -914,6 +915,7 @@ export const useStore = () => {
   }
   return context;
 };
+
 
 
 
