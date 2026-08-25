@@ -2,6 +2,7 @@
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+// Force a fresh production hash after deployment fixes.
 
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
   constructor(props: { children: React.ReactNode }) {
@@ -44,3 +45,4 @@ root.render(
     </ErrorBoundary>
   </StrictMode>,
 );
+
