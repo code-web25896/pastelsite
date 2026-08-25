@@ -414,10 +414,10 @@ export const Header: React.FC = () => {
               </button>
             )}
 
-            {/* Cart Button with Numeric Indicator */}
+            {/* Cart Button — caché sur mobile (géré par la bottom nav), visible md+ */}
             <button
               onClick={() => setIsCartDrawerOpen(true)}
-              className="flex items-center gap-2 bg-[#0B1833] hover:bg-[#1a2d54] text-white px-3.5 py-2.5 rounded-full transition-all shadow-sm group"
+              className="hidden md:flex items-center gap-2 bg-[#0B1833] hover:bg-[#1a2d54] text-white px-3.5 py-2.5 rounded-full transition-all shadow-sm group"
               aria-label="Panier"
             >
               <ShoppingBag className="w-4 h-4 text-[#8FD8C3] group-hover:scale-110 transition-transform" />
