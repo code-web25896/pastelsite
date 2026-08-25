@@ -95,6 +95,8 @@ export const AdminView: React.FC = () => {
   const [pShortDesc, setPShortDesc] = useState('');
   const [pDesc, setPDesc] = useState('');
   const [pBadge, setPBadge] = useState<Product['badge']>('AUCUN');
+  const [pActionType, setPActionType] = useState<ProductActionType>('buy_online');
+  const [pCustomPhone, setPCustomPhone] = useState('55 542 000');
   const [pIsNew, setPIsNew] = useState(true);
 
   const handleImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -164,6 +166,8 @@ export const AdminView: React.FC = () => {
         shortDescription: pShortDesc || pName,
         description: pDesc || pShortDesc || pName,
         badge: pBadge,
+        actionType: pActionType,
+        customPhone: pCustomPhone || '55 542 000',
         isNew: pIsNew,
         isPromo: Boolean(pPromoPrice)
       });
@@ -190,6 +194,8 @@ export const AdminView: React.FC = () => {
         isBestSeller: false,
         isPromo: Boolean(pPromoPrice),
         badge: pBadge,
+        actionType: pActionType,
+        customPhone: pCustomPhone || '55 542 000',
         status: 'published'
       });
       addToast('Nouveau produit ajouté au catalogue !', 'success');
@@ -208,6 +214,8 @@ export const AdminView: React.FC = () => {
     setPShortDesc('');
     setPDesc('');
     setPBadge('AUCUN');
+    setPActionType('buy_online');
+    setPCustomPhone('55 542 000');
     setPIsNew(true);
     setEditingProduct(null);
   };
@@ -227,6 +235,8 @@ export const AdminView: React.FC = () => {
     setPShortDesc(prod.shortDescription);
     setPDesc(prod.description);
     setPBadge(prod.badge || 'AUCUN');
+    setPActionType(prod.actionType || (prod.badge === 'PIÈCE RARE' ? 'rare_call' : 'buy_online'));
+    setPCustomPhone(prod.customPhone || '55 542 000');
     setPIsNew(prod.isNew || false);
     setIsAddProductOpen(true);
   };
@@ -1011,13 +1021,23 @@ export const AdminView: React.FC = () => {
                   <label className="block font-bold text-gray-700 mb-1">Badge marketing</label>
                   <select
                     value={pBadge}
-                    onChange={(e) => setPBadge(e.target.value as any)}
+                    onChange={(e) => {
+                      const val = e.target.value as any;
+                      setPBadge(val);
+                      if (val === 'PIÈCE RARE') {
+                        setPActionType('rare_call');
+                      }
+                    }}
                     className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none"
                   >
                     <option value="AUCUN">Aucun badge</option>
+                    <option value="PIÈCE RARE">💎 PIÈCE RARE (Commander par téléphone)</option>
                     <option value="PROMOTION">PROMOTION</option>
                     <option value="BEST-SELLER">BEST-SELLER</option>
                     <option value="NOUVEAU">NOUVEAU</option>
+                    <option value="COUP DE CŒUR">COUP DE CŒUR</option>
+                    <option value="ÉDITION LIMITÉE">ÉDITION LIMITÉE</option>
+                    <option value="COLLECTION 2026">COLLECTION 2026</option>
                   </select>
                 </div>
 
@@ -1032,6 +1052,54 @@ export const AdminView: React.FC = () => {
                     <span className="font-bold text-gray-700">Afficher dans "Nos Nouveautés"</span>
                   </label>
                 </div>
+              </div>
+
+              {/* Mode de Vente: En ligne ou Pièce Rare */}
+              <div className="p-3.5 bg-amber-50/70 border border-amber-200/80 rounded-2xl space-y-2">
+                <span className="block text-xs font-black text-amber-950">Mode de commande client :</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <label className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition-all ${pActionType === 'buy_online' ? 'bg-white border-[#0B1833] font-bold text-[#0B1833] shadow-xs' : 'bg-transparent border-amber-200/60 text-gray-700'}`}>
+                    <input
+                      type="radio"
+                      name="adminProductActionType"
+                      value="buy_online"
+                      checked={pActionType === 'buy_online'}
+                      onChange={() => setPActionType('buy_online')}
+                      className="accent-[#0B1833]"
+                    />
+                    <span>Achat en ligne (Ajouter au panier)</span>
+                  </label>
+
+                  <label className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition-all ${pActionType === 'rare_call' ? 'bg-white border-amber-600 font-bold text-amber-900 shadow-xs' : 'bg-transparent border-amber-200/60 text-gray-700'}`}>
+                    <input
+                      type="radio"
+                      name="adminProductActionType"
+                      value="rare_call"
+                      checked={pActionType === 'rare_call'}
+                      onChange={() => {
+                        setPActionType('rare_call');
+                        if (pBadge === 'AUCUN') setPBadge('PIÈCE RARE');
+                      }}
+                      className="accent-amber-600"
+                    />
+                    <span>Pièce rare (Bouton "Appeler")</span>
+                  </label>
+                </div>
+
+                {pActionType === 'rare_call' && (
+                  <div className="pt-1">
+                    <label className="block text-[11px] font-bold text-amber-900 mb-1">
+                      Numéro de téléphone pour la commande :
+                    </label>
+                    <input
+                      type="text"
+                      value={pCustomPhone}
+                      onChange={(e) => setPCustomPhone(e.target.value)}
+                      placeholder="55 542 000"
+                      className="w-full bg-white border border-amber-300 rounded-xl px-3 py-1.5 text-xs text-[#0B1833] font-bold focus:outline-none"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="pt-4 flex justify-end gap-3">

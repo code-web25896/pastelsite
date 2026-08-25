@@ -15,7 +15,10 @@ import {
   CheckCircle2, 
   Send,
   MessageSquare,
-  ArrowRight
+  ArrowRight,
+  Phone,
+  Sparkles,
+  MessageCircle
 } from 'lucide-react';
 
 interface ProductDetailViewProps {
@@ -68,6 +71,8 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
   const brand = getBrandById(product.brandId);
   const isFavorited = isInWishlist(product.id);
   const approvedReviews = getProductReviews(product.id, true);
+  const isRare = product.actionType === 'rare_call' || product.actionType === 'rare_chat' || product.actionType === 'rare_both' || product.badge === 'PIÈCE RARE';
+  const customPhone = product.customPhone || '55 542 000';
 
   const discountPercent = product.promoPrice && product.price > 0
     ? Math.round(((product.price - product.promoPrice) / product.price) * 100)
@@ -137,6 +142,12 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
 
             {/* Badges on main image */}
             <div className="absolute top-4 left-4 flex flex-col gap-1.5">
+              {(product.badge === 'PIÈCE RARE' || isRare) && (
+                <span className="bg-amber-400 text-[#0B1833] text-xs font-black uppercase tracking-wider px-3 py-1 rounded-full shadow-md flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  PIÈCE RARE
+                </span>
+              )}
               {product.badge === 'PROMOTION' && discountPercent > 0 && (
                 <span className="bg-[#F4A9C8] text-[#0B1833] text-xs font-black uppercase tracking-wider px-3 py-1 rounded-full shadow-md">
                   PROMOTION -{discountPercent}%
@@ -266,52 +277,86 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
           </p>
 
           {/* Quantity & Actions */}
-          <div className="space-y-3 pt-2">
-            <div className="flex items-center gap-4">
-              <span className="text-xs font-bold text-[#0B1833]">Quantité :</span>
-              <div className="flex items-center border border-gray-200 rounded-xl bg-white">
-                <button
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  disabled={quantity <= 1 || isOutOfStock}
-                  className="p-2.5 hover:bg-[#F7F7F8] text-gray-600 disabled:opacity-40 transition-colors rounded-l-xl"
-                  aria-label="Diminuer"
+          {isRare ? (
+            <div className="space-y-4 pt-2">
+              <div className="bg-amber-50/90 border border-amber-200/90 rounded-2xl p-4 text-amber-950 flex items-start gap-3 shadow-xs">
+                <Sparkles className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="text-xs space-y-1">
+                  <span className="font-black text-sm block text-amber-900">Pièce Rare & Exclusive</span>
+                  <p className="text-amber-800 leading-relaxed">
+                    Cet article collector est disponible sur commande téléphonique directe ou en boutique. Contactez notre équipe au <strong>{customPhone}</strong> pour réserver votre pièce.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <a
+                  href={`tel:${customPhone.replace(/\s+/g, '')}`}
+                  className="py-4 px-6 rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 bg-[#0B1833] hover:bg-[#1a2d54] text-white transition-all shadow-md active:scale-98 cursor-pointer"
                 >
-                  <Minus className="w-3.5 h-3.5" />
+                  <Phone className="w-4 h-4 text-[#8FD8C3]" />
+                  <span>Appeler le {customPhone}</span>
+                </a>
+
+                <a
+                  href={`https://wa.me/21655542000?text=${encodeURIComponent(`Bonjour Espace Pastel, je souhaite commander la pièce rare : ${product.name} (Réf: ${product.sku})`)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="py-4 px-6 rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20ba59] text-white transition-all shadow-md active:scale-98 cursor-pointer"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>WhatsApp : {customPhone}</span>
+                </a>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center gap-4">
+                <span className="text-xs font-bold text-[#0B1833]">Quantité :</span>
+                <div className="flex items-center border border-gray-200 rounded-xl bg-white">
+                  <button
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    disabled={quantity <= 1 || isOutOfStock}
+                    className="p-2.5 hover:bg-[#F7F7F8] text-gray-600 disabled:opacity-40 transition-colors rounded-l-xl"
+                    aria-label="Diminuer"
+                  >
+                    <Minus className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="px-4 text-xs font-bold text-[#0B1833] min-w-[36px] text-center">
+                    {quantity}
+                  </span>
+                  <button
+                    onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
+                    disabled={quantity >= product.stock || isOutOfStock}
+                    className="p-2.5 hover:bg-[#F7F7F8] text-gray-600 disabled:opacity-40 transition-colors rounded-r-xl"
+                    aria-label="Augmenter"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <button
+                  onClick={() => addToCart(product, quantity)}
+                  disabled={isOutOfStock}
+                  className={`py-3.5 px-6 rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md ${isOutOfStock ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-[#0B1833] hover:bg-[#8FD8C3] hover:text-[#0B1833] text-white active:scale-98'}`}
+                >
+                  <ShoppingBag className="w-4 h-4" />
+                  <span>AJOUTER AU PANIER</span>
                 </button>
-                <span className="px-4 text-xs font-bold text-[#0B1833] min-w-[36px] text-center">
-                  {quantity}
-                </span>
+
                 <button
-                  onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-                  disabled={quantity >= product.stock || isOutOfStock}
-                  className="p-2.5 hover:bg-[#F7F7F8] text-gray-600 disabled:opacity-40 transition-colors rounded-r-xl"
-                  aria-label="Augmenter"
+                  onClick={handleBuyNow}
+                  disabled={isOutOfStock}
+                  className={`py-3.5 px-6 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all ${isOutOfStock ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-[#8FD8C3] hover:bg-[#7bc7b2] text-[#0B1833] active:scale-98'}`}
                 >
-                  <Plus className="w-3.5 h-3.5" />
+                  ACHETER MAINTENANT
                 </button>
               </div>
             </div>
-
-            {/* Action Buttons */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-              <button
-                onClick={() => addToCart(product, quantity)}
-                disabled={isOutOfStock}
-                className={`py-3.5 px-6 rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md ${isOutOfStock ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-[#0B1833] hover:bg-[#8FD8C3] hover:text-[#0B1833] text-white active:scale-98'}`}
-              >
-                <ShoppingBag className="w-4 h-4" />
-                <span>AJOUTER AU PANIER</span>
-              </button>
-
-              <button
-                onClick={handleBuyNow}
-                disabled={isOutOfStock}
-                className={`py-3.5 px-6 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all ${isOutOfStock ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-[#8FD8C3] hover:bg-[#7bc7b2] text-[#0B1833] active:scale-98'}`}
-              >
-                ACHETER MAINTENANT
-              </button>
-            </div>
-          </div>
+          )}
 
           {/* Reassurance Grid */}
           <div className="p-4 rounded-2xl bg-white border border-gray-100 space-y-2.5 text-xs text-[#0B1833]/80">

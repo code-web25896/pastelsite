@@ -1,7 +1,7 @@
 import React from 'react';
 import { Product } from '../types';
 import { useStore } from '../context/StoreContext';
-import { Star, ShoppingBag, Heart, Eye } from 'lucide-react';
+import { Star, ShoppingBag, Heart, Eye, Phone, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface ProductCardProps {
@@ -32,6 +32,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const isOutOfStock = product.stock <= 0;
   const isLowStock = product.stock > 0 && product.stock <= 5;
+  const isRare = product.actionType === 'rare_call' || product.actionType === 'rare_chat' || product.actionType === 'rare_both' || product.badge === 'PIÈCE RARE';
+  const customPhone = product.customPhone || '55 542 000';
 
   const currentPrice = product.promoPrice ?? product.price;
 
@@ -55,6 +57,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
         {/* Badges on Top-Left */}
         <div className="absolute top-3 left-3 flex flex-col gap-1 z-10">
+          {(product.badge === 'PIÈCE RARE' || isRare) && (
+            <span className="bg-amber-400 text-[#0B1833] text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full shadow-sm flex items-center gap-1">
+              <Sparkles className="w-3 h-3" />
+              PIÈCE RARE
+            </span>
+          )}
           {product.badge === 'PROMOTION' && discountPercent > 0 && (
             <span className="bg-[#F4A9C8] text-[#0B1833] text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full shadow-sm">
               -{discountPercent}%
@@ -159,7 +167,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           </div>
         </div>
 
-        {/* Pricing & Add to Cart Footer */}
+        {/* Pricing & Action Button Footer */}
         <div className="pt-3 border-t border-gray-100 flex items-center justify-between gap-2 mt-auto">
           <div>
             <div className="font-sans font-extrabold text-base text-[#0B1833]">
@@ -172,20 +180,32 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             )}
           </div>
 
-          {/* Add to Cart Button */}
-          <button
-            onClick={() => addToCart(product, 1)}
-            disabled={isOutOfStock}
-            className={`p-2.5 rounded-xl flex items-center justify-center transition-all duration-200 ${
-              isOutOfStock
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-[#0B1833] text-white hover:bg-[#8FD8C3] hover:text-[#0B1833] shadow-sm active:scale-95'
-            }`}
-            title="Ajouter au panier"
-            aria-label="Ajouter au panier"
-          >
-            <ShoppingBag className="w-4 h-4" />
-          </button>
+          {/* Action Button: Appeler for Rare Pieces or Ajouter au panier */}
+          {isRare ? (
+            <a
+              href={`tel:${customPhone.replace(/\s+/g, '')}`}
+              onClick={(e) => e.stopPropagation()}
+              className="px-3 py-2 rounded-xl flex items-center gap-1.5 bg-[#0B1833] hover:bg-[#1a2d54] text-white font-bold text-xs transition-all shadow-sm active:scale-95 cursor-pointer"
+              title={`Appeler pour commander : ${customPhone}`}
+            >
+              <Phone className="w-3.5 h-3.5 text-[#8FD8C3]" />
+              <span>Appeler</span>
+            </a>
+          ) : (
+            <button
+              onClick={() => addToCart(product, 1)}
+              disabled={isOutOfStock}
+              className={`p-2.5 rounded-xl flex items-center justify-center transition-all duration-200 ${
+                isOutOfStock
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-[#0B1833] text-white hover:bg-[#8FD8C3] hover:text-[#0B1833] shadow-sm active:scale-95 cursor-pointer'
+              }`}
+              title="Ajouter au panier"
+              aria-label="Ajouter au panier"
+            >
+              <ShoppingBag className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
     </motion.div>
