@@ -30,7 +30,7 @@ const MainContent: React.FC = () => {
   const viewKey = `${currentView.type}-${(currentView as any).brandSlug || ''}-${(currentView as any).subCategorySlug || ''}-${(currentView as any).productId || ''}-${(currentView as any).tab || ''}`;
 
   return (
-    <main className="flex-1 overflow-x-hidden pb-24 md:pb-0">
+    <main className="flex-1 overflow-x-hidden pb-20 md:pb-0">
       <AnimatePresence mode="wait">
         <motion.div
           key={viewKey}
@@ -87,7 +87,7 @@ const MainContent: React.FC = () => {
 export default function App() {
   return (
     <StoreProvider>
-      <div className="min-h-screen bg-[#F7F7F8] text-[#0B1833] font-sans flex flex-col selection:bg-[#8FD8C3] selection:text-[#0B1833]">
+      <div className="min-h-screen w-full overflow-x-hidden bg-[#F7F7F8] text-[#0B1833] font-sans flex flex-col selection:bg-[#8FD8C3] selection:text-[#0B1833]">
         <Header />
         <MainContent />
         <Footer />

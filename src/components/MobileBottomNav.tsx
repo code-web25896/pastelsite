@@ -43,117 +43,92 @@ export const MobileBottomNav: React.FC = () => {
 
   return (
     <>
-      {/* 1. FLOATING SAAS BOTTOM NAVIGATION DOCK */}
-      <div className="fixed bottom-3 left-3 right-3 sm:left-6 sm:right-6 z-40 md:hidden flex justify-center pointer-events-none">
-        <nav 
+      {/* 1. FIXED FULL-WIDTH BOTTOM NAV BAR */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white border-t border-gray-200 shadow-[0_-2px_12px_rgba(11,24,51,0.08)]">
+        <nav
           aria-label="Navigation mobile principale"
-          className="w-full max-w-md bg-white/95 backdrop-blur-2xl border border-gray-200/90 shadow-[0_10px_35px_rgba(11,24,51,0.15)] rounded-full px-2.5 py-1.5 pointer-events-auto ring-1 ring-black/5 flex items-center justify-between"
+          className="flex items-center w-full px-1 py-1"
         >
           {/* Accueil */}
           <button
-            onClick={() => {
-              setIsRayonsDrawerOpen(false);
-              navigateTo({ type: 'home' });
-            }}
-            className={`flex flex-col items-center justify-center py-1 px-2 rounded-full transition-all relative ${
-              isHomeActive && !isRayonsDrawerOpen
-                ? 'text-[#0B1833] font-bold' 
-                : 'text-gray-400 hover:text-[#0B1833]'
+            onClick={() => { setIsRayonsDrawerOpen(false); navigateTo({ type: 'home' }); }}
+            className={`flex-1 flex flex-col items-center justify-center py-1.5 gap-0.5 transition-all ${
+              isHomeActive && !isRayonsDrawerOpen ? 'text-[#0B1833]' : 'text-gray-400'
             }`}
           >
-            <div className="relative p-0.5">
-              <Home className={`w-5 h-5 transition-transform ${isHomeActive && !isRayonsDrawerOpen ? 'scale-110 text-[#0B1833]' : ''}`} />
-              {isHomeActive && !isRayonsDrawerOpen && (
-                <motion.span 
-                  layoutId="mobileNavActiveDot" 
-                  className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#8FD8C3]"
-                />
-              )}
-            </div>
-            <span className="text-[10px] tracking-tight mt-0.5">Accueil</span>
+            <Home className={`w-5 h-5 ${isHomeActive && !isRayonsDrawerOpen ? 'text-[#0B1833]' : ''}`} />
+            <span className={`text-[10px] font-medium ${isHomeActive && !isRayonsDrawerOpen ? 'font-bold' : ''}`}>Accueil</span>
+            {isHomeActive && !isRayonsDrawerOpen && (
+              <motion.span layoutId="mobileNavActiveDot" className="w-1 h-1 rounded-full bg-[#8FD8C3]" />
+            )}
           </button>
 
           {/* Boutique */}
           <button
-            onClick={() => {
-              setIsRayonsDrawerOpen(false);
-              navigateTo({ type: 'shop' });
-            }}
-            className={`flex flex-col items-center justify-center py-1 px-2 rounded-full transition-all relative ${
-              isShopActive && !isRayonsDrawerOpen
-                ? 'text-[#0B1833] font-bold' 
-                : 'text-gray-400 hover:text-[#0B1833]'
+            onClick={() => { setIsRayonsDrawerOpen(false); navigateTo({ type: 'shop' }); }}
+            className={`flex-1 flex flex-col items-center justify-center py-1.5 gap-0.5 transition-all ${
+              isShopActive && !isRayonsDrawerOpen ? 'text-[#0B1833]' : 'text-gray-400'
             }`}
           >
-            <div className="relative p-0.5">
-              <ShoppingBag className={`w-5 h-5 transition-transform ${isShopActive && !isRayonsDrawerOpen ? 'scale-110 text-[#0B1833]' : ''}`} />
-              {isShopActive && !isRayonsDrawerOpen && (
-                <motion.span 
-                  layoutId="mobileNavActiveDot" 
-                  className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#8FD8C3]"
-                />
-              )}
-            </div>
-            <span className="text-[10px] tracking-tight mt-0.5">Boutique</span>
+            <ShoppingBag className={`w-5 h-5 ${isShopActive && !isRayonsDrawerOpen ? 'text-[#0B1833]' : ''}`} />
+            <span className={`text-[10px] font-medium ${isShopActive && !isRayonsDrawerOpen ? 'font-bold' : ''}`}>Boutique</span>
+            {isShopActive && !isRayonsDrawerOpen && (
+              <motion.span layoutId="mobileNavActiveDot" className="w-1 h-1 rounded-full bg-[#8FD8C3]" />
+            )}
           </button>
 
-          {/* Rayons / Catégories Floating Center Button */}
+          {/* Rayons — bouton central mis en avant */}
           <button
             onClick={() => setIsRayonsDrawerOpen(!isRayonsDrawerOpen)}
-            className="flex flex-col items-center justify-center -my-2 relative group"
+            className="flex-1 flex flex-col items-center justify-center py-1 gap-0.5"
           >
-            <div className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 shadow-md ${
-              isRayonsDrawerOpen 
-                ? 'bg-[#0B1833] text-white scale-105 ring-4 ring-[#8FD8C3]/40' 
-                : 'bg-[#0B1833] text-white hover:scale-105 active:scale-95'
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+              isRayonsDrawerOpen
+                ? 'bg-[#0B1833] ring-4 ring-[#8FD8C3]/30'
+                : 'bg-[#0B1833]'
             }`}>
               <Layers className="w-5 h-5 text-[#8FD8C3]" />
             </div>
-            <span className="text-[9px] font-bold tracking-tight text-[#0B1833] mt-0.5">Rayons</span>
+            <span className="text-[9px] font-bold text-[#0B1833]">Rayons</span>
           </button>
 
           {/* Favoris */}
           <button
-            onClick={() => {
-              setIsRayonsDrawerOpen(false);
-              navigateTo({ type: 'account', tab: 'wishlist' });
-            }}
-            className={`flex flex-col items-center justify-center py-1 px-2 rounded-full transition-all relative ${
-              isWishlistActive && !isRayonsDrawerOpen
-                ? 'text-[#0B1833] font-bold' 
-                : 'text-gray-400 hover:text-[#0B1833]'
+            onClick={() => { setIsRayonsDrawerOpen(false); navigateTo({ type: 'account', tab: 'wishlist' }); }}
+            className={`flex-1 flex flex-col items-center justify-center py-1.5 gap-0.5 transition-all relative ${
+              isWishlistActive && !isRayonsDrawerOpen ? 'text-[#0B1833]' : 'text-gray-400'
             }`}
           >
-            <div className="relative p-0.5">
-              <Heart className={`w-5 h-5 transition-transform ${isWishlistActive && !isRayonsDrawerOpen ? 'scale-110 text-[#F4A9C8] fill-[#F4A9C8]' : ''}`} />
+            <div className="relative">
+              <Heart className={`w-5 h-5 ${isWishlistActive && !isRayonsDrawerOpen ? 'text-[#F4A9C8] fill-[#F4A9C8]' : ''}`} />
               {wishlist.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#F4A9C8] text-[#0B1833] font-black text-[9px] rounded-full flex items-center justify-center shadow-xs">
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#F4A9C8] text-[#0B1833] font-black text-[9px] rounded-full flex items-center justify-center">
                   {wishlist.length}
                 </span>
               )}
             </div>
-            <span className="text-[10px] tracking-tight mt-0.5">Favoris</span>
+            <span className={`text-[10px] font-medium ${isWishlistActive && !isRayonsDrawerOpen ? 'font-bold' : ''}`}>Favoris</span>
+            {isWishlistActive && !isRayonsDrawerOpen && (
+              <motion.span layoutId="mobileNavActiveDot" className="w-1 h-1 rounded-full bg-[#8FD8C3]" />
+            )}
           </button>
 
           {/* Panier */}
           <button
-            onClick={() => {
-              setIsRayonsDrawerOpen(false);
-              setIsCartDrawerOpen(true);
-            }}
-            className="flex flex-col items-center justify-center py-1 px-2 rounded-full transition-all relative text-gray-400 hover:text-[#0B1833]"
+            onClick={() => { setIsRayonsDrawerOpen(false); setIsCartDrawerOpen(true); }}
+            className="flex-1 flex flex-col items-center justify-center py-1.5 gap-0.5 text-gray-400 transition-all"
           >
-            <div className="relative p-0.5">
-              <div className="w-6 h-6 rounded-lg bg-[#8FD8C3]/30 text-[#0B1833] flex items-center justify-center shadow-xs">
-                <ShoppingBag className="w-3.5 h-3.5 text-[#0B1833]" />
+            <div className="relative">
+              <div className="w-7 h-7 rounded-lg bg-[#0B1833] flex items-center justify-center">
+                <ShoppingBag className="w-4 h-4 text-[#8FD8C3]" />
               </div>
               {cartCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] bg-[#0B1833] text-white font-black text-[9px] rounded-full flex items-center justify-center px-0.5 shadow-sm border border-white">
+                <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 bg-red-500 text-white font-black text-[9px] rounded-full flex items-center justify-center px-0.5 border border-white">
                   {cartCount}
                 </span>
               )}
             </div>
-            <span className="text-[10px] tracking-tight font-semibold text-[#0B1833] mt-0.5">Panier</span>
+            <span className="text-[10px] font-semibold text-[#0B1833]">Panier</span>
           </button>
 
           {/* Compte / Admin */}
@@ -166,29 +141,25 @@ export const MobileBottomNav: React.FC = () => {
                 navigateTo(currentUser ? { type: 'account' } : { type: 'auth', mode: 'login' });
               }
             }}
-            className={`flex flex-col items-center justify-center py-1 px-2 rounded-full transition-all relative ${
-              isAccountActive && !isRayonsDrawerOpen
-                ? 'text-[#0B1833] font-bold' 
-                : 'text-gray-400 hover:text-[#0B1833]'
+            className={`flex-1 flex flex-col items-center justify-center py-1.5 gap-0.5 transition-all ${
+              isAccountActive && !isRayonsDrawerOpen ? 'text-[#0B1833]' : 'text-gray-400'
             }`}
           >
-            <div className="relative p-0.5">
-              {isAdmin ? (
-                <ShieldCheck className={`w-5 h-5 text-[#8FD8C3] ${isAccountActive && !isRayonsDrawerOpen ? 'scale-110' : ''}`} />
-              ) : (
-                <User className={`w-5 h-5 ${isAccountActive && !isRayonsDrawerOpen ? 'scale-110 text-[#0B1833]' : ''}`} />
-              )}
-              {isAccountActive && !isRayonsDrawerOpen && (
-                <motion.span 
-                  layoutId="mobileNavActiveDot" 
-                  className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-[#8FD8C3]"
-                />
-              )}
-            </div>
-            <span className="text-[10px] tracking-tight mt-0.5">{isAdmin ? 'Admin' : 'Compte'}</span>
+            {isAdmin ? (
+              <ShieldCheck className={`w-5 h-5 text-[#8FD8C3]`} />
+            ) : (
+              <User className={`w-5 h-5 ${isAccountActive && !isRayonsDrawerOpen ? 'text-[#0B1833]' : ''}`} />
+            )}
+            <span className={`text-[10px] font-medium ${isAccountActive && !isRayonsDrawerOpen ? 'font-bold' : ''}`}>
+              {isAdmin ? 'Admin' : 'Compte'}
+            </span>
+            {isAccountActive && !isRayonsDrawerOpen && (
+              <motion.span layoutId="mobileNavActiveDot" className="w-1 h-1 rounded-full bg-[#8FD8C3]" />
+            )}
           </button>
         </nav>
       </div>
+
 
       {/* 2. MODERN RAYONS & SOUS-CATÉGORIES DRAWER (Mobile Bottom Sheet) */}
       <AnimatePresence>

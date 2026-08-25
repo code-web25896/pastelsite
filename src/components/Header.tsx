@@ -426,10 +426,10 @@ export const Header: React.FC = () => {
               </span>
             </button>
 
-            {/* Mobile Hamburger Button */}
+            {/* Mobile Hamburger Button — visible md only (tablettes), caché sur mobile (bottom nav) et desktop */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-2 rounded-xl text-[#0B1833] hover:bg-[#F7F7F8] lg:hidden transition-colors"
+              className="p-2 rounded-xl text-[#0B1833] hover:bg-[#F7F7F8] hidden md:block lg:hidden transition-colors"
               aria-label="Menu"
             >
               {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
