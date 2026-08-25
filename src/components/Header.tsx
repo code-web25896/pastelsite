@@ -19,7 +19,8 @@ import {
   Layers,
   Info,
   Mail,
-  Sparkles
+  Sparkles,
+  LogOut
 } from 'lucide-react';
 import { SubCategoryIcon } from './SubCategoryIcon';
 
@@ -34,6 +35,7 @@ export const Header: React.FC = () => {
     setIsCartDrawerOpen, 
     currentUser, 
     isAdmin,
+    logout,
     wishlist,
     formatPrice
   } = useStore();
@@ -366,26 +368,51 @@ export const Header: React.FC = () => {
               )}
             </button>
 
-            {/* Account Button */}
-            <button
-              onClick={() => {
-                if (isAdmin) {
-                  navigateTo({ type: 'admin' });
-                } else {
-                  navigateTo(currentUser ? { type: 'account' } : { type: 'auth', mode: 'login' });
-                }
-              }}
-              className="flex items-center gap-2 p-2 sm:px-3 sm:py-2 rounded-full hover:bg-[#F7F7F8] text-[#0B1833] transition-colors"
-              title="Compte client"
-              aria-label="Compte"
-            >
-              <div className="w-8 h-8 rounded-full bg-[#8FD8C3]/30 text-[#0B1833] flex items-center justify-center font-bold text-xs">
-                {currentUser ? currentUser.firstName.charAt(0) : <User className="w-4 h-4" />}
+            {/* Account & Logout Button */}
+            {currentUser ? (
+              <div className="flex items-center gap-1 bg-[#F7F7F8] p-1 rounded-full border border-gray-200 shadow-xs">
+                <button
+                  onClick={() => {
+                    if (isAdmin) {
+                      navigateTo({ type: 'admin' });
+                    } else {
+                      navigateTo({ type: 'account' });
+                    }
+                  }}
+                  className="flex items-center gap-2 px-2.5 py-1 rounded-full hover:bg-white text-[#0B1833] transition-colors"
+                  title={isAdmin ? "Panneau Administration" : "Mon espace client"}
+                >
+                  <div className="w-6 h-6 rounded-full bg-[#8FD8C3]/30 text-[#0B1833] flex items-center justify-center font-bold text-xs">
+                    {currentUser.firstName.charAt(0)}
+                  </div>
+                  <span className="text-xs font-semibold hidden md:inline max-w-[90px] truncate">
+                    {currentUser.firstName}
+                  </span>
+                </button>
+                <button
+                  onClick={logout}
+                  className="p-1.5 rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                  title="Se déconnecter"
+                  aria-label="Déconnexion"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
               </div>
-              <span className="text-xs font-semibold hidden md:inline max-w-[100px] truncate">
-                {currentUser ? currentUser.firstName : 'Mon compte'}
-              </span>
-            </button>
+            ) : (
+              <button
+                onClick={() => navigateTo({ type: 'auth', mode: 'login' })}
+                className="flex items-center gap-2 p-2 sm:px-3 sm:py-2 rounded-full hover:bg-[#F7F7F8] text-[#0B1833] transition-colors"
+                title="Se connecter"
+                aria-label="Connexion"
+              >
+                <div className="w-8 h-8 rounded-full bg-[#8FD8C3]/30 text-[#0B1833] flex items-center justify-center font-bold text-xs">
+                  <User className="w-4 h-4" />
+                </div>
+                <span className="text-xs font-semibold hidden md:inline">
+                  Connexion
+                </span>
+              </button>
+            )}
 
             {/* Cart Button with Numeric Indicator */}
             <button
@@ -489,16 +516,38 @@ export const Header: React.FC = () => {
                   <Mail className="w-4 h-4 text-[#8FD8C3]" />
                   <span>Contact</span>
                 </button>
-                <button
-                  onClick={() => { setIsMobileMenuOpen(false); navigateTo({ type: 'account' }); }}
-                  className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-[#F7F7F8] text-[#0B1833] font-semibold flex items-center justify-between border-t border-gray-100 pt-3 mt-1"
-                >
-                  <div className="flex items-center gap-3">
-                    <User className="w-4 h-4 text-[#B58BC5]" />
-                    <span>Mon Compte</span>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-gray-400" />
-                </button>
+                {currentUser ? (
+                  <>
+                    <button
+                      onClick={() => { setIsMobileMenuOpen(false); navigateTo(isAdmin ? { type: 'admin' } : { type: 'account' }); }}
+                      className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-[#F7F7F8] text-[#0B1833] font-semibold flex items-center justify-between border-t border-gray-100 pt-3 mt-1"
+                    >
+                      <div className="flex items-center gap-3">
+                        <User className="w-4 h-4 text-[#B58BC5]" />
+                        <span>{isAdmin ? 'Administration' : 'Mon Compte'} ({currentUser.firstName})</span>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-gray-400" />
+                    </button>
+                    <button
+                      onClick={() => { setIsMobileMenuOpen(false); logout(); }}
+                      className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-red-50 text-red-600 font-semibold flex items-center gap-3"
+                    >
+                      <LogOut className="w-4 h-4 text-red-500" />
+                      <span>Se déconnecter</span>
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => { setIsMobileMenuOpen(false); navigateTo({ type: 'auth', mode: 'login' }); }}
+                    className="w-full text-left px-3 py-2.5 rounded-xl hover:bg-[#F7F7F8] text-[#0B1833] font-semibold flex items-center justify-between border-t border-gray-100 pt-3 mt-1"
+                  >
+                    <div className="flex items-center gap-3">
+                      <User className="w-4 h-4 text-[#B58BC5]" />
+                      <span>Connexion / Inscription</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                  </button>
+                )}
               </div>
             </div>
 

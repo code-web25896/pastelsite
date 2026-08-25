@@ -19,7 +19,9 @@ import {
   ArrowLeft,
   X,
   Save,
-  Tag
+  Tag,
+  LogOut,
+  Upload
 } from 'lucide-react';
 
 const readImageFile = (file: File): Promise<string> => new Promise((resolve, reject) => {
@@ -44,6 +46,7 @@ export const AdminView: React.FC = () => {
     updateOrderStatus, 
     formatPrice,
     navigateTo,
+    logout,
     addToast
   } = useStore();
 
@@ -87,10 +90,31 @@ export const AdminView: React.FC = () => {
   const [pPromoPrice, setPPromoPrice] = useState('');
   const [pStock, setPStock] = useState('20');
   const [pImage, setPImage] = useState('https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80');
+  const [imageUploadMode, setImageUploadMode] = useState<'upload' | 'url'>('upload');
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [pShortDesc, setPShortDesc] = useState('');
   const [pDesc, setPDesc] = useState('');
   const [pBadge, setPBadge] = useState<Product['badge']>('AUCUN');
   const [pIsNew, setPIsNew] = useState(true);
+
+  const handleImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) {
+      addToast('L\'image ne doit pas dépasser 8 Mo.', 'error');
+      return;
+    }
+    setIsUploadingImage(true);
+    try {
+      const dataUrl = await readImageFile(file);
+      setPImage(dataUrl);
+      addToast('Image importée depuis votre appareil !', 'success');
+    } catch {
+      addToast('Erreur lors de la lecture du fichier image.', 'error');
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
 
   React.useEffect(() => {
     if (!selectedBrandForSubCat && brands.length > 0) setSelectedBrandForSubCat(brands[0].id);
@@ -276,13 +300,23 @@ export const AdminView: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => navigateTo({ type: 'home' })}
-          className="bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-colors flex items-center gap-2 self-start md:self-auto"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Voir la boutique publique</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-3 self-start md:self-auto">
+          <button
+            onClick={() => navigateTo({ type: 'home' })}
+            className="bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-colors flex items-center gap-2 cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Voir la boutique publique</span>
+          </button>
+          <button
+            onClick={logout}
+            className="bg-red-500/20 hover:bg-red-500/30 text-red-200 hover:text-white border border-red-400/30 text-xs font-bold px-4 py-2.5 rounded-xl transition-colors flex items-center gap-2 cursor-pointer"
+            title="Se déconnecter de l'administration"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Déconnexion</span>
+          </button>
+        </div>
       </div>
 
       {/* Admin Tabs */}
@@ -887,14 +921,77 @@ export const AdminView: React.FC = () => {
               </div>
 
               <div>
-                <label className="block font-bold text-gray-700 mb-1">URL de l'image principale *</label>
-                <input
-                  type="url"
-                  required
-                  value={pImage}
-                  onChange={(e) => setPImage(e.target.value)}
-                  className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none"
-                />
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block font-bold text-gray-700 text-xs">Image principale du produit *</label>
+                  <div className="flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg text-[11px] font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setImageUploadMode('upload')}
+                      className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${imageUploadMode === 'upload' ? 'bg-white text-[#0B1833] shadow-xs' : 'text-gray-500 hover:text-[#0B1833]'}`}
+                    >
+                      Depuis l'appareil
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setImageUploadMode('url')}
+                      className={`px-2 py-0.5 rounded-md transition-all cursor-pointer ${imageUploadMode === 'url' ? 'bg-white text-[#0B1833] shadow-xs' : 'text-gray-500 hover:text-[#0B1833]'}`}
+                    >
+                      Lien URL
+                    </button>
+                  </div>
+                </div>
+
+                {imageUploadMode === 'upload' ? (
+                  <div className="space-y-2">
+                    <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 hover:border-[#0B1833] bg-[#F7F7F8] hover:bg-gray-50 rounded-2xl p-4 cursor-pointer transition-all">
+                      <Upload className="w-6 h-6 text-gray-400 mb-1" />
+                      <span className="text-xs font-bold text-[#0B1833]">
+                        {isUploadingImage ? 'Chargement en cours...' : 'Cliquez pour choisir une photo depuis votre appareil'}
+                      </span>
+                      <span className="text-[10px] text-gray-500 mt-0.5">PNG, JPG, WebP jusqu'à 8 Mo</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageFileUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <input
+                    type="url"
+                    value={pImage}
+                    onChange={(e) => setPImage(e.target.value)}
+                    placeholder="https://images.unsplash.com/..."
+                    className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none"
+                  />
+                )}
+
+                {/* Preview Thumbnail */}
+                {pImage && (
+                  <div className="mt-2.5 flex items-center gap-3 bg-[#F7F7F8] p-2.5 rounded-xl border border-gray-200">
+                    <img
+                      src={pImage}
+                      alt="Aperçu produit"
+                      className="w-12 h-12 object-cover rounded-lg border border-gray-200 bg-white"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80';
+                      }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <span className="block text-[11px] font-bold text-emerald-700 truncate">Image prête pour le catalogue</span>
+                      <span className="block text-[10px] text-gray-500 truncate">{pImage.startsWith('data:') ? 'Fichier importé depuis votre appareil' : pImage}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPImage('')}
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
+                      title="Supprimer l'image"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div>

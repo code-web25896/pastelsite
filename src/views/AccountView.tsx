@@ -33,6 +33,7 @@ export const AccountView: React.FC<AccountViewProps> = ({ initialTab = 'orders' 
     products, 
     formatPrice, 
     navigateTo,
+    logout,
     addToast
   } = useStore();
 
@@ -116,12 +117,19 @@ export const AccountView: React.FC<AccountViewProps> = ({ initialTab = 'orders' 
           {currentUser?.role === 'admin' && (
             <button
               onClick={() => navigateTo({ type: 'admin' })}
-              className="bg-[#8FD8C3] hover:bg-[#7bc7b2] text-[#0B1833] font-bold text-xs px-4 py-2.5 rounded-xl transition-all"
+              className="bg-[#8FD8C3] hover:bg-[#7bc7b2] text-[#0B1833] font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-xs"
             >
               Panneau d'administration
             </button>
           )}
-
+          <button
+            onClick={logout}
+            className="flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs px-4 py-2.5 rounded-xl transition-all border border-red-200 shadow-xs cursor-pointer"
+            title="Se déconnecter"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Se déconnecter</span>
+          </button>
         </div>
       </div>
 
@@ -160,6 +168,14 @@ export const AccountView: React.FC<AccountViewProps> = ({ initialTab = 'orders' 
               <User className="w-4 h-4" />
               <span>Mes Coordonnées</span>
             </div>
+          </button>
+
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-2.5 px-4 py-3 rounded-2xl text-xs font-bold text-red-600 hover:bg-red-50 transition-colors border-t border-gray-100 mt-2 cursor-pointer"
+          >
+            <LogOut className="w-4 h-4 text-red-500" />
+            <span>Déconnexion</span>
           </button>
         </aside>
 
