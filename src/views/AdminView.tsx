@@ -58,7 +58,7 @@ export const AdminView: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isAddBrandOpen, setIsAddBrandOpen] = useState(false);
   const [isAddSubCategoryOpen, setIsAddSubCategoryOpen] = useState(false);
-  const [selectedBrandForSubCat, setSelectedBrandForSubCat] = useState<string>(brands[0].id || '');
+  const [selectedBrandForSubCat, setSelectedBrandForSubCat] = useState<string>(brands[0]?.id || '');
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
 
   const tabClass = (tab: 'dashboard' | 'products' | 'orders' | 'brands' | 'reviews') => {
@@ -80,17 +80,23 @@ export const AdminView: React.FC = () => {
   // New Product Form state
   const [pName, setPName] = useState('');
   const [pSku, setPSku] = useState('');
-  const [pBrandId, setPBrandId] = useState(brands[0].id || '');
-  const [pSubCatId, setPSubCatId] = useState(subCategories[0].id || '');
+  const [pBrandId, setPBrandId] = useState(brands[0]?.id || '');
+  const [pSubCatId, setPSubCatId] = useState(subCategories[0]?.id || '');
   const [pCategory, setPCategory] = useState('Papeterie');
   const [pPrice, setPPrice] = useState('12.500');
   const [pPromoPrice, setPPromoPrice] = useState('');
   const [pStock, setPStock] = useState('20');
-  const [pImage, setPImage] = useState('https://images.unsplash.com/photo-1544716278-ca5e3f4abd8cauto=format&fit=crop&w=600&q=80');
+  const [pImage, setPImage] = useState('https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80');
   const [pShortDesc, setPShortDesc] = useState('');
   const [pDesc, setPDesc] = useState('');
   const [pBadge, setPBadge] = useState<Product['badge']>('AUCUN');
   const [pIsNew, setPIsNew] = useState(true);
+
+  React.useEffect(() => {
+    if (!selectedBrandForSubCat && brands.length > 0) setSelectedBrandForSubCat(brands[0].id);
+    if (!pBrandId && brands.length > 0) setPBrandId(brands[0].id);
+    if (!pSubCatId && subCategories.length > 0) setPSubCatId(subCategories[0].id);
+  }, [brands, subCategories]);
 
   // New Brand Form state
   const [bName, setBName] = useState('');

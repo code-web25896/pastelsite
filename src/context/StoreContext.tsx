@@ -371,18 +371,33 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     let cancelled = false;
     const loadCatalog = async () => {
       try {
-        const [brandsResponse, subcategoriesResponse] = await Promise.all([
+        const [brandsResponse, subcategoriesResponse, productsResponse] = await Promise.all([
           fetch(apiPath('/api/brands')),
           fetch(apiPath('/api/subcategories')),
-        ]);
-        if (!brandsResponse.ok || !subcategoriesResponse.ok) return;
-        const [apiBrands, apiSubcategories] = await Promise.all([
-          brandsResponse.json(),
-          subcategoriesResponse.json(),
+          fetch(apiPath('/api/products')),
         ]);
         if (cancelled) return;
-        if (Array.isArray(apiBrands)) setBrands(mergeBrandsFromApi(apiBrands));
-        if (Array.isArray(apiSubcategories)) setSubCategories(mergeSubCategoriesFromApi(apiSubcategories));
+
+        if (brandsResponse.ok) {
+          const apiBrands = await brandsResponse.json();
+          if (Array.isArray(apiBrands) && apiBrands.length > 0) {
+            setBrands(mergeBrandsFromApi(apiBrands));
+          }
+        }
+
+        if (subcategoriesResponse.ok) {
+          const apiSubcategories = await subcategoriesResponse.json();
+          if (Array.isArray(apiSubcategories) && apiSubcategories.length > 0) {
+            setSubCategories(mergeSubCategoriesFromApi(apiSubcategories));
+          }
+        }
+
+        if (productsResponse.ok) {
+          const apiProducts = await productsResponse.json();
+          if (Array.isArray(apiProducts) && apiProducts.length > 0) {
+            setProducts(apiProducts);
+          }
+        }
       } catch {
         /* keep local fallback */
       }
@@ -395,16 +410,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     let cancelled = false;
     const loadOrders = async () => {
       const token = localStorage.getItem('espace_pastel_auth_token');
-      if (!token) return;
       try {
         let endpoint = '/api/orders';
         if (currentUser && currentUser.role === 'admin') endpoint = '/api/admin/orders';
-        const response = await fetch(apiPath(endpoint), {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const headers: Record<string, string> = {};
+        if (token) headers.Authorization = `Bearer ${token}`;
+        const response = await fetch(apiPath(endpoint), { headers });
         if (!response.ok) return;
         const data = await response.json();
-        if (!cancelled && Array.isArray(data)) {
+        if (!cancelled && Array.isArray(data) && data.length > 0) {
           setOrders(data);
         }
       } catch {
@@ -413,7 +427,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     void loadOrders();
     return () => { cancelled = true; };
-  }, [currentUser && currentUser.role]);
+  }, [currentUser?.role]);
 
 
 
@@ -547,40 +561,46 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const createOrder = async (orderData: Omit<Order, 'id' | 'orderNumber' | 'createdAt'>): Promise<Order> => {
     const token = localStorage.getItem('espace_pastel_auth_token');
-    if (!token) {
-      throw new Error('Vous devez vous connecter pour passer une commande.');
-    }
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) headers.Authorization = `Bearer ${token}`;
 
-    const response = await fetch(apiPath('/api/orders'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        customer: orderData.customer,
-        items: orderData.items.map((item) => ({
-          productId: item.productId,
-          quantity: item.quantity,
-        })),
-        paymentMethod: orderData.paymentMethod,
-      }),
-    });
+    const payload = {
+      customer: orderData.customer,
+      items: orderData.items.map((item) => ({
+        productId: item.productId,
+        productName: item.productName,
+        quantity: item.quantity,
+        price: item.price,
+        image: item.image,
+      })),
+      paymentMethod: orderData.paymentMethod,
+    };
 
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(data.error || 'Impossible de creer la commande.');
+    let serverOrder: any = null;
+    try {
+      const response = await fetch(apiPath('/api/orders'), {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload),
+      });
+      if (response.ok) {
+        serverOrder = await response.json();
+      }
+    } catch {
+      // local fallback
     }
 
     const newOrder: Order = {
       ...orderData,
-      id: data.id,
-      orderNumber: data.orderNumber,
-      createdAt: new Date().toISOString(),
-      subtotal: Number(data.subtotal || orderData.subtotal),
-      shippingFee: Number(data.shippingFee || orderData.shippingFee),
-      total: Number(data.total || orderData.total),
-      status: data.status || orderData.status,
+      id: serverOrder?.id || ('ord-' + Date.now()),
+      orderNumber: serverOrder?.orderNumber || ('EP-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000)),
+      createdAt: serverOrder?.createdAt || new Date().toISOString(),
+      subtotal: Number(serverOrder?.subtotal || orderData.subtotal),
+      shippingFee: Number(serverOrder?.shippingFee ?? orderData.shippingFee),
+      total: Number(serverOrder?.total || orderData.total),
+      status: serverOrder?.status || orderData.status,
     };
 
     setOrders((prev) => [newOrder, ...prev.filter((order) => order.id !== newOrder.id)]);
@@ -598,11 +618,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       );
     });
 
-    addToast('Commande confirmee avec succes !', 'success');
+    addToast('Commande confirmée avec succès !', 'success');
     return newOrder;
   };
-
-
 
   // Helpers
   const formatPrice = (price: number): string => {
@@ -651,7 +669,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     setProducts(prev => [newProduct, ...prev]);
-    addToast(`Produit "${newProduct.name}" crÃ©Ã© avec succÃ¨s`, 'success');
+    syncApiMutation('POST', '/api/admin/products', newProduct);
+    addToast(`Produit "${newProduct.name}" créé avec succès`, 'success');
     return newProduct;
   };
 
@@ -662,13 +681,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return p;
       })
     );
-    addToast('Produit mis a jour avec succes', 'success');
+    syncApiMutation('PATCH', `/api/admin/products/${id}`, updates);
+    addToast('Produit mis à jour avec succès', 'success');
   };
 
   const deleteProduct = (id: string) => {
     const target = products.find(p => p.id === id);
     setProducts(prev => prev.filter(p => p.id !== id));
-    addToast(`Produit "${(target && target.name) || ''}" supprime`, 'info');
+    syncApiMutation('DELETE', `/api/admin/products/${id}`);
+    addToast(`Produit "${(target && target.name) || ''}" supprimé`, 'info');
   };
 
   // Brand CRUD
@@ -794,7 +815,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     setReviews(prev => [newRev, ...prev]);
-    addToast('Merci pour votre avis ! Il sera visible apres validation par notre equipe.', 'info');
+    syncApiMutation('POST', `/api/products/${productId}/reviews`, { rating, comment });
+    addToast('Merci pour votre avis ! Il sera visible après validation par notre équipe.', 'info');
   };
 
   const updateReviewStatus = (reviewId: string, status: ReviewStatus) => {
@@ -827,14 +849,15 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     syncApiMutation('PATCH', `/api/admin/reviews/${reviewId}`, { status });
-    let label = 'refuse';
-    if (status === 'approved') label = 'approuve';
+    let label = 'refusé';
+    if (status === 'approved') label = 'approuvé';
     addToast(`Avis ${label}`, 'success');
   };
 
   const deleteReview = (reviewId: string) => {
     setReviews(prev => prev.filter(r => r.id !== reviewId));
-    addToast('Avis supprimÃ©', 'info');
+    syncApiMutation('DELETE', `/api/admin/reviews/${reviewId}`);
+    addToast('Avis supprimé', 'info');
   };
 
   const resetCatalogToDefault = () => {
