@@ -206,6 +206,12 @@ const normalizeCustomer = (value: unknown): Customer | null => {
   };
 };
 
+const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+const apiPath = (path: string): string => {
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${API_URL}${cleanPath}`;
+};
+
 const syncApiMutation = (method: string, endpoint: string, body: unknown | undefined) => {
   const token = localStorage.getItem('espace_pastel_auth_token');
   if (!token) return;
@@ -320,6 +326,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
     return [];
   });
+
+  const [toasts, setToasts] = useState<ToastNotification[]>([]);
 
   const [currentUser, setCurrentUser] = useState<Customer | null>(() => {
     const token = localStorage.getItem('espace_pastel_auth_token');
@@ -441,7 +449,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
       return [...prev, { productId: product.id, product, quantity }];
     });
-    addToast(`${product.name} ajouté au panier ✓`, 'success');
+    addToast(`${product.name} ajoutÃ© au panier âœ“`, 'success');
     setIsCartDrawerOpen(true);
   };
 
@@ -464,7 +472,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const item = cart.find(i => i.productId === productId);
     setCart(prev => prev.filter(i => i.productId !== productId));
     if (item) {
-      addToast(`${item.product.name} retiré du panier`, 'info');
+      addToast(`${item.product.name} retirÃ© du panier`, 'info');
     }
   };
 
@@ -484,10 +492,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setWishlist(prev => {
       const exists = prev.includes(productId);
       if (exists) {
-        addToast('Retiré de vos favoris', 'info');
+        addToast('RetirÃ© de vos favoris', 'info');
         return prev.filter(id => id !== productId);
       } else {
-        addToast('Ajouté à vos favoris ❤', 'success');
+        addToast('AjoutÃ© Ã  vos favoris â¤', 'success');
         return [...prev, productId];
       }
     });
@@ -502,10 +510,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const setIsAdminMode = (admin: boolean) => {
     if (admin) {
       setCurrentUser(INITIAL_CUSTOMERS[1]); // Admin user
-      addToast('Mode Administrateur activé', 'info');
+      addToast('Mode Administrateur activÃ©', 'info');
     } else {
       setCurrentUser(INITIAL_CUSTOMERS[0]); // Customer user
-      addToast('Mode Client activé', 'info');
+      addToast('Mode Client activÃ©', 'info');
     }
   };
 
@@ -522,7 +530,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       email,
       phone: '55 542 000',
       role: 'customer',
-      addresses: [{ label: 'Adresse principale', address: '23 Rue de la Liberté', city: 'Menzah 5' }],
+      addresses: [{ label: 'Adresse principale', address: '23 Rue de la LibertÃ©', city: 'Menzah 5' }],
       createdAt: new Date().toISOString()
     };
     setCurrentUser(customer);
@@ -533,7 +541,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const logout = () => {
     localStorage.removeItem('espace_pastel_auth_token');
     setCurrentUser(null);
-    addToast('Vous êtes déconnecté', 'info');
+    addToast('Vous Ãªtes dÃ©connectÃ©', 'info');
     navigateTo({ type: 'home' });
   };
 
@@ -643,7 +651,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     setProducts(prev => [newProduct, ...prev]);
-    addToast(`Produit "${newProduct.name}" créé avec succès`, 'success');
+    addToast(`Produit "${newProduct.name}" crÃ©Ã© avec succÃ¨s`, 'success');
     return newProduct;
   };
 
@@ -826,7 +834,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const deleteReview = (reviewId: string) => {
     setReviews(prev => prev.filter(r => r.id !== reviewId));
-    addToast('Avis supprimé', 'info');
+    addToast('Avis supprimÃ©', 'info');
   };
 
   const resetCatalogToDefault = () => {
@@ -840,7 +848,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.removeItem(LOCAL_STORAGE_KEYS.PRODUCTS);
     localStorage.removeItem(LOCAL_STORAGE_KEYS.REVIEWS);
     localStorage.removeItem(LOCAL_STORAGE_KEYS.ORDERS);
-    addToast('Catalogue réinitialisé avec les données de démonstration', 'info');
+    addToast('Catalogue rÃ©initialisÃ© avec les donnÃ©es de dÃ©monstration', 'info');
   };
 
   return (
@@ -915,6 +923,7 @@ export const useStore = () => {
   }
   return context;
 };
+
 
 
 

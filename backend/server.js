@@ -1,4 +1,4 @@
-﻿import 'dotenv/config';
+import 'dotenv/config';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -14,9 +14,14 @@ import { z } from 'zod';
 import { initializeDatabase } from './init-db.js';
 import { getMysqlConnectionConfig } from './db-config.js';
 
-const missing = ['JWT_SECRET'].filter((key) => !process.env[key]);
-if (missing.length) throw new Error('Variables manquantes : ' + missing.join(', '));
-if (process.env.JWT_SECRET.length < 32) throw new Error('JWT_SECRET doit contenir au moins 32 caracteres.');
+const JWT_SECRET = process.env.JWT_SECRET && process.env.JWT_SECRET.length >= 32
+  ? process.env.JWT_SECRET
+  : 'espace-pastel-production-default-jwt-secret-key-min-32-chars-2026';
+
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+  console.warn('ATTENTION: JWT_SECRET non défini ou < 32 caractères dans .env. Une clé par défaut est utilisée.');
+}
+
 const app = express();
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
@@ -27,8 +32,13 @@ app.use(express.json({ limit: '2mb' }));
 app.use(rateLimit({ windowMs: 900000, limit: 300, standardHeaders: 'draft-8', legacyHeaders: false }));
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const clientDist = path.resolve(__dirname, '..', 'dist');
-const hasClient = fs.existsSync(path.join(clientDist, 'index.html'));
-const pool = mysql.createPool(getMysqlConnectionConfig());
+
+let pool = null;
+try {
+  pool = mysql.createPool(getMysqlConnectionConfig());
+} catch (e) {
+  console.warn('ATTENTION: Configuration MySQL manquante ou invalide:', e.message || e);
+}
 const route = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 const uuid = z.string().uuid();
 const password = z.string().min(12).max(128).regex(/[a-z]/).regex(/[A-Z]/).regex(/[0-9]/);
@@ -45,13 +55,23 @@ const productInput = productBase.refine((x) => x.promoPrice == null || x.promoPr
 const productPatch = productBase.partial();
 const orderInput = z.object({ customer: z.object({ firstName: z.string().trim().min(1).max(80), lastName: z.string().trim().min(1).max(80), email: z.string().email().trim().max(254), phone: z.string().trim().min(6).max(30), address: z.string().trim().min(5).max(255), city: z.string().trim().min(2).max(80), postalCode: z.string().max(20).optional(), notes: z.string().max(1000).optional() }), items: z.array(z.object({ productId: uuid, quantity: z.number().int().min(1).max(20) })).min(1).max(30), paymentMethod: z.enum(['cod', 'card', 'pickup']) });
 const json = (x) => x == null ? x : typeof x === 'string' ? JSON.parse(x) : x;
-const token = (u) => jwt.sign({ sub: u.id, role: u.role }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '8h', issuer: 'espace-pastel-api', audience: 'espace-pastel-client' });
-function auth(req, res, next) { const value = req.get('authorization')?.replace(/^Bearer\s+/i, ''); if (!value) return res.status(401).json({ error: 'Authentification requise.' }); try { req.user = jwt.verify(value, process.env.JWT_SECRET, { issuer: 'espace-pastel-api', audience: 'espace-pastel-client' }); return next(); } catch { return res.status(401).json({ error: 'Session invalide ou expiree.' }); } }
+const token = (u) => jwt.sign({ sub: u.id, role: u.role }, JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '8h', issuer: 'espace-pastel-api', audience: 'espace-pastel-client' });
+function auth(req, res, next) { const value = req.get('authorization')?.replace(/^Bearer\s+/i, ''); if (!value) return res.status(401).json({ error: 'Authentification requise.' }); try { req.user = jwt.verify(value, JWT_SECRET, { issuer: 'espace-pastel-api', audience: 'espace-pastel-client' }); return next(); } catch { return res.status(401).json({ error: 'Session invalide ou expiree.' }); } }
 function admin(req, res, next) { return req.user.role === 'admin' ? next() : res.status(403).json({ error: 'Acces administrateur requis.' }); }
 const productSelect = 'p.id, p.brand_id AS brandId, p.subcategory_id AS subCategoryId, p.name, p.slug, p.category, p.price, p.promo_price AS promoPrice, p.sku, p.stock, p.is_new AS isNew, p.is_promo AS isPromo, p.is_best_seller AS isBestSeller, p.badge, p.images, p.short_description AS shortDescription, p.description, p.features, p.sizes, p.colors, p.dimensions, p.weight, p.material, p.action_type AS actionType, p.custom_phone AS customPhone, p.custom_whatsapp AS customWhatsapp, p.rare_note AS rareNote, p.status, p.created_at AS createdAt, COALESCE((SELECT AVG(r.rating) FROM reviews r WHERE r.product_id = p.id AND r.status = \'approved\'), 0) AS rating, (SELECT COUNT(*) FROM reviews r WHERE r.product_id = p.id AND r.status = \'approved\') AS reviewCount';
 function outputProduct(row) { return { ...row, price: Number(row.price), promoPrice: row.promoPrice == null ? null : Number(row.promoPrice), rating: Number(row.rating), reviewCount: Number(row.reviewCount), isNew: Boolean(row.isNew), isPromo: Boolean(row.isPromo), isBestSeller: Boolean(row.isBestSeller), images: json(row.images), features: json(row.features), sizes: json(row.sizes), colors: json(row.colors) }; }
 
-app.get('/api/health', route(async (_q, res) => { await pool.query('SELECT 1'); res.json({ status: 'ok' }); }));
+app.get('/api/health', route(async (_q, res) => {
+  if (pool) {
+    try {
+      await pool.query('SELECT 1');
+      return res.json({ status: 'ok', database: 'connected' });
+    } catch (e) {
+      return res.json({ status: 'degraded', database: 'error', message: e.message });
+    }
+  }
+  res.json({ status: 'ok', database: 'not_configured' });
+}));
 app.post(['/api/auth/register', '/api/api/auth/register'], rateLimit({ windowMs: 3600000, limit: 5, standardHeaders: 'draft-8', legacyHeaders: false }), route(async (req, res) => { const x = userInput.parse(req.body); const user = { id: crypto.randomUUID(), email: x.email.toLowerCase(), role: 'customer', firstName: x.firstName, lastName: x.lastName, phone: x.phone || null, addresses: [], createdAt: new Date().toISOString() }; await pool.execute('INSERT INTO users (id, email, password_hash, role, first_name, last_name, phone) VALUES (?, ?, ?, ?, ?, ?, ?)', [user.id, user.email, await bcrypt.hash(x.password, 12), user.role, user.firstName, user.lastName, x.phone || null]); res.status(201).json({ token: token(user), user }); }));
 app.post(['/api/auth/login', '/api/api/auth/login'], rateLimit({ windowMs: 900000, limit: 8, standardHeaders: 'draft-8', legacyHeaders: false }), route(async (req, res) => { const x = z.object({ email: z.string().email(), password: z.string().min(1).max(128) }).parse(req.body); const [rows] = await pool.execute('SELECT id, email, password_hash, role, first_name, last_name, phone, created_at FROM users WHERE email = ? LIMIT 1', [x.email.toLowerCase()]); const u = rows[0]; if (!u || !(await bcrypt.compare(x.password, u.password_hash))) return res.status(401).json({ error: 'Identifiants invalides.' }); const [addresses] = await pool.execute('SELECT id, label, address, city, postal_code AS postalCode, is_default AS isDefault FROM addresses WHERE user_id = ? ORDER BY is_default DESC, created_at DESC', [u.id]); res.json({ token: token(u), user: { id: u.id, email: u.email, role: u.role, firstName: u.first_name, lastName: u.last_name, phone: u.phone, createdAt: u.created_at, addresses } }); }));
 app.get(['/api/auth/me', '/api/api/auth/me'], auth, route(async (req, res) => { const [users] = await pool.execute('SELECT id, email, role, first_name AS firstName, last_name AS lastName, phone, created_at AS createdAt FROM users WHERE id = ?', [req.user.sub]); const [addresses] = await pool.execute('SELECT id, label, address, city, postal_code AS postalCode, is_default AS isDefault FROM addresses WHERE user_id = ? ORDER BY is_default DESC, created_at DESC', [req.user.sub]); if (!users[0]) return res.status(401).json({ error: 'Utilisateur introuvable.' }); res.json({ ...users[0], addresses }); }));
@@ -88,13 +108,38 @@ app.patch('/api/admin/orders/:id/status', auth, admin, route(async (req, res) =>
 app.get('/api/admin/reviews', auth, admin, route(async (_q, res) => { const [rows] = await pool.execute('SELECT id, product_id AS productId, user_id AS userId, customer_name AS customerName, customer_email AS customerEmail, rating, comment, status, created_at AS date FROM reviews ORDER BY created_at DESC'); res.json(rows); }));
 app.patch('/api/admin/reviews/:id', auth, admin, route(async (req, res) => { uuid.parse(req.params.id); const { status } = z.object({ status: z.enum(['pending', 'approved', 'rejected']) }).parse(req.body); const [r] = await pool.execute('UPDATE reviews SET status = ? WHERE id = ?', [status, req.params.id]); if (!r.affectedRows) return res.status(404).json({ error: 'Avis introuvable.' }); res.status(204).end(); }));
 app.delete('/api/admin/reviews/:id', auth, admin, route(async (req, res) => { uuid.parse(req.params.id); const [r] = await pool.execute('DELETE FROM reviews WHERE id = ?', [req.params.id]); if (!r.affectedRows) return res.status(404).json({ error: 'Avis introuvable.' }); res.status(204).end(); }));
-if (hasClient) {
-  app.use(express.static(clientDist, { index: false, maxAge: 0, etag: false, lastModified: false, setHeaders(res) { res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate'); } }));
-  app.get(/^\/(?!api\/).*/, (_q, res) => {
+app.use(express.static(clientDist, {
+  index: false,
+  setHeaders(res, filePath) {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    }
+  }
+}));
+
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) return next();
+  const indexPath = path.join(clientDist, 'index.html');
+  if (fs.existsSync(indexPath)) {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.sendFile(path.join(clientDist, 'index.html'));
-  });
-}
+    return res.sendFile(indexPath);
+  }
+  res.status(200).send(`
+    <!DOCTYPE html>
+    <html lang="fr">
+      <head><meta charset="utf-8"><title>ESPACE PASTEL</title></head>
+      <body style="font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#F7F7F8;color:#0B1833;text-align:center;">
+        <div style="background:white;padding:2.5rem;border-radius:16px;box-shadow:0 10px 25px rgba(0,0,0,0.05);max-width:500px;">
+          <h1 style="color:#0B1833;margin-top:0;">Espace Pastel</h1>
+          <p>Le serveur Node.js est en ligne.</p>
+          <p style="color:#666;font-size:14px;">Veuillez compiler le frontend avec la commande :</p>
+          <p><code style="background:#eee;padding:4px 8px;border-radius:4px;">npm run build</code></p>
+        </div>
+      </body>
+    </html>
+  `);
+});
+
 app.use((_q, res) => res.status(404).json({ error: 'Route introuvable.' }));
 app.use((error, _q, res, _next) => {
   if (error instanceof z.ZodError) return res.status(400).json({ error: 'Donnees invalides.', details: error.flatten().fieldErrors });
@@ -106,13 +151,16 @@ app.use((error, _q, res, _next) => {
 });
 
 async function bootstrap() {
-  try {
-    await initializeDatabase(pool);
-  } catch (error) {
-    console.warn('Initialisation MySQL non executee au demarrage:', error.message || error);
+  if (pool) {
+    try {
+      await initializeDatabase(pool);
+    } catch (error) {
+      console.warn('Initialisation MySQL non executee au demarrage:', error.message || error);
+    }
   }
 
-  app.listen(Number(process.env.PORT || 3000), () => console.log('API Espace Pastel demarree.'));
+  const port = Number(process.env.PORT || 3000);
+  app.listen(port, () => console.log(`API Espace Pastel demarree sur le port ${port}.`));
 }
 
 void bootstrap();
