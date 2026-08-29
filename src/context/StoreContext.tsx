@@ -63,9 +63,9 @@ interface StoreContextType {
   setIsAdminMode: (admin: boolean) => void;
 
   // Admin CRUD for Products
-  addProduct: (product: Omit<Product, 'id' | 'slug' | 'rating' | 'reviewCount' | 'createdAt'>) => Product;
-  updateProduct: (id: string, updates: Partial<Product>) => void;
-  deleteProduct: (id: string) => void;
+  addProduct: (product: Omit<Product, 'id' | 'slug' | 'rating' | 'reviewCount' | 'createdAt'>) => Promise<Product>;
+  updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
 
   // Admin CRUD for Brands
   addBrand: (brand: Omit<Brand, 'id' | 'slug'>) => Brand;
@@ -212,14 +212,37 @@ const apiPath = (path: string): string => {
   return `${API_URL}${cleanPath}`;
 };
 
-const syncApiMutation = (method: string, endpoint: string, body: unknown | undefined) => {
-  const token = localStorage.getItem('espace_pastel_auth_token') || 'dev-admin-token';
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+const getAuthToken = (): string => localStorage.getItem('espace_pastel_auth_token') || '';
+
+const authHeaders = (jsonBody = false): Record<string, string> => {
+  const headers: Record<string, string> = {};
+  if (jsonBody) headers['Content-Type'] = 'application/json';
+  const token = getAuthToken();
+  if (token && token !== 'dev-admin-token') {
+    headers.Authorization = `Bearer ${token}`;
   }
+  return headers;
+};
+
+const isUsableProduct = (product: Partial<Product> | null | undefined): product is Product =>
+  Boolean(product && product.id && product.name);
+
+const isPublishedProduct = (product: Product): boolean =>
+  !product.status || product.status === 'published';
+
+const mergeByIdProducts = (primary: Product[], secondary: Product[]): Product[] => {
+  const map = new Map<string, Product>();
+  for (const item of secondary) {
+    if (item?.id) map.set(item.id, item);
+  }
+  for (const item of primary) {
+    if (item?.id) map.set(item.id, item);
+  }
+  return Array.from(map.values()).sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+};
+
+const syncApiMutation = (method: string, endpoint: string, body: unknown | undefined) => {
+  const headers = authHeaders(body !== undefined);
   let payload: string | undefined = undefined;
   if (body !== undefined) payload = JSON.stringify(body);
   void fetch(apiPath(endpoint), {
@@ -269,11 +292,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as Product[];
-        if (parsed.length > 0) {
-          // Merge: add any INITIAL_PRODUCTS not already in localStorage
-          const savedIds = new Set(parsed.map(p => p.id));
-          const missing = INITIAL_PRODUCTS.filter(p => !savedIds.has(p.id));
-          return missing.length > 0 ? [...parsed, ...missing] : parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.filter(isUsableProduct);
         }
       } catch {
         return INITIAL_PRODUCTS;
@@ -404,10 +424,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     let cancelled = false;
     const loadCatalog = async () => {
       try {
-        const [brandsResponse, subcategoriesResponse, productsResponse] = await Promise.all([
+        const token = getAuthToken();
+        const productHeaders: Record<string, string> = {};
+        if (token && token !== 'dev-admin-token') {
+          productHeaders.Authorization = `Bearer ${token}`;
+        }
+        const [brandsResponse, subcategoriesResponse, productsResponse, adminProductsResponse] = await Promise.all([
           fetch(apiPath('/api/brands')),
           fetch(apiPath('/api/subcategories')),
           fetch(apiPath('/api/products')),
+          token && token !== 'dev-admin-token'
+            ? fetch(apiPath('/api/admin/products'), { headers: productHeaders })
+            : Promise.resolve(null),
         ]);
         if (cancelled) return;
 
@@ -425,19 +453,34 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           }
         }
 
+        let nextProducts: Product[] | null = null;
         if (productsResponse.ok) {
           const apiProducts = await productsResponse.json();
-          if (Array.isArray(apiProducts) && apiProducts.length > 0) {
-            setProducts(apiProducts);
+          if (Array.isArray(apiProducts)) nextProducts = apiProducts.filter(isUsableProduct);
+        }
+        if (adminProductsResponse && adminProductsResponse.ok) {
+          const adminProducts = await adminProductsResponse.json();
+          if (Array.isArray(adminProducts)) {
+            const published = (nextProducts || []).filter(isUsableProduct);
+            const extras = adminProducts.filter(isUsableProduct);
+            nextProducts = mergeByIdProducts(extras, published);
           }
         }
+        if (nextProducts) setProducts(nextProducts);
       } catch {
         /* keep local fallback */
       }
     };
     void loadCatalog();
-    return () => { cancelled = true; };
-  }, []);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void loadCatalog();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      cancelled = true;
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [currentUser?.role]);
 
   useEffect(() => {
     let cancelled = false;
@@ -689,13 +732,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const getProductsByBrand = (brandId: string) => {
     const brand = brands.find(b => b.id === brandId || b.slug.toLowerCase() === brandId.toLowerCase());
     const validBrandIds = brand ? [brand.id, brand.slug] : [brandId];
-    return products.filter(p => validBrandIds.includes(p.brandId) && p.status === 'published');
+    return products.filter(p => validBrandIds.includes(p.brandId) && isPublishedProduct(p) && isUsableProduct(p));
   };
 
   const getProductsBySubCategory = (subCategoryId: string) => {
     const sub = subCategories.find(s => s.id === subCategoryId || s.slug.toLowerCase() === subCategoryId.toLowerCase());
     const validSubIds = sub ? [sub.id, sub.slug] : [subCategoryId];
-    return products.filter(p => validSubIds.includes(p.subCategoryId) && p.status === 'published');
+    return products.filter(p => validSubIds.includes(p.subCategoryId) && isPublishedProduct(p) && isUsableProduct(p));
   };
 
   const getProductById = (id: string) =>
@@ -706,7 +749,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   // Product CRUD
-  const addProduct = (prodData: Omit<Product, 'id' | 'slug' | 'rating' | 'reviewCount' | 'createdAt'>): Product => {
+  const addProduct = async (prodData: Omit<Product, 'id' | 'slug' | 'rating' | 'reviewCount' | 'createdAt'>): Promise<Product> => {
     const slug = prodData.name
       .toLowerCase()
       .normalize('NFD')
@@ -714,37 +757,111 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
 
-    const newProduct: Product = {
+    const localProduct: Product = {
       ...prodData,
+      promoPrice: prodData.promoPrice || undefined,
+      badge: prodData.badge === 'AUCUN' ? null : prodData.badge,
+      status: 'published',
+      features: prodData.features?.length ? prodData.features : ['Qualité certifiée Espace Pastel'],
+      sizes: prodData.sizes || [],
+      colors: prodData.colors || [],
       id: 'prod-' + Date.now(),
       slug: `${slug}-${Math.floor(100 + Math.random() * 900)}`,
       rating: 5.0,
       reviewCount: 0,
-      createdAt: new Date().toISOString().split('T')[0]
+      createdAt: new Date().toISOString()
     };
 
-    setProducts(prev => [newProduct, ...prev]);
-    syncApiMutation('POST', '/api/admin/products', newProduct);
-    addToast(`Produit "${newProduct.name}" créé avec succès`, 'success');
-    return newProduct;
+    setProducts(prev => [localProduct, ...prev.filter((item) => item.id !== localProduct.id)]);
+
+    try {
+      const res = await fetch(apiPath('/api/admin/products'), {
+        method: 'POST',
+        headers: authHeaders(true),
+        body: JSON.stringify({
+          ...localProduct,
+          promoPrice: localProduct.promoPrice ?? null,
+          badge: localProduct.badge || null,
+          status: 'published',
+        }),
+      });
+      if (res.ok) {
+        const saved = await res.json();
+        const published = isUsableProduct(saved) ? saved : localProduct;
+        setProducts(prev => [published, ...prev.filter(p => p.id !== localProduct.id && p.id !== published.id)]);
+        try {
+          const catalogRes = await fetch(apiPath('/api/products'));
+          if (catalogRes.ok) {
+            const apiProducts = await catalogRes.json();
+            if (Array.isArray(apiProducts) && apiProducts.length >= 0) {
+              const fromApi = apiProducts.filter(isUsableProduct);
+              setProducts(mergeByIdProducts(fromApi, [published]));
+            }
+          }
+        } catch {
+          /* keep saved product in state */
+        }
+        addToast(`Produit "${published.name}" publié dans la boutique`, 'success');
+        return published;
+      }
+      setProducts(prev => prev.filter(p => p.id !== localProduct.id));
+      const errBody = await res.json().catch(() => ({}));
+      addToast((errBody as { error?: string }).error || 'Le produit n\'a pas pu être enregistré sur le serveur.', 'error');
+      return localProduct;
+    } catch {
+      setProducts(prev => prev.filter(p => p.id !== localProduct.id));
+      addToast('Connexion serveur impossible. Le produit n\'est pas publié.', 'error');
+      return localProduct;
+    }
   };
 
-  const updateProduct = (id: string, updates: Partial<Product>) => {
-    setProducts(prev =>
-      prev.map(p => {
-        if (p.id === id) return { ...p, ...updates };
-        return p;
-      })
-    );
-    syncApiMutation('PATCH', `/api/admin/products/${id}`, updates);
-    addToast('Produit mis à jour avec succès', 'success');
+  const updateProduct = async (id: string, updates: Partial<Product>) => {
+    const normalized = {
+      ...updates,
+      badge: updates.badge === 'AUCUN' ? null : updates.badge,
+    };
+    setProducts(prev => prev.map(p => p.id === id ? { ...p, ...normalized } : p));
+
+    try {
+      const res = await fetch(apiPath(`/api/admin/products/${id}`), {
+        method: 'PATCH',
+        headers: authHeaders(true),
+        body: JSON.stringify(normalized),
+      });
+      if (res.ok) {
+        const saved = await res.json();
+        if (isUsableProduct(saved)) {
+          setProducts(prev => prev.map(p => p.id === id ? { ...p, ...saved } : p));
+        }
+        addToast('Produit mis à jour avec succès', 'success');
+        return;
+      } else {
+        const errBody = await res.json().catch(() => ({}));
+        addToast((errBody as { error?: string }).error || 'Mise à jour serveur échouée.', 'error');
+      }
+    } catch {
+      addToast('Mise à jour enregistrée localement. Vérifiez la connexion serveur.', 'warning');
+    }
   };
 
-  const deleteProduct = (id: string) => {
+  const deleteProduct = async (id: string) => {
     const target = products.find(p => p.id === id);
-    setProducts(prev => prev.filter(p => p.id !== id));
-    syncApiMutation('DELETE', `/api/admin/products/${id}`);
-    addToast(`Produit "${(target && target.name) || ''}" supprimé`, 'info');
+
+    try {
+      const res = await fetch(apiPath(`/api/admin/products/${id}`), {
+        method: 'DELETE',
+        headers: authHeaders(false),
+      });
+      if (!res.ok && res.status !== 204) {
+        addToast('Suppression serveur échouée. Réessayez après reconnexion admin.', 'error');
+        return;
+      }
+      setProducts(prev => prev.filter(p => p.id !== id));
+      setCart(prev => prev.filter(item => item.productId !== id));
+      addToast(`Produit "${(target && target.name) || ''}" retiré de la boutique`, 'info');
+    } catch {
+      addToast('Impossible de supprimer le produit. Vérifiez la connexion serveur.', 'error');
+    }
   };
 
   // Brand CRUD

@@ -16,6 +16,7 @@ import { getMysqlConnectionConfig } from './db-config.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DB_FILE = path.join(__dirname, 'mock-db.json');
+const uploadsDir = path.join(__dirname, 'uploads');
 const clientDist = path.resolve(__dirname, '..', 'dist');
 
 const JWT_SECRET = process.env.JWT_SECRET && process.env.JWT_SECRET.length >= 32
@@ -46,7 +47,7 @@ app.use(cors({
   methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '20mb' }));
 app.use(rateLimit({ windowMs: 900000, limit: 1000, standardHeaders: 'draft-8', legacyHeaders: false }));
 
 // Fallback JSON DB State
@@ -94,6 +95,67 @@ function persistJsonDb() {
   }
 }
 
+function mergeById(primary = [], secondary = []) {
+  const map = new Map();
+  for (const item of secondary) {
+    if (item && item.id) map.set(String(item.id), item);
+  }
+  for (const item of primary) {
+    if (item && item.id) map.set(String(item.id), item);
+  }
+  return Array.from(map.values());
+}
+
+function isPublishedProduct(product) {
+  return !product?.status || product.status === 'published';
+}
+
+function filterCatalogProducts(list, { q, brandId, subCategoryId } = {}) {
+  const query = String(q || '').trim().toLowerCase();
+  return (list || []).filter((product) => {
+    if (!isPublishedProduct(product)) return false;
+    if (brandId && product.brandId !== brandId) return false;
+    if (subCategoryId && product.subCategoryId !== subCategoryId) return false;
+    if (query && ![product.name, product.shortDescription, product.category, product.description, product.sku].join(' ').toLowerCase().includes(query)) {
+      return false;
+    }
+    return true;
+  });
+}
+
+async function ensureProductRelations(product) {
+  if (!pool) return;
+  const brand = jsonDbState.brands.find((item) => item.id === product.brandId) || {
+    id: product.brandId,
+    name: product.brandId,
+    slug: String(product.brandId || 'marque').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'marque',
+    description: '',
+    logoUrl: null,
+    bannerUrl: null,
+    accentColor: null,
+    status: 'active',
+    order: 0,
+  };
+  const sub = jsonDbState.subcategories.find((item) => item.id === product.subCategoryId) || {
+    id: product.subCategoryId,
+    brandId: product.brandId,
+    name: product.subCategoryId,
+    slug: String(product.subCategoryId || 'categorie').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'categorie',
+    description: '',
+    imageUrl: null,
+    status: 'active',
+    order: 0,
+  };
+  await pool.execute(
+    'INSERT INTO brands (id, name, slug, description, logo_url, banner_url, accent_color, status, display_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name), status = VALUES(status)',
+    [brand.id, brand.name, brand.slug, brand.description || '', brand.logoUrl || null, brand.bannerUrl || null, brand.accentColor || null, brand.status || 'active', brand.order || 0]
+  );
+  await pool.execute(
+    'INSERT INTO subcategories (id, brand_id, name, slug, description, image_url, status, display_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name), status = VALUES(status)',
+    [sub.id, sub.brandId, sub.name, sub.slug, sub.description || '', sub.imageUrl || null, sub.status || 'active', sub.order || 0]
+  );
+}
+
 // MySQL connection pool
 let pool = null;
 try {
@@ -107,7 +169,7 @@ const route = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).ca
 // Validation Schemas
 const idString = z.string().min(1).max(128);
 const passwordSchema = z.string().min(6).max(128);
-const imageOrUrl = z.string().min(1).max(5000000);
+const imageOrUrl = z.string().min(1).max(15000000);
 
 const userInput = z.object({
   email: z.string().email().max(254),
@@ -154,7 +216,7 @@ const productBase = z.object({
   isNew: z.boolean().optional().default(false),
   isPromo: z.boolean().optional().default(false),
   isBestSeller: z.boolean().optional().default(false),
-  badge: z.string().max(80).nullable().optional(),
+  badge: z.string().max(80).nullable().optional().transform((value) => (value === 'AUCUN' ? null : value)),
   images: z.array(imageOrUrl).optional().default([]),
   shortDescription: z.string().trim().max(2000).optional().default(''),
   description: z.string().trim().max(20000).optional().default(''),
@@ -194,7 +256,37 @@ const orderInput = z.object({
   paymentMethod: z.enum(['cod', 'card', 'pickup', 'cash', 'transfer']).default('cod')
 });
 
-const json = (x) => (x == null ? x : typeof x === 'string' ? JSON.parse(x) : x);
+const json = (x) => {
+  if (x == null) return x;
+  if (typeof x !== 'string') return x;
+  try {
+    return JSON.parse(x);
+  } catch {
+    return x;
+  }
+};
+
+function asImageList(value) {
+  const parsed = json(value);
+  if (Array.isArray(parsed)) return parsed.filter(Boolean);
+  if (typeof parsed === 'string' && parsed) return [parsed];
+  return [];
+}
+
+function materializeImages(images, productId) {
+  fs.mkdirSync(path.join(uploadsDir, 'products'), { recursive: true });
+  return (images || []).map((img, index) => {
+    if (typeof img !== 'string' || !img.startsWith('data:image/')) return img;
+    const match = img.match(/^data:image\/([a-zA-Z0-9+.-]+);base64,(.+)$/);
+    if (!match) return img;
+    let ext = match[1].toLowerCase().replace('jpeg', 'jpg');
+    if (ext.includes('svg')) ext = 'svg';
+    if (!['jpg', 'png', 'webp', 'gif', 'svg'].includes(ext)) ext = 'jpg';
+    const fileName = `${String(productId).replace(/[^a-zA-Z0-9_-]/g, '')}-${index}.${ext}`;
+    fs.writeFileSync(path.join(uploadsDir, 'products', fileName), Buffer.from(match[2], 'base64'));
+    return `/uploads/products/${fileName}`;
+  });
+}
 
 const token = (u) => jwt.sign(
   { sub: u.id, role: u.role, email: u.email },
@@ -373,7 +465,7 @@ function outputProduct(row) {
     isNew: Boolean(row.isNew),
     isPromo: Boolean(row.isPromo),
     isBestSeller: Boolean(row.isBestSeller),
-    images: json(row.images) || [],
+    images: asImageList(row.images),
     features: json(row.features) || [],
     sizes: json(row.sizes) || [],
     colors: json(row.colors) || []
@@ -384,10 +476,11 @@ app.get('/api/products', route(async (req, res) => {
   const q = String(req.query.q || '').trim().toLowerCase();
   const brandId = req.query.brandId;
   const subCategoryId = req.query.subCategoryId;
+  let mysqlProducts = [];
 
   if (pool) {
     try {
-      const where = ['p.status = ?'];
+      const where = ['(p.status = ? OR p.status IS NULL)'];
       const values = ['published'];
       if (brandId) { where.push('p.brand_id = ?'); values.push(brandId); }
       if (subCategoryId) { where.push('p.subcategory_id = ?'); values.push(subCategoryId); }
@@ -395,21 +488,21 @@ app.get('/api/products', route(async (req, res) => {
         values.push(`%${q}%`, `%${q}%`, `%${q}%`);
         where.push('(p.name LIKE ? OR p.short_description LIKE ? OR p.category LIKE ?)');
       }
-      const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 500);
-      const [rows] = await pool.execute(`SELECT ${productSelect} FROM products p WHERE ${where.join(' AND ')} ORDER BY p.created_at DESC LIMIT ?`, [...values, limit]);
-      return res.json(rows.map(outputProduct));
+      const limit = Math.min(Math.max(Number(req.query.limit) || 500, 1), 1000);
+      const [rows] = await pool.query(
+        `SELECT ${productSelect} FROM products p WHERE ${where.join(' AND ')} ORDER BY p.created_at DESC LIMIT ${limit}`,
+        values
+      );
+      mysqlProducts = rows.map(outputProduct);
     } catch (err) {
       console.warn('MySQL products query failed, using JSON db:', err.message);
     }
   }
 
-  const filtered = jsonDbState.products.filter((p) => {
-    if (p.status !== 'published') return false;
-    if (brandId && p.brandId !== brandId) return false;
-    if (subCategoryId && p.subCategoryId !== subCategoryId) return false;
-    if (q && ![p.name, p.shortDescription, p.category, p.description].join(' ').toLowerCase().includes(q)) return false;
-    return true;
-  });
+  const merged = mergeById(mysqlProducts, jsonDbState.products);
+  const filtered = filterCatalogProducts(merged, { q, brandId, subCategoryId })
+    .map(outputProduct)
+    .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
   return res.json(filtered);
 }));
 
@@ -417,15 +510,18 @@ app.get('/api/products/:idOrSlug', route(async (req, res) => {
   const target = req.params.idOrSlug;
   if (pool) {
     try {
-      const [rows] = await pool.execute(`SELECT ${productSelect} FROM products p WHERE p.status = 'published' AND (p.id = ? OR p.slug = ?) LIMIT 1`, [target, target]);
-      if (rows[0]) return res.json(outputProduct(rows[0]));
+      const [rows] = await pool.execute(`SELECT ${productSelect} FROM products p WHERE (p.id = ? OR p.slug = ?) LIMIT 1`, [target, target]);
+      if (rows[0]) {
+        const product = outputProduct(rows[0]);
+        if (isPublishedProduct(product)) return res.json(product);
+      }
     } catch (err) {
       console.warn('MySQL product lookup failed:', err.message);
     }
   }
 
-  const product = jsonDbState.products.find((p) => p.status === 'published' && (p.id === target || p.slug === target));
-  if (!product) return res.status(404).json({ error: 'Produit introuvable.' });
+  const product = jsonDbState.products.find((p) => p.id === target || p.slug === target);
+  if (!product || !isPublishedProduct(product)) return res.status(404).json({ error: 'Produit introuvable.' });
   return res.json(product);
 }));
 
@@ -685,15 +781,42 @@ app.delete('/api/admin/subcategories/:id', auth, admin, route(async (req, res) =
 }));
 
 // Admin Products CRUD
+app.get('/api/admin/products', auth, admin, route(async (_q, res) => {
+  let mysqlProducts = [];
+  if (pool) {
+    try {
+      const [rows] = await pool.query(`SELECT ${productSelect} FROM products p ORDER BY p.created_at DESC`);
+      mysqlProducts = rows.map(outputProduct);
+    } catch (err) {
+      console.warn('MySQL admin products failed:', err.message);
+    }
+  }
+  return res.json(mergeById(mysqlProducts, jsonDbState.products).map(outputProduct));
+}));
+
 app.post('/api/admin/products', auth, admin, route(async (req, res) => {
   const x = productBase.parse(req.body);
-  const newId = x.id || 'prod-' + crypto.randomUUID();
-  const slug = x.slug || x.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Math.floor(100 + Math.random() * 900);
+  const newId = x.id || crypto.randomUUID();
+  const slug = x.slug || (x.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Math.floor(100 + Math.random() * 900));
   const now = new Date().toISOString();
-  const product = { ...x, id: newId, slug, createdAt: now, rating: 5, reviewCount: 0 };
+  const product = {
+    ...x,
+    id: newId,
+    slug,
+    createdAt: now,
+    rating: 5,
+    reviewCount: 0,
+    status: x.status || 'published',
+    promoPrice: x.promoPrice ?? null,
+    images: materializeImages(x.images?.length ? x.images : [], newId),
+    features: x.features || [],
+    sizes: x.sizes || [],
+    colors: x.colors || [],
+  };
 
   if (pool) {
     try {
+      await ensureProductRelations(product);
       await pool.execute(
         'INSERT INTO products (id, brand_id, subcategory_id, name, slug, category, price, promo_price, sku, stock, is_new, is_promo, is_best_seller, badge, images, short_description, description, features, sizes, colors, dimensions, weight, material, action_type, custom_phone, custom_whatsapp, rare_note, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
@@ -708,11 +831,17 @@ app.post('/api/admin/products', auth, admin, route(async (req, res) => {
         ]
       );
     } catch (err) {
-      console.warn('MySQL insert product failed, saved to JSON db:', err.message);
+      console.error('MySQL insert product failed:', err.message);
+      return res.status(500).json({ error: 'Impossible d\'enregistrer le produit en base. ' + err.message });
     }
   }
 
-  jsonDbState.products.unshift(product);
+  const existingIndex = jsonDbState.products.findIndex((item) => item.id === product.id || item.sku === product.sku);
+  if (existingIndex !== -1) {
+    jsonDbState.products[existingIndex] = { ...jsonDbState.products[existingIndex], ...product };
+  } else {
+    jsonDbState.products.unshift(product);
+  }
   persistJsonDb();
   return res.status(201).json(product);
 }));
@@ -720,6 +849,7 @@ app.post('/api/admin/products', auth, admin, route(async (req, res) => {
 app.patch('/api/admin/products/:id', auth, admin, route(async (req, res) => {
   const targetId = req.params.id;
   const updates = productPatch.parse(req.body);
+  if (updates.images) updates.images = materializeImages(updates.images, targetId);
 
   if (pool) {
     try {
@@ -729,13 +859,17 @@ app.patch('/api/admin/products/:id', auth, admin, route(async (req, res) => {
           brandId: 'brand_id', subCategoryId: 'subcategory_id', name: 'name', slug: 'slug', category: 'category', price: 'price', promoPrice: 'promo_price', sku: 'sku', stock: 'stock', isNew: 'is_new', isPromo: 'is_promo', isBestSeller: 'is_best_seller', badge: 'badge', images: 'images', shortDescription: 'short_description', description: 'description', features: 'features', sizes: 'sizes', colors: 'colors', dimensions: 'dimensions', weight: 'weight', material: 'material', actionType: 'action_type', customPhone: 'custom_phone', customWhatsapp: 'custom_whatsapp', rareNote: 'rare_note', status: 'status'
         };
         const serializeVal = (k, v) => (['images', 'features', 'sizes', 'colors'].includes(k) && v != null ? JSON.stringify(v) : v);
-        await pool.execute(
-          'UPDATE products SET ' + keys.map((k) => `${productMap[k]} = ?`).join(', ') + ' WHERE id = ?',
-          [...keys.map((k) => serializeVal(k, updates[k])), targetId]
-        );
+        const validKeys = keys.filter((k) => productMap[k]);
+        if (validKeys.length) {
+          await pool.execute(
+            'UPDATE products SET ' + validKeys.map((k) => `${productMap[k]} = ?`).join(', ') + ' WHERE id = ?',
+            [...validKeys.map((k) => serializeVal(k, updates[k])), targetId]
+          );
+        }
       }
     } catch (err) {
-      console.warn('MySQL update product failed:', err.message);
+      console.error('MySQL update product failed:', err.message);
+      return res.status(500).json({ error: 'Impossible de mettre a jour le produit. ' + err.message });
     }
   }
 
@@ -743,9 +877,13 @@ app.patch('/api/admin/products/:id', auth, admin, route(async (req, res) => {
   if (pIndex !== -1) {
     jsonDbState.products[pIndex] = { ...jsonDbState.products[pIndex], ...updates };
     persistJsonDb();
+    return res.status(200).json(jsonDbState.products[pIndex]);
   }
 
-  return res.status(200).json({ success: true });
+  const created = { id: targetId, ...updates, status: updates.status || 'published' };
+  jsonDbState.products.unshift(created);
+  persistJsonDb();
+  return res.status(200).json(created);
 }));
 
 app.delete('/api/admin/products/:id', auth, admin, route(async (req, res) => {
@@ -754,7 +892,8 @@ app.delete('/api/admin/products/:id', auth, admin, route(async (req, res) => {
     try {
       await pool.execute('DELETE FROM products WHERE id = ?', [targetId]);
     } catch (err) {
-      console.warn('MySQL delete product failed:', err.message);
+      console.error('MySQL delete product failed:', err.message);
+      return res.status(500).json({ error: 'Impossible de supprimer le produit. ' + err.message });
     }
   }
   jsonDbState.products = jsonDbState.products.filter((p) => p.id !== targetId);
@@ -784,6 +923,7 @@ app.patch('/api/admin/products/:id/stock', auth, admin, route(async (req, res) =
 }));
 
 // ================= STATIC ASSETS & SPA ROUTING =================
+app.use('/uploads', express.static(uploadsDir));
 app.use(express.static(clientDist, {
   index: false,
   setHeaders(res, filePath) {

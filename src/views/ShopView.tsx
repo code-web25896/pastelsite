@@ -42,10 +42,24 @@ export const ShopView: React.FC<ShopViewProps> = ({
   const [isNewOnly, setIsNewOnly] = useState<boolean>(initialIsNewOnly);
   const [inStockOnly, setInStockOnly] = useState<boolean>(false);
   const [minRating, setMinRating] = useState<number>(0);
-  const [maxPrice, setMaxPrice] = useState<number>(100);
+  const [maxPrice, setMaxPrice] = useState<number>(0);
+
+  const catalogMaxPrice = useMemo(() => {
+    const prices = products
+      .map((p) => Number(p.promoPrice ?? p.price) || 0)
+      .filter((price) => price > 0);
+    const highest = prices.length ? Math.max(...prices) : 100;
+    return Math.max(50, Math.ceil(highest / 5) * 5);
+  }, [products]);
+
+  useEffect(() => {
+    if (!maxPrice || maxPrice < catalogMaxPrice) {
+      setMaxPrice(catalogMaxPrice);
+    }
+  }, [catalogMaxPrice]);
 
   // Sorting
-  const [sortBy, setSortBy] = useState<'relevance' | 'newest' | 'price-asc' | 'price-desc' | 'bestseller' | 'rating'>('relevance');
+  const [sortBy, setSortBy] = useState<'relevance' | 'newest' | 'price-asc' | 'price-desc' | 'bestseller' | 'rating'>('newest');
 
   // Mobile Filter Drawer
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
@@ -66,12 +80,15 @@ export const ShopView: React.FC<ShopViewProps> = ({
   // Filter Logic
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
+      if (!p?.id || !p?.name) return false;
+      if (p.status && p.status !== 'published') return false;
+
       // Search
       if (search.trim()) {
         const query = search.toLowerCase();
         const matchesName = p.name.toLowerCase().includes(query);
-        const matchesDesc = p.shortDescription.toLowerCase().includes(query);
-        const matchesSku = p.sku.toLowerCase().includes(query);
+        const matchesDesc = (p.shortDescription || '').toLowerCase().includes(query);
+        const matchesSku = (p.sku || '').toLowerCase().includes(query);
         if (!matchesName && !matchesDesc && !matchesSku) return false;
       }
 
@@ -154,7 +171,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
     setIsNewOnly(false);
     setInStockOnly(false);
     setMinRating(0);
-    setMaxPrice(100);
+    setMaxPrice(catalogMaxPrice);
     setSortBy('relevance');
   };
 
@@ -166,7 +183,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
     (isNewOnly ? 1 : 0) +
     (inStockOnly ? 1 : 0) +
     (minRating > 0 ? 1 : 0) +
-    (maxPrice < 100 ? 1 : 0) +
+    (maxPrice < catalogMaxPrice ? 1 : 0) +
     (search.trim() ? 1 : 0);
 
   // Subcategories available for selected brand
@@ -305,15 +322,15 @@ export const ShopView: React.FC<ShopViewProps> = ({
         <input
           type="range"
           min="5"
-          max="100"
+          max={catalogMaxPrice}
           step="5"
-          value={maxPrice}
+          value={Math.min(maxPrice || catalogMaxPrice, catalogMaxPrice)}
           onChange={(e) => setMaxPrice(Number(e.target.value))}
           className="w-full accent-[#0B1833] cursor-pointer"
         />
         <div className="flex justify-between text-[10px] text-gray-400 mt-1">
           <span>0 TND</span>
-          <span>100 TND</span>
+          <span>{formatPrice(catalogMaxPrice)}</span>
         </div>
       </div>
 

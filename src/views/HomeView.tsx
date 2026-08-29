@@ -29,7 +29,7 @@ export const HomeView: React.FC = () => {
 
   // New products and promotional products
   const newProducts = [...products]
-    .filter(p => p.status === 'published')
+    .filter(p => p?.id && p?.name && (!p.status || p.status === 'published'))
     .sort((a, b) => {
       if (a.isNew && !b.isNew) return -1;
       if (!a.isNew && b.isNew) return 1;
@@ -40,7 +40,7 @@ export const HomeView: React.FC = () => {
     .slice(0, 4);
 
   const promoProducts = [...products]
-    .filter(p => p.status === 'published' && (p.promoPrice != null || p.isPromo || p.badge === 'PROMOTION'))
+    .filter(p => p?.id && p?.name && (!p.status || p.status === 'published') && (p.promoPrice != null || p.isPromo || p.badge === 'PROMOTION'))
     .sort((a, b) => {
       const dateA = new Date(a.createdAt || 0).getTime();
       const dateB = new Date(b.createdAt || 0).getTime();

@@ -1,5 +1,5 @@
 CREATE TABLE users (
-  id CHAR(36) PRIMARY KEY,
+  id VARCHAR(128) PRIMARY KEY,
   email VARCHAR(254) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   role ENUM('customer', 'admin') NOT NULL DEFAULT 'customer',
@@ -11,8 +11,8 @@ CREATE TABLE users (
 );
 
 CREATE TABLE addresses (
-  id CHAR(36) PRIMARY KEY,
-  user_id CHAR(36) NOT NULL,
+  id VARCHAR(128) PRIMARY KEY,
+  user_id VARCHAR(128) NOT NULL,
   label VARCHAR(80) NOT NULL,
   address VARCHAR(255) NOT NULL,
   city VARCHAR(80) NOT NULL,
@@ -24,12 +24,12 @@ CREATE TABLE addresses (
 );
 
 CREATE TABLE brands (
-  id CHAR(36) PRIMARY KEY,
+  id VARCHAR(128) PRIMARY KEY,
   name VARCHAR(120) NOT NULL,
   slug VARCHAR(140) NOT NULL UNIQUE,
   description TEXT NOT NULL,
-  logo_url VARCHAR(2048) NULL,
-  banner_url VARCHAR(2048) NULL,
+  logo_url MEDIUMTEXT NULL,
+  banner_url MEDIUMTEXT NULL,
   accent_color VARCHAR(20) NULL,
   status ENUM('active', 'draft') NOT NULL DEFAULT 'draft',
   display_order INT NOT NULL DEFAULT 0,
@@ -39,12 +39,12 @@ CREATE TABLE brands (
 );
 
 CREATE TABLE subcategories (
-  id CHAR(36) PRIMARY KEY,
-  brand_id CHAR(36) NOT NULL,
+  id VARCHAR(128) PRIMARY KEY,
+  brand_id VARCHAR(128) NOT NULL,
   name VARCHAR(120) NOT NULL,
   slug VARCHAR(140) NOT NULL,
   description TEXT NOT NULL,
-  image_url VARCHAR(2048) NULL,
+  image_url MEDIUMTEXT NULL,
   status ENUM('active', 'draft') NOT NULL DEFAULT 'draft',
   display_order INT NOT NULL DEFAULT 0,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -55,9 +55,9 @@ CREATE TABLE subcategories (
 );
 
 CREATE TABLE products (
-  id CHAR(36) PRIMARY KEY,
-  brand_id CHAR(36) NOT NULL,
-  subcategory_id CHAR(36) NOT NULL,
+  id VARCHAR(128) PRIMARY KEY,
+  brand_id VARCHAR(128) NOT NULL,
+  subcategory_id VARCHAR(128) NOT NULL,
   name VARCHAR(255) NOT NULL,
   slug VARCHAR(255) NOT NULL UNIQUE,
   category VARCHAR(80) NOT NULL,
@@ -69,7 +69,7 @@ CREATE TABLE products (
   is_promo BOOLEAN NOT NULL DEFAULT FALSE,
   is_best_seller BOOLEAN NOT NULL DEFAULT FALSE,
   badge VARCHAR(80) NULL,
-  images JSON NOT NULL,
+  images LONGTEXT NOT NULL,
   short_description TEXT NOT NULL,
   description TEXT NOT NULL,
   features JSON NOT NULL,
@@ -93,9 +93,9 @@ CREATE TABLE products (
 );
 
 CREATE TABLE reviews (
-  id CHAR(36) PRIMARY KEY,
-  product_id CHAR(36) NOT NULL,
-  user_id CHAR(36) NULL,
+  id VARCHAR(128) PRIMARY KEY,
+  product_id VARCHAR(128) NOT NULL,
+  user_id VARCHAR(128) NULL,
   customer_name VARCHAR(160) NOT NULL,
   customer_email VARCHAR(254) NOT NULL,
   rating TINYINT UNSIGNED NOT NULL,
@@ -109,9 +109,9 @@ CREATE TABLE reviews (
 );
 
 CREATE TABLE orders (
-  id CHAR(36) PRIMARY KEY,
+  id VARCHAR(128) PRIMARY KEY,
   order_number VARCHAR(40) NOT NULL UNIQUE,
-  user_id CHAR(36) NOT NULL,
+  user_id VARCHAR(128) NOT NULL,
   customer_json JSON NOT NULL,
   items_json JSON NOT NULL,
   subtotal DECIMAL(10,3) NOT NULL,

@@ -6,6 +6,7 @@ export type ProductBadge =
   | 'PIÈCE RARE' 
   | 'ÉDITION LIMITÉE' 
   | 'COLLECTION 2026' 
+  | 'AUCUN'
   | null;
 
 export type OrderStatus = 'pending' | 'preparing' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
@@ -146,14 +147,9 @@ export interface Customer {
     postalCode: string;
     isDefault: boolean;
   }[];
-  address: string;
-  city: string;
-  postalCode: string;
-  createdAt: string;
-  }[];
-  address: string;
-  city: string;
-  postalCode: string;
+  address?: string;
+  city?: string;
+  postalCode?: string;
   createdAt: string;
 }
 

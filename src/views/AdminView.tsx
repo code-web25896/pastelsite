@@ -27,7 +27,26 @@ import {
 
 const readImageFile = (file: File): Promise<string> => new Promise((resolve, reject) => {
   const reader = new FileReader();
-  reader.onload = () => resolve(String(reader.result || ''));
+  reader.onload = () => {
+    const src = String(reader.result || '');
+    const img = new Image();
+    img.onload = () => {
+      const maxSize = 1200;
+      const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(img.width * scale));
+      canvas.height = Math.max(1, Math.round(img.height * scale));
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(src);
+        return;
+      }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', 0.82));
+    };
+    img.onerror = () => resolve(src);
+    img.src = src;
+  };
   reader.onerror = () => reject(reader.error);
   reader.readAsDataURL(file);
 });
@@ -52,7 +71,8 @@ export const AdminView: React.FC = () => {
     formatPrice,
     navigateTo,
     logout,
-    addToast
+    addToast,
+    updateReviewStatus
   } = useStore();
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders' | 'brands' | 'reviews'>('dashboard');
@@ -154,52 +174,52 @@ export const AdminView: React.FC = () => {
   const pendingOrdersCount = orders.filter(o => o.status === 'pending').length;
   const pendingReviewsCount = reviews.filter(r => r.status === 'pending').length;
 
-  const handleCreateProduct = (e: React.FormEvent) => {
+  const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pName || !pSku) return;
+    if (!pBrandId || !pSubCatId) {
+      addToast('Choisissez une marque et une sous-catégorie.', 'error');
+      return;
+    }
+    if (!pImage) {
+      addToast('Ajoutez une photo du produit.', 'error');
+      return;
+    }
+
+    const payload = {
+      name: pName,
+      sku: pSku,
+      brandId: pBrandId,
+      subCategoryId: pSubCatId,
+      category: pCategory as Product['category'],
+      price: parseFloat(pPrice) || 0,
+      promoPrice: (pPromoPrice && parseFloat(pPromoPrice)) || undefined,
+      stock: parseInt(pStock, 10) || 0,
+      images: [pImage],
+      shortDescription: pShortDesc || pName,
+      description: pDesc || pShortDesc || pName,
+      features: ['Qualité certifiée Espace Pastel', 'Usage scolaire et professionnel'],
+      sizes: [] as string[],
+      colors: [] as Product['colors'],
+      dimensions: '',
+      weight: '',
+      material: '',
+      customWhatsapp: '',
+      rareNote: '',
+      badge: pBadge === 'AUCUN' ? null : pBadge,
+      actionType: pActionType,
+      customPhone: pCustomPhone || '55 542 000',
+      isNew: pIsNew,
+      isBestSeller: pBadge === 'BEST-SELLER',
+      isPromo: Boolean(pPromoPrice),
+      status: 'published' as const
+    };
 
     if (editingProduct) {
-      updateProduct(editingProduct.id, {
-        name: pName,
-        sku: pSku,
-        brandId: pBrandId,
-        subCategoryId: pSubCatId,
-        category: pCategory,
-        price: parseFloat(pPrice) || 0,
-        promoPrice: (pPromoPrice && parseFloat(pPromoPrice)) || undefined,
-        stock: parseInt(pStock) || 0,
-        images: [pImage],
-        shortDescription: pShortDesc || pName,
-        description: pDesc || pShortDesc || pName,
-        badge: pBadge,
-        actionType: pActionType,
-        customPhone: pCustomPhone || '55 542 000',
-        isNew: pIsNew,
-        isPromo: Boolean(pPromoPrice)
-      });
+      await updateProduct(editingProduct.id, payload);
       setEditingProduct(null);
     } else {
-      addProduct({
-        name: pName,
-        sku: pSku,
-        brandId: pBrandId,
-        subCategoryId: pSubCatId,
-        category: pCategory,
-        price: parseFloat(pPrice) || 0,
-        promoPrice: (pPromoPrice && parseFloat(pPromoPrice)) || undefined,
-        stock: parseInt(pStock) || 0,
-        images: [pImage],
-        shortDescription: pShortDesc || pName,
-        description: pDesc || pShortDesc || pName,
-        features: ['Qualité certifiée Espace Pastel', 'Usage scolaire et professionnel'],
-        isNew: pIsNew,
-        isBestSeller: false,
-        isPromo: Boolean(pPromoPrice),
-        badge: pBadge,
-        actionType: pActionType,
-        customPhone: pCustomPhone || '55 542 000',
-        status: 'published'
-      });
+      await addProduct(payload);
     }
 
     setIsAddProductOpen(false);
@@ -620,7 +640,7 @@ export const AdminView: React.FC = () => {
                       <td className="py-3 font-bold text-[#0B1833] max-w-[200px] truncate">{p.name}</td>
                       <td className="py-3">
                         <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">
-                          {b.name || p.brandId}
+                          {b?.name || p.brandId}
                         </span>
                       </td>
                       <td className="py-3 font-bold">
@@ -648,9 +668,8 @@ export const AdminView: React.FC = () => {
                           </button>
                           <button
                             onClick={() => {
-                              if (confirm(`Supprimer ${p.name} `)) {
-                                deleteProduct(p.id);
-                                addToast('Produit supprimé', 'info');
+                              if (confirm(`Supprimer « ${p.name} » de la boutique ?`)) {
+                                void deleteProduct(p.id);
                               }
                             }}
                             className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg"
@@ -866,7 +885,7 @@ export const AdminView: React.FC = () => {
                         </span>
                       </div>
                       <span className="text-[11px] text-gray-500">
-                        Produit : {p.name || 'Général'} • Note : {rev.rating}/5
+                        Produit : {p?.name || 'Général'} • Note : {rev.rating}/5
                       </span>
                     </div>
 
