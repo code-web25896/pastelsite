@@ -118,6 +118,7 @@ const LOCAL_STORAGE_KEYS = {
   CART: 'espace_pastel_cart_v1',
   WISHLIST: 'espace_pastel_wishlist_v1',
   USER: 'espace_pastel_user_v1',
+  VIEW: 'espace_pastel_view_v1',
 };
 
 const parseStoredCollection = <T,>(key: string): T[] => {
@@ -273,7 +274,17 @@ const syncApiMutation = (method: string, endpoint: string, body: unknown | undef
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Navigation state
-  const [currentView, setCurrentView] = useState<ViewType>({ type: 'home' });
+  const [currentView, setCurrentView] = useState<ViewType>(() => {
+    const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.VIEW);
+    if (saved) {
+      try {
+        return JSON.parse(saved) as ViewType;
+      } catch {
+        return { type: 'home' };
+      }
+    }
+    return { type: 'home' };
+  });
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -539,6 +550,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const navigateTo = (view: ViewType) => {
     setCurrentView(view);
+    localStorage.setItem(LOCAL_STORAGE_KEYS.VIEW, JSON.stringify(view));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

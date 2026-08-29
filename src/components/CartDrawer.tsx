@@ -32,7 +32,7 @@ export const CartDrawer: React.FC = () => {
 
   if (!isCartDrawerOpen) return null;
 
-  const FREE_SHIPPING_THRESHOLD = 100.0;
+  const FREE_SHIPPING_THRESHOLD = 500.0;
   const remainingForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - cartSubtotal);
   const freeShippingProgress = Math.min(100, (cartSubtotal / FREE_SHIPPING_THRESHOLD) * 100);
 
@@ -90,7 +90,7 @@ export const CartDrawer: React.FC = () => {
               <div className="flex items-center gap-1.5">
                 <Truck className="w-4 h-4 text-[#0B1833]" />
                 {remainingForFreeShipping > 0 ? (
-                  <span>Plus que <strong className="text-[#0B1833]">{formatPrice(remainingForFreeShipping)}</strong> pour la livraison offerte !</span>
+                  <span>Plus que <strong className="text-[#0B1833]">{formatPrice(remainingForFreeShipping)}</strong> pour la livraison offerte a partir de 500 DT !</span>
                 ) : (
                   <span className="text-emerald-700 font-bold flex items-center gap-1">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -98,7 +98,7 @@ export const CartDrawer: React.FC = () => {
                   </span>
                 )}
               </div>
-              <span className="text-[10px] text-gray-500">Dès 100 TND</span>
+              <span className="text-[10px] text-gray-500">Dès 500 DT</span>
             </div>
             
             {/* Progress bar */}

@@ -32,7 +32,7 @@ export const Footer: React.FC = () => {
             </div>
             <div>
               <h4 className="text-sm font-bold text-white font-sans">Livraison Rapide</h4>
-              <p className="text-xs text-white/60 mt-0.5">Partout en Tunisie en 24h/48h</p>
+              <p className="text-xs text-white/60 mt-0.5">Livraison gratuite a partir de 500 DT</p>
             </div>
           </div>
 
@@ -148,7 +148,7 @@ export const Footer: React.FC = () => {
               </div>
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-[#7DB9DD] flex-shrink-0" />
-                <span>Lun - Sam : 08h30 - 19h30</span>
+                <span>7/7 : 08h30 - 22h30</span>
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-[#B58BC5] flex-shrink-0" />

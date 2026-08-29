@@ -362,7 +362,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
           <div className="p-4 rounded-2xl bg-white border border-gray-100 space-y-2.5 text-xs text-[#0B1833]/80">
             <div className="flex items-center gap-2.5">
               <Truck className="w-4 h-4 text-[#8FD8C3] flex-shrink-0" />
-              <span>Livraison express en 24h/48h sur toute la Tunisie (7 TND ou offert dès 100 TND)</span>
+              <span>Livraison express sur toute la Tunisie (offerte a partir de 500 DT)</span>
             </div>
             <div className="flex items-center gap-2.5">
               <MapPin className="w-4 h-4 text-[#F4A9C8] flex-shrink-0" />

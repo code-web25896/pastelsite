@@ -90,12 +90,12 @@ export const Header: React.FC = () => {
               <span>23 Rue de la Liberté, Menzah 5, Tunis</span>
             </div>
             <span className="text-white/30">•</span>
-            <span className="text-[#8FD8C3] font-medium">Livraison rapide sur toute la Tunisie</span>
+            <span className="text-[#8FD8C3] font-medium">Livraison gratuite a partir de 500 DT</span>
           </div>
 
           <div className="flex items-center gap-4 text-xs">
             <span className="text-white/80 hidden sm:inline">
-              Lun - Sam : <span className="text-[#8FD8C3] font-semibold">08h30 - 19h30</span>
+              7/7 : <span className="text-[#8FD8C3] font-semibold">08h30 - 22h30</span>
             </span>
             <span className="text-white/30 hidden sm:inline">•</span>
             <button
@@ -562,7 +562,7 @@ export const Header: React.FC = () => {
                 <span>23 Rue de la Liberté, Menzah 5, Tunis</span>
               </div>
               <div className="text-[11px] text-gray-500 pt-1">
-                Du Lundi au Samedi : 08h30 - 19h30
+                Ouvert 7/7 de 08h30 a 22h30
               </div>
             </div>
           </div>

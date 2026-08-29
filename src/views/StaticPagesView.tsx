@@ -151,7 +151,7 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
                   </div>
                   <div>
                     <strong className="block text-sm">Horaires d'ouverture</strong>
-                    <p className="text-gray-600">Lundi - Samedi : 08h30 - 19h30</p>
+                    <p className="text-gray-600">7/7 : 08h30 - 22h30</p>
                     <p className="text-gray-600">Dimanche : 09h00 - 14h00</p>
                   </div>
                 </div>
@@ -275,7 +275,7 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
                 Nous expédions vos commandes sur l'ensemble du territoire tunisien grâce à nos partenaires de livraison rapide :
               </p>
               <ul className="list-disc pl-5 mt-2 space-y-1">
-                <li><strong>Grand Tunis (Tunis, Ariana, Ben Arous, Manouba) :</strong> Livraison en 24h ouvrées. Tarif : 7,000 TND (Offert dès 100 TND d'achat).</li>
+                <li><strong>Grand Tunis (Tunis, Ariana, Ben Arous, Manouba) :</strong> Livraison en 24h ouvrées. Tarif : 7,000 TND (Offert dès 500 DT d'achat).</li>
                 <li><strong>Autres Gouvernorats (Sousse, Sfax, Nabeul, Bizerte, Monastir, Gabès...) :</strong> Livraison sous 24h à 48h. Tarif : 7,000 TND.</li>
               </ul>
             </div>
