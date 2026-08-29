@@ -129,9 +129,12 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
                   </div>
                   <div>
                     <strong className="block text-sm">Téléphone & WhatsApp</strong>
-                    <a href="tel:98137585" className="text-[#0B1833] font-bold hover:underline">
-                      98 137 585
-                    </a>
+                    <div className="mt-1 space-y-1 text-[#0B1833] font-bold">
+                      <a href="tel:98137585" className="block hover:underline">Pastel - 98 137 585</a>
+                      <a href="tel:58260515" className="block hover:underline">Ines Pastel - 58 260 515</a>
+                      <a href="tel:29299185" className="block hover:underline">29 299 185</a>
+                      <a href="tel:5554200" className="block hover:underline">5554200</a>
+                    </div>
                   </div>
                 </div>
 
@@ -141,7 +144,7 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
                   </div>
                   <div>
                     <strong className="block text-sm">Email</strong>
-                    <span className="text-gray-600">contact@espacepastel.tn</span>
+                    <span className="text-gray-600">contact@espacepastel.com</span>
                   </div>
                 </div>
 
