@@ -132,33 +132,49 @@ const parseStoredCollection = <T,>(key: string): T[] => {
 
 const mergeBrandsFromApi = (apiBrands: Brand[]): Brand[] => {
   const storedBrands = parseStoredCollection<Brand>(LOCAL_STORAGE_KEYS.BRANDS);
-  let sourceBrands = INITIAL_BRANDS;
-  if (apiBrands.length > 0) sourceBrands = apiBrands;
-  return sourceBrands.map((apiBrand) => {
-    const stored = storedBrands.find((item) => item.id === apiBrand.id || item.slug === apiBrand.slug);
-    const init = INITIAL_BRANDS.find((item) => item.id === apiBrand.id || item.slug === apiBrand.slug);
+  const bySlug = new Map<string, Brand>();
+
+  for (const brand of INITIAL_BRANDS) bySlug.set(brand.slug, brand);
+  for (const brand of apiBrands) {
+    const current = bySlug.get(brand.slug);
+    bySlug.set(brand.slug, { ...current, ...brand });
+  }
+  for (const brand of storedBrands) {
+    const current = bySlug.get(brand.slug);
+    bySlug.set(brand.slug, { ...current, ...brand });
+  }
+
+  return Array.from(bySlug.values()).map((brand) => {
+    const init = INITIAL_BRANDS.find((item) => item.id === brand.id || item.slug === brand.slug);
     return {
-      ...init,
-      ...apiBrand,
-      ...stored,
-      logoUrl: (stored && stored.logoUrl) || apiBrand.logoUrl || (init && init.logoUrl) || '',
-      bannerUrl: (stored && stored.bannerUrl) || apiBrand.bannerUrl || (init && init.bannerUrl) || '',
+      ...brand,
+      logoUrl: brand.logoUrl || (init && init.logoUrl) || '',
+      bannerUrl: brand.bannerUrl || (init && init.bannerUrl) || '',
+      status: brand.status || 'active',
     };
   });
 };
 
 const mergeSubCategoriesFromApi = (apiSubCategories: SubCategory[]): SubCategory[] => {
   const storedSubCategories = parseStoredCollection<SubCategory>(LOCAL_STORAGE_KEYS.SUBCATEGORIES);
-  let sourceSubCategories = INITIAL_SUBCATEGORIES;
-  if (apiSubCategories.length > 0) sourceSubCategories = apiSubCategories;
-  return sourceSubCategories.map((apiSubCategory) => {
-    const stored = storedSubCategories.find((item) => item.id === apiSubCategory.id || item.slug === apiSubCategory.slug);
-    const init = INITIAL_SUBCATEGORIES.find((item) => item.id === apiSubCategory.id || item.slug === apiSubCategory.slug);
+  const bySlug = new Map<string, SubCategory>();
+
+  for (const subCategory of INITIAL_SUBCATEGORIES) bySlug.set(subCategory.slug, subCategory);
+  for (const subCategory of apiSubCategories) {
+    const current = bySlug.get(subCategory.slug);
+    bySlug.set(subCategory.slug, { ...current, ...subCategory });
+  }
+  for (const subCategory of storedSubCategories) {
+    const current = bySlug.get(subCategory.slug);
+    bySlug.set(subCategory.slug, { ...current, ...subCategory });
+  }
+
+  return Array.from(bySlug.values()).map((subCategory) => {
+    const init = INITIAL_SUBCATEGORIES.find((item) => item.id === subCategory.id || item.slug === subCategory.slug);
     return {
-      ...init,
-      ...apiSubCategory,
-      ...stored,
-      imageUrl: (stored && stored.imageUrl) || apiSubCategory.imageUrl || (init && init.imageUrl) || '',
+      ...subCategory,
+      imageUrl: subCategory.imageUrl || (init && init.imageUrl) || '',
+      status: subCategory.status || 'active',
     };
   });
 };
@@ -266,7 +282,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (saved) {
       try {
         const parsed: Brand[] = JSON.parse(saved);
-        if (parsed.length > 0) return parsed;
+        if (parsed.length > 0) return mergeBrandsFromApi(parsed);
       } catch {
         return INITIAL_BRANDS;
       }
@@ -279,7 +295,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as SubCategory[];
-        if (parsed.length > 0) return parsed;
+        if (parsed.length > 0) return mergeSubCategoriesFromApi(parsed);
       } catch {
         return INITIAL_SUBCATEGORIES;
       }
