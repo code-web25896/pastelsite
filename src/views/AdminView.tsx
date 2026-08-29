@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { Product, Brand, SubCategory, Order, Review, ProductActionType } from '../types';
 import { 
@@ -72,10 +72,15 @@ export const AdminView: React.FC = () => {
     navigateTo,
     logout,
     addToast,
-    updateReviewStatus
+    updateReviewStatus,
+    refreshOrders
   } = useStore();
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders' | 'brands' | 'reviews'>('dashboard');
+
+  useEffect(() => {
+    if (activeTab === 'dashboard' || activeTab === 'orders') void refreshOrders();
+  }, [activeTab, refreshOrders]);
 
   // Search & Filter in Admin
   const [productSearch, setProductSearch] = useState('');

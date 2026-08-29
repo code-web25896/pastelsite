@@ -604,11 +604,21 @@ app.post('/api/orders', optionalAuth, route(async (req, res) => {
   return res.status(201).json(orderRecord);
 }));
 
+const mergeOrders = (primary, fallback) => {
+  const byId = new Map();
+  for (const order of [...fallback, ...primary]) {
+    if (!order?.id) continue;
+    byId.set(order.id, { ...byId.get(order.id), ...order });
+  }
+  return [...byId.values()].sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+};
+
 app.get('/api/orders', auth, route(async (req, res) => {
   if (pool) {
     try {
       const [rows] = await pool.execute('SELECT id, order_number AS orderNumber, user_id AS userId, customer_json AS customer, items_json AS items, subtotal, shipping_fee AS shippingFee, total, payment_method AS paymentMethod, status, created_at AS createdAt FROM orders WHERE user_id = ? ORDER BY created_at DESC', [req.user.sub]);
-      return res.json(rows.map((x) => ({ ...x, subtotal: Number(x.subtotal), shippingFee: Number(x.shippingFee), total: Number(x.total), customer: json(x.customer), items: json(x.items) })));
+      const mysqlOrders = rows.map((x) => ({ ...x, subtotal: Number(x.subtotal), shippingFee: Number(x.shippingFee), total: Number(x.total), customer: json(x.customer), items: json(x.items) }));
+      return res.json(mergeOrders(mysqlOrders, userOrders));
     } catch (err) {
       console.warn('MySQL get orders failed:', err.message);
     }
@@ -620,15 +630,17 @@ app.get('/api/orders', auth, route(async (req, res) => {
 
 // ================= ADMIN ROUTES =================
 app.get('/api/admin/orders', auth, admin, route(async (_q, res) => {
+  const jsonOrders = jsonDbState.orders || [];
   if (pool) {
     try {
       const [rows] = await pool.execute('SELECT id, order_number AS orderNumber, user_id AS userId, customer_json AS customer, items_json AS items, subtotal, shipping_fee AS shippingFee, total, payment_method AS paymentMethod, status, created_at AS createdAt FROM orders ORDER BY created_at DESC');
-      return res.json(rows.map((x) => ({ ...x, subtotal: Number(x.subtotal), shippingFee: Number(x.shippingFee), total: Number(x.total), customer: json(x.customer), items: json(x.items) })));
+      const mysqlOrders = rows.map((x) => ({ ...x, subtotal: Number(x.subtotal), shippingFee: Number(x.shippingFee), total: Number(x.total), customer: json(x.customer), items: json(x.items) }));
+      return res.json(mergeOrders(mysqlOrders, jsonOrders));
     } catch (err) {
       console.warn('MySQL admin get orders failed:', err.message);
     }
   }
-  return res.json(jsonDbState.orders);
+  return res.json(jsonOrders);
 }));
 
 app.patch('/api/admin/orders/:id/status', auth, admin, route(async (req, res) => {

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { 
   Brand, 
   SubCategory, 
@@ -53,6 +53,7 @@ interface StoreContextType {
 
   // Checkout
   createOrder: (orderData: Omit<Order, 'id' | 'orderNumber' | 'createdAt'>) => Promise<Order>;
+  refreshOrders: () => Promise<void>;
 
   // Auth & User
   currentUser: Customer | null;
@@ -498,28 +499,27 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, [currentUser?.role]);
 
-  useEffect(() => {
-    let cancelled = false;
-    const loadOrders = async () => {
-      const token = localStorage.getItem('espace_pastel_auth_token');
-      try {
-        let endpoint = '/api/orders';
-        if (currentUser && currentUser.role === 'admin') endpoint = '/api/admin/orders';
-        const headers: Record<string, string> = {};
-        if (token) headers.Authorization = `Bearer ${token}`;
-        const response = await fetch(apiPath(endpoint), { headers });
-        if (!response.ok) return;
-        const data = await response.json();
-        if (!cancelled && Array.isArray(data) && data.length > 0) {
-          setOrders(data);
-        }
-      } catch {
-        /* keep local fallback */
-      }
-    };
-    void loadOrders();
-    return () => { cancelled = true; };
+  const refreshOrders = useCallback(async () => {
+    const token = localStorage.getItem('espace_pastel_auth_token');
+    try {
+      const endpoint = currentUser?.role === 'admin' ? '/api/admin/orders' : '/api/orders';
+      const headers: Record<string, string> = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const response = await fetch(apiPath(endpoint), { headers });
+      if (!response.ok) return;
+      const data = await response.json();
+      if (Array.isArray(data)) setOrders(data);
+    } catch {
+      /* keep local fallback */
+    }
   }, [currentUser?.role]);
+
+  useEffect(() => {
+    void refreshOrders();
+  }, [refreshOrders]);
+
+
+
 
 
 
@@ -1072,6 +1072,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         products,
         reviews,
         orders,
+        refreshOrders,
         cart,
         cartCount,
         cartSubtotal,
