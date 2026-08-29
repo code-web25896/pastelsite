@@ -128,7 +128,7 @@ export const AdminView: React.FC = () => {
   const [pDesc, setPDesc] = useState('');
   const [pBadge, setPBadge] = useState<Product['badge']>('AUCUN');
   const [pActionType, setPActionType] = useState<ProductActionType>('buy_online');
-  const [pCustomPhone, setPCustomPhone] = useState('55 542 000');
+  const [pCustomPhone, setPCustomPhone] = useState('98 137 585');
   const [pIsNew, setPIsNew] = useState(true);
 
   const handleImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -213,7 +213,7 @@ export const AdminView: React.FC = () => {
       rareNote: '',
       badge: pBadge === 'AUCUN' ? null : pBadge,
       actionType: pActionType,
-      customPhone: pCustomPhone || '55 542 000',
+      customPhone: pCustomPhone || '98 137 585',
       isNew: pIsNew,
       isBestSeller: pBadge === 'BEST-SELLER',
       isPromo: Boolean(pPromoPrice),
@@ -241,7 +241,7 @@ export const AdminView: React.FC = () => {
     setPDesc('');
     setPBadge('AUCUN');
     setPActionType('buy_online');
-    setPCustomPhone('55 542 000');
+    setPCustomPhone('98 137 585');
     setPIsNew(true);
     if (brands.length > 0) {
       setPBrandId(brands[0].id);
@@ -267,7 +267,7 @@ export const AdminView: React.FC = () => {
     setPDesc(prod.description);
     setPBadge(prod.badge || 'AUCUN');
     setPActionType(prod.actionType || (prod.badge === 'PIÈCE RARE' ? 'rare_call' : 'buy_online'));
-    setPCustomPhone(prod.customPhone || '55 542 000');
+    setPCustomPhone(prod.customPhone || '98 137 585');
     setPIsNew(prod.isNew || false);
     setIsAddProductOpen(true);
   };
@@ -1224,7 +1224,7 @@ export const AdminView: React.FC = () => {
                       type="text"
                       value={pCustomPhone}
                       onChange={(e) => setPCustomPhone(e.target.value)}
-                      placeholder="55 542 000"
+                      placeholder="98 137 585"
                       className="w-full bg-white border border-amber-300 rounded-xl px-3 py-1.5 text-xs text-[#0B1833] font-bold focus:outline-none"
                     />
                   </div>

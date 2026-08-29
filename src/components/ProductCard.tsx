@@ -33,7 +33,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const isOutOfStock = product.stock <= 0;
   const isLowStock = product.stock > 0 && product.stock <= 5;
   const isRare = product.actionType === 'rare_call' || product.actionType === 'rare_chat' || product.actionType === 'rare_both' || product.badge === 'PIÈCE RARE';
-  const customPhone = product.customPhone || '55 542 000';
+  const customPhone = product.customPhone || '98 137 585';
 
   const currentPrice = product.promoPrice ?? product.price;
 

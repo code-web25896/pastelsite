@@ -856,7 +856,7 @@ export const INITIAL_CUSTOMERS: Customer[] = [
     firstName: 'Amira',
     lastName: 'Ben Salem',
     email: 'client@espacepastel.tn',
-    phone: '55 542 000',
+    phone: '98 137 585',
     role: 'customer',
     addresses: [
       {
@@ -877,7 +877,7 @@ export const INITIAL_CUSTOMERS: Customer[] = [
     firstName: 'Direction',
     lastName: 'Espace Pastel',
     email: 'admin@espacepastel.tn',
-    phone: '55 542 000',
+    phone: '98 137 585',
     role: 'admin',
     addresses: [
       {

@@ -345,7 +345,7 @@ export const CheckoutView: React.FC = () => {
                   required
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="Ex: 55 542 000"
+                  placeholder="Ex: 5554200"
                   className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-[#0B1833]"
                 />
               </div>
@@ -568,7 +568,7 @@ export const CheckoutView: React.FC = () => {
 
           <div className="flex items-center justify-center gap-2 text-[11px] text-gray-400">
             <ShieldCheck className="w-4 h-4 text-[#8FD8C3]" />
-            <span>Garantie satisfaction & service client 55 542 000</span>
+            <span>Garantie satisfaction & service client 5554200</span>
           </div>
 
         </div>

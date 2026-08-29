@@ -129,8 +129,8 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
                   </div>
                   <div>
                     <strong className="block text-sm">Téléphone & WhatsApp</strong>
-                    <a href="tel:55542000" className="text-[#0B1833] font-bold hover:underline">
-                      55 542 000
+                    <a href="tel:98137585" className="text-[#0B1833] font-bold hover:underline">
+                      98 137 585
                     </a>
                   </div>
                 </div>
@@ -207,7 +207,7 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
                         type="tel"
                         value={contactPhone}
                         onChange={(e) => setContactPhone(e.target.value)}
-                        placeholder="55 542 000"
+                        placeholder="98 137 585"
                         className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-[#0B1833]"
                       />
                     </div>
@@ -316,7 +316,7 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
           <div className="space-y-4 text-xs text-[#0B1833]/80 leading-relaxed">
             <p><strong>Éditeur du site :</strong> Librairie & Papeterie ESPACE PASTEL</p>
             <p><strong>Siège social :</strong> 23 Rue de la Liberté, Menzah 5, Tunis, Tunisie</p>
-            <p><strong>Téléphone :</strong> +216 55 542 000</p>
+            <p><strong>Téléphone :</strong> +216 98 137 585</p>
             <p><strong>Directeur de la publication :</strong> Direction Espace Pastel</p>
             <p>
               Les données personnelles collectées lors de la commande ou de l'inscription sont strictement réservées au traitement de vos commandes et ne sont en aucun cas transmises à des tiers sans votre accord explicite.

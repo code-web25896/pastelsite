@@ -115,7 +115,7 @@ export const HomeView: React.FC = () => {
                     >
                       <BookOpen className="w-2.5 h-2.5 sm:w-3.5 h-3.5 text-[#0B1833]" />
                     </motion.div>
-                    <span className="truncate">Librairie &bull; Papeterie &bull; Arts</span>
+                    <span className="truncate">Librairie &bull; Bagagerie &bull; Arts</span>
                   </motion.div>
 
                   {/* Main Title inside the frame with stagger */}
@@ -217,7 +217,7 @@ export const HomeView: React.FC = () => {
             </div>
             <div>
               <h3 className="font-sans font-bold text-sm sm:text-base text-[#0B1833]">Service client disponible</h3>
-              <p className="text-xs text-[#0B1833]/60 mt-0.5">À votre écoute au 55 542 000</p>
+              <p className="text-xs text-[#0B1833]/60 mt-0.5">À votre écoute au 29 299 185</p>
             </div>
           </div>
 
@@ -438,11 +438,11 @@ export const HomeView: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-4">
             <a
-              href="tel:55542000"
+              href="tel:29299185"
               className="bg-[#0B1833] hover:bg-[#8FD8C3] hover:text-[#0B1833] text-white text-xs font-bold px-6 py-3.5 rounded-xl transition-all inline-flex items-center gap-2"
             >
               <Phone className="w-4 h-4" />
-              <span>Appeler le 55 542 000</span>
+              <span>Appeler le 29 299 185</span>
             </a>
 
             <button

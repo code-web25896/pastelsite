@@ -72,7 +72,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
   const isFavorited = isInWishlist(product.id);
   const approvedReviews = getProductReviews(product.id, true);
   const isRare = product.actionType === 'rare_call' || product.actionType === 'rare_chat' || product.actionType === 'rare_both' || product.badge === 'PIÈCE RARE';
-  const customPhone = product.customPhone || '55 542 000';
+  const customPhone = product.customPhone || '98 137 585';
 
   const discountPercent = product.promoPrice && product.price > 0
     ? Math.round(((product.price - product.promoPrice) / product.price) * 100)
@@ -299,7 +299,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
                 </a>
 
                 <a
-                  href={`https://wa.me/21655542000?text=${encodeURIComponent(`Bonjour Espace Pastel, je souhaite commander la pièce rare : ${product.name} (Réf: ${product.sku})`)}`}
+                  href={`https://wa.me/21698137585?text=${encodeURIComponent(`Bonjour Espace Pastel, je souhaite commander la pièce rare : ${product.name} (Réf: ${product.sku})`)}`}
                   target="_blank"
                   rel="noreferrer"
                   className="py-4 px-6 rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20ba59] text-white transition-all shadow-md active:scale-98 cursor-pointer"

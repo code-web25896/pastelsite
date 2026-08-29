@@ -78,11 +78,11 @@ export const Header: React.FC = () => {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-6">
             <a 
-              href="tel:55542000" 
+              href="tel:98137585" 
               className="flex items-center gap-1.5 text-white/90 hover:text-[#F4A9C8] transition-colors"
             >
               <Phone className="w-3.5 h-3.5 text-[#8FD8C3]" />
-              <span>55 542 000</span>
+              <span>98 137 585</span>
             </a>
             <span className="text-white/30">•</span>
             <div className="flex items-center gap-1.5 text-white/80">
@@ -553,9 +553,9 @@ export const Header: React.FC = () => {
 
             {/* Mobile Footer Info */}
             <div className="pt-6 border-t border-gray-100 space-y-3 text-xs text-[#0B1833]/70">
-              <a href="tel:55542000" className="flex items-center gap-2 font-bold text-[#0B1833]">
+              <a href="tel:98137585" className="flex items-center gap-2 font-bold text-[#0B1833]">
                 <Phone className="w-4 h-4 text-[#8FD8C3]" />
-                <span>55 542 000</span>
+                <span>98 137 585</span>
               </a>
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-[#F4A9C8]" />

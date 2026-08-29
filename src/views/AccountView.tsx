@@ -43,7 +43,7 @@ export const AccountView: React.FC<AccountViewProps> = ({ initialTab = 'orders' 
   // Profile Edit State
   const [firstName, setFirstName] = useState(currentUser?.firstName || 'Amira');
   const [lastName, setLastName] = useState(currentUser?.lastName || 'Ben Salem');
-  const [phone, setPhone] = useState(currentUser?.phone || '55 542 000');
+  const [phone, setPhone] = useState(currentUser?.phone || '98 137 585');
   const [address, setAddress] = useState(currentUser?.address || '23 Rue de la Liberté, Menzah 5');
   const [city, setCity] = useState(currentUser?.city || 'Tunis');
 

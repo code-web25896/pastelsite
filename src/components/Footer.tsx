@@ -52,7 +52,7 @@ export const Footer: React.FC = () => {
             </div>
             <div>
               <h4 className="text-sm font-bold text-white font-sans">Conseils d'Experts</h4>
-              <p className="text-xs text-white/60 mt-0.5">Au 55 542 000 ou en magasin</p>
+              <p className="text-xs text-white/60 mt-0.5">Au 58 260 515 ou en magasin</p>
             </div>
           </div>
 
@@ -138,9 +138,9 @@ export const Footer: React.FC = () => {
               Boutique Menzah 5
             </h4>
             <div className="space-y-3 text-xs text-white/70">
-              <a href="tel:55542000" className="flex items-center gap-2 hover:text-[#8FD8C3] transition-colors font-medium">
+              <a href="tel:58260515" className="flex items-center gap-2 hover:text-[#8FD8C3] transition-colors font-medium">
                 <Phone className="w-4 h-4 text-[#8FD8C3] flex-shrink-0" />
-                <span>55 542 000</span>
+                <span>58 260 515</span>
               </a>
               <div className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-[#F4A9C8] flex-shrink-0 mt-0.5" />
