@@ -159,8 +159,7 @@ export const AdminView: React.FC = () => {
     if (!pName || !pSku) return;
 
     if (editingProduct) {
-      updateProduct({
-        ...editingProduct,
+      updateProduct(editingProduct.id, {
         name: pName,
         sku: pSku,
         brandId: pBrandId,
@@ -178,12 +177,10 @@ export const AdminView: React.FC = () => {
         isNew: pIsNew,
         isPromo: Boolean(pPromoPrice)
       });
-      addToast('Produit mis à jour avec succès !', 'success');
       setEditingProduct(null);
     } else {
       addProduct({
         name: pName,
-        slug: pName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
         sku: pSku,
         brandId: pBrandId,
         subCategoryId: pSubCatId,
@@ -195,8 +192,6 @@ export const AdminView: React.FC = () => {
         shortDescription: pShortDesc || pName,
         description: pDesc || pShortDesc || pName,
         features: ['Qualité certifiée Espace Pastel', 'Usage scolaire et professionnel'],
-        rating: 5.0,
-        reviewCount: 0,
         isNew: pIsNew,
         isBestSeller: false,
         isPromo: Boolean(pPromoPrice),
@@ -205,7 +200,6 @@ export const AdminView: React.FC = () => {
         customPhone: pCustomPhone || '55 542 000',
         status: 'published'
       });
-      addToast('Nouveau produit ajouté au catalogue !', 'success');
     }
 
     setIsAddProductOpen(false);
@@ -224,6 +218,11 @@ export const AdminView: React.FC = () => {
     setPActionType('buy_online');
     setPCustomPhone('55 542 000');
     setPIsNew(true);
+    if (brands.length > 0) {
+      setPBrandId(brands[0].id);
+      const matchingSubs = subCategories.filter(s => s.brandId === brands[0].id);
+      if (matchingSubs.length > 0) setPSubCatId(matchingSubs[0].id);
+    }
     setEditingProduct(null);
   };
 
@@ -953,7 +952,16 @@ export const AdminView: React.FC = () => {
                   <label className="block font-bold text-gray-700 mb-1">Marque *</label>
                   <select
                     value={pBrandId}
-                    onChange={(e) => setPBrandId(e.target.value)}
+                    onChange={(e) => {
+                      const newBrandId = e.target.value;
+                      setPBrandId(newBrandId);
+                      const matchingSubs = subCategories.filter(s => s.brandId === newBrandId);
+                      if (matchingSubs.length > 0) {
+                        setPSubCatId(matchingSubs[0].id);
+                      } else {
+                        setPSubCatId('');
+                      }
+                    }}
                     className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none"
                   >
                     {brands.map(b => (

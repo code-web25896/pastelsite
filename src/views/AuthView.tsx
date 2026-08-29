@@ -144,21 +144,8 @@ export const AuthView: React.FC<{ initialMode?: Mode }> = ({ initialMode = 'logi
           </button>
         </form>
 
-        {mode === 'login' && (
-          <div className="mt-4 p-3.5 bg-gray-50 rounded-2xl border border-gray-100 text-xs text-gray-600 space-y-2">
-            <div className="font-bold text-[#0B1833]">Compte Administrateur Espace Pastel :</div>
-            <div className="flex items-center justify-between text-[11px] font-mono bg-white p-2.5 rounded-xl border border-gray-200">
-              <span className="truncate">admin@espacepastel.tn / Admin123!</span>
-              <button
-                type="button"
-                onClick={() => { setEmail('admin@espacepastel.tn'); setPassword('Admin123!'); }}
-                className="text-emerald-600 font-bold hover:underline cursor-pointer shrink-0 ml-2"
-              >
-                Remplir
-              </button>
-            </div>
-          </div>
-        )}
+
+
 
         <div className="mt-5 flex flex-wrap gap-x-4 gap-y-2 text-xs font-semibold text-[#0B1833]">
           <button type="button" className="cursor-pointer" onClick={() => setMode('login')}>Connexion</button>

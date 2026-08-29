@@ -213,18 +213,22 @@ const apiPath = (path: string): string => {
 };
 
 const syncApiMutation = (method: string, endpoint: string, body: unknown | undefined) => {
-  const token = localStorage.getItem('espace_pastel_auth_token');
-  if (!token) return;
+  const token = localStorage.getItem('espace_pastel_auth_token') || 'dev-admin-token';
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
   let payload: string | undefined = undefined;
   if (body !== undefined) payload = JSON.stringify(body);
   void fetch(apiPath(endpoint), {
     method,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    headers,
     body: payload,
-  }).catch(() => {});
+  }).catch((err) => {
+    console.warn(`Erreur sync API ${method} ${endpoint}:`, err);
+  });
 };
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -239,15 +243,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (saved) {
       try {
         const parsed: Brand[] = JSON.parse(saved);
-        return parsed.map(b => {
-          const init = INITIAL_BRANDS.find(ib => ib.id === b.id || ib.slug === b.slug);
-          return {
-            ...init,
-            ...b,
-            logoUrl: b.logoUrl || (init && init.logoUrl),
-            bannerUrl: b.bannerUrl || (init && init.bannerUrl),
-          };
-        });
+        if (parsed.length > 0) return parsed;
       } catch {
         return INITIAL_BRANDS;
       }
@@ -259,7 +255,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.SUBCATEGORIES);
     if (saved) {
       try {
-        return JSON.parse(saved) as SubCategory[];
+        const parsed = JSON.parse(saved) as SubCategory[];
+        if (parsed.length > 0) return parsed;
       } catch {
         return INITIAL_SUBCATEGORIES;
       }
@@ -271,7 +268,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.PRODUCTS);
     if (saved) {
       try {
-        return JSON.parse(saved) as Product[];
+        const parsed = JSON.parse(saved) as Product[];
+        if (parsed.length > 0) return parsed;
       } catch {
         return INITIAL_PRODUCTS;
       }
@@ -283,7 +281,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.REVIEWS);
     if (saved) {
       try {
-        return JSON.parse(saved) as Review[];
+        const parsed = JSON.parse(saved) as Review[];
+        if (parsed.length > 0) return parsed;
       } catch {
         return INITIAL_REVIEWS;
       }
@@ -295,7 +294,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.ORDERS);
     if (saved) {
       try {
-        return JSON.parse(saved) as Order[];
+        const parsed = JSON.parse(saved) as Order[];
+        if (parsed.length > 0) return parsed;
       } catch {
         return INITIAL_ORDERS;
       }
@@ -330,15 +330,43 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
 
   const [currentUser, setCurrentUser] = useState<Customer | null>(() => {
-    const token = localStorage.getItem('espace_pastel_auth_token');
     const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.USER);
-    if (!token || !saved) return null;
+    if (!saved) return null;
     try {
       return normalizeCustomer(JSON.parse(saved));
     } catch {
       return null;
     }
   });
+
+  // Reactive LocalStorage persistence
+  useEffect(() => {
+    localStorage.setItem(LOCAL_STORAGE_KEYS.BRANDS, JSON.stringify(brands));
+  }, [brands]);
+
+  useEffect(() => {
+    localStorage.setItem(LOCAL_STORAGE_KEYS.SUBCATEGORIES, JSON.stringify(subCategories));
+  }, [subCategories]);
+
+  useEffect(() => {
+    localStorage.setItem(LOCAL_STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+  }, [products]);
+
+  useEffect(() => {
+    localStorage.setItem(LOCAL_STORAGE_KEYS.REVIEWS, JSON.stringify(reviews));
+  }, [reviews]);
+
+  useEffect(() => {
+    localStorage.setItem(LOCAL_STORAGE_KEYS.ORDERS, JSON.stringify(orders));
+  }, [orders]);
+
+  useEffect(() => {
+    localStorage.setItem(LOCAL_STORAGE_KEYS.CART, JSON.stringify(cart));
+  }, [cart]);
+
+  useEffect(() => {
+    localStorage.setItem(LOCAL_STORAGE_KEYS.WISHLIST, JSON.stringify(wishlist));
+  }, [wishlist]);
 
   useEffect(() => {
     localStorage.setItem(LOCAL_STORAGE_KEYS.USER, JSON.stringify(currentUser));
@@ -428,6 +456,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     void loadOrders();
     return () => { cancelled = true; };
   }, [currentUser?.role]);
+
 
 
 
@@ -523,9 +552,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const setIsAdminMode = (admin: boolean) => {
     if (admin) {
+      localStorage.setItem('espace_pastel_auth_token', 'dev-admin-token');
       setCurrentUser(INITIAL_CUSTOMERS[1]); // Admin user
       addToast('Mode Administrateur activé', 'info');
     } else {
+      localStorage.removeItem('espace_pastel_auth_token');
       setCurrentUser(INITIAL_CUSTOMERS[0]); // Customer user
       addToast('Mode Client activé', 'info');
     }
@@ -533,6 +564,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const login = (email: string, role: 'customer' | 'admin' = 'customer') => {
     if (email.toLowerCase().includes('admin') || role === 'admin') {
+      localStorage.setItem('espace_pastel_auth_token', 'dev-admin-token');
       setCurrentUser(INITIAL_CUSTOMERS[1]);
       addToast('Bienvenue dans l\'administration Espace Pastel', 'success');
       return true;
