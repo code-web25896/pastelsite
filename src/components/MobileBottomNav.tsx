@@ -255,7 +255,7 @@ export const MobileBottomNav: React.FC = () => {
 
                 <div className="grid grid-cols-1 gap-2">
                   {activeBrandSubs.map(sub => {
-                    const count = products.filter(p => p.subCategoryId === sub.id).length;
+                    const count = products.filter(p => p.subCategoryId === sub.id || p.subCategoryId === sub.slug).length;
                     return (
                       <div
                         key={sub.id}

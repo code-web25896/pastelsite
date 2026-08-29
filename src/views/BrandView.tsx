@@ -48,7 +48,11 @@ export const BrandView: React.FC<BrandViewProps> = ({ brandSlug }) => {
 
   const displayedProducts = selectedSubCatFilter === 'all'
     ? allBrandProducts
-    : allBrandProducts.filter(p => p.subCategoryId === selectedSubCatFilter);
+    : allBrandProducts.filter(p => {
+        if (p.subCategoryId === selectedSubCatFilter) return true;
+        const targetSub = subCategories.find(s => s.id === selectedSubCatFilter || s.slug === selectedSubCatFilter);
+        return targetSub && (p.subCategoryId === targetSub.id || p.subCategoryId === targetSub.slug);
+      });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
@@ -114,7 +118,7 @@ export const BrandView: React.FC<BrandViewProps> = ({ brandSlug }) => {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
             {subCategories.map(sub => {
-              const count = allBrandProducts.filter(p => p.subCategoryId === sub.id).length;
+              const count = allBrandProducts.filter(p => p.subCategoryId === sub.id || p.subCategoryId === sub.slug).length;
               return (
                 <motion.div
                   key={sub.id}
@@ -182,7 +186,7 @@ export const BrandView: React.FC<BrandViewProps> = ({ brandSlug }) => {
               Tous ({allBrandProducts.length})
             </button>
             {subCategories.map(sub => {
-              const count = allBrandProducts.filter(p => p.subCategoryId === sub.id).length;
+              const count = allBrandProducts.filter(p => p.subCategoryId === sub.id || p.subCategoryId === sub.slug).length;
               return (
                 <button
                   key={sub.id}

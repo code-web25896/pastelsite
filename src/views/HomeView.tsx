@@ -28,8 +28,26 @@ export const HomeView: React.FC = () => {
   const { navigateTo, brands, products, reviews, formatPrice } = useStore();
 
   // New products and promotional products
-  const newProducts = products.filter(p => p.isNew || p.status === 'published').slice(0, 4);
-  const promoProducts = products.filter(p => p.promoPrice || p.isPromo).slice(0, 4);
+  const newProducts = [...products]
+    .filter(p => p.status === 'published')
+    .sort((a, b) => {
+      if (a.isNew && !b.isNew) return -1;
+      if (!a.isNew && b.isNew) return 1;
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      return dateB - dateA;
+    })
+    .slice(0, 4);
+
+  const promoProducts = [...products]
+    .filter(p => p.status === 'published' && (p.promoPrice != null || p.isPromo || p.badge === 'PROMOTION'))
+    .sort((a, b) => {
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      return dateB - dateA;
+    })
+    .slice(0, 4);
+
   const approvedReviews = reviews.filter(r => r.status === 'approved').slice(0, 4);
 
   return (

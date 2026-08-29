@@ -68,7 +68,7 @@ export const BrandCard: React.FC<BrandCardProps> = ({ brand }) => {
 
               <div className="space-y-1.5 bg-[#F7F7F8] rounded-2xl p-2 border border-gray-100/90">
                 {subCategories.slice(0, 3).map(sub => {
-                  const subProductsCount = products.filter(p => p.subCategoryId === sub.id).length;
+                  const subProductsCount = products.filter(p => p.subCategoryId === sub.id || p.subCategoryId === sub.slug).length;
                   return (
                     <div
                       key={sub.id}

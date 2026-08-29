@@ -76,13 +76,17 @@ export const ShopView: React.FC<ShopViewProps> = ({
       }
 
       // Brand
-      if (selectedBrand !== 'all' && p.brandId !== selectedBrand) {
-        return false;
+      if (selectedBrand !== 'all') {
+        const brandObj = brands.find(b => b.id === selectedBrand || b.slug === selectedBrand);
+        const matchIds = brandObj ? [brandObj.id, brandObj.slug] : [selectedBrand];
+        if (!matchIds.includes(p.brandId)) return false;
       }
 
       // SubCategory
-      if (selectedSubCategory !== 'all' && p.subCategoryId !== selectedSubCategory) {
-        return false;
+      if (selectedSubCategory !== 'all') {
+        const subObj = subCategories.find(s => s.id === selectedSubCategory || s.slug === selectedSubCategory);
+        const matchIds = subObj ? [subObj.id, subObj.slug] : [selectedSubCategory];
+        if (!matchIds.includes(p.subCategoryId)) return false;
       }
 
       // Category

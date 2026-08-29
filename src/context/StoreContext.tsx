@@ -659,24 +659,42 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return `${price.toFixed(3).replace('.', ',')} TND`;
   };
 
-  const getBrandBySlug = (slug: string) => brands.find(b => b.slug.toLowerCase() === slug.toLowerCase());
-  const getBrandById = (id: string) => brands.find(b => b.id === id);
+  const getBrandBySlug = (slug: string) =>
+    brands.find(b => b.slug.toLowerCase() === slug.toLowerCase() || b.id === slug);
 
-  const getSubCategoriesByBrandId = (brandId: string) => 
-    subCategories
-      .filter(s => s.brandId === brandId && s.status === 'active')
+  const getBrandById = (id: string) =>
+    brands.find(b => b.id === id || b.slug.toLowerCase() === id.toLowerCase());
+
+  const getSubCategoriesByBrandId = (brandId: string) => {
+    const brand = brands.find(b => b.id === brandId || b.slug.toLowerCase() === brandId.toLowerCase());
+    const validBrandIds = brand ? [brand.id, brand.slug] : [brandId];
+    return subCategories
+      .filter(s => validBrandIds.includes(s.brandId) && s.status === 'active')
       .sort((a, b) => a.order - b.order);
+  };
 
-  const getSubCategoryBySlug = (brandId: string, subCategorySlug: string) =>
-    subCategories.find(s => s.brandId === brandId && s.slug.toLowerCase() === subCategorySlug.toLowerCase());
+  const getSubCategoryBySlug = (brandId: string, subCategorySlug: string) => {
+    const brand = brands.find(b => b.id === brandId || b.slug.toLowerCase() === brandId.toLowerCase());
+    const validBrandIds = brand ? [brand.id, brand.slug] : [brandId];
+    return subCategories.find(
+      s => validBrandIds.includes(s.brandId) && (s.slug.toLowerCase() === subCategorySlug.toLowerCase() || s.id === subCategorySlug)
+    );
+  };
 
-  const getProductsByBrand = (brandId: string) => 
-    products.filter(p => p.brandId === brandId && p.status === 'published');
+  const getProductsByBrand = (brandId: string) => {
+    const brand = brands.find(b => b.id === brandId || b.slug.toLowerCase() === brandId.toLowerCase());
+    const validBrandIds = brand ? [brand.id, brand.slug] : [brandId];
+    return products.filter(p => validBrandIds.includes(p.brandId) && p.status === 'published');
+  };
 
-  const getProductsBySubCategory = (subCategoryId: string) =>
-    products.filter(p => p.subCategoryId === subCategoryId && p.status === 'published');
+  const getProductsBySubCategory = (subCategoryId: string) => {
+    const sub = subCategories.find(s => s.id === subCategoryId || s.slug.toLowerCase() === subCategoryId.toLowerCase());
+    const validSubIds = sub ? [sub.id, sub.slug] : [subCategoryId];
+    return products.filter(p => validSubIds.includes(p.subCategoryId) && p.status === 'published');
+  };
 
-  const getProductById = (id: string) => products.find(p => p.id === id);
+  const getProductById = (id: string) =>
+    products.find(p => p.id === id || p.slug === id);
 
   const getProductReviews = (productId: string, onlyApproved = true) => {
     return reviews.filter(r => r.productId === productId && (!onlyApproved || r.status === 'approved'));
