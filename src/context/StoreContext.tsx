@@ -269,7 +269,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as Product[];
-        if (parsed.length > 0) return parsed;
+        if (parsed.length > 0) {
+          // Merge: add any INITIAL_PRODUCTS not already in localStorage
+          const savedIds = new Set(parsed.map(p => p.id));
+          const missing = INITIAL_PRODUCTS.filter(p => !savedIds.has(p.id));
+          return missing.length > 0 ? [...parsed, ...missing] : parsed;
+        }
       } catch {
         return INITIAL_PRODUCTS;
       }
