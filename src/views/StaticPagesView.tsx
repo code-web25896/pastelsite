@@ -154,8 +154,8 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
                   </div>
                   <div>
                     <strong className="block text-sm">Horaires d'ouverture</strong>
-                    <p className="text-gray-600">7/7 : 09h00 - 23h30</p>
-                    <p className="text-gray-600">Dimanche : 09h00 - 14h00</p>
+                    <p className="text-gray-600">7/7 (toute la semaine) : 09h00 - 23h30</p>
+                    <p className="text-gray-600">Dimanche : 09h00 - 23h30</p>
                   </div>
                 </div>
               </div>
