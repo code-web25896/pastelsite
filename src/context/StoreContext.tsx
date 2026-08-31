@@ -132,22 +132,30 @@ const parseStoredCollection = <T,>(key: string): T[] => {
 };
 
 
+const normalizeBrandKey = (brand: Brand) => {
+  const slug = String(brand.slug || '').trim().toLowerCase().replace(/^brand-+/, '');
+  const name = String(brand.name || '').trim().toLowerCase().replace(/^brand\s+/, '');
+  return slug || name;
+};
+
 const mergeBrandsFromApi = (apiBrands: Brand[]): Brand[] => {
   const storedBrands = parseStoredCollection<Brand>(LOCAL_STORAGE_KEYS.BRANDS);
-  const bySlug = new Map<string, Brand>();
+  const byKey = new Map<string, Brand>();
 
-  for (const brand of INITIAL_BRANDS) bySlug.set(brand.slug, brand);
+  for (const brand of INITIAL_BRANDS) byKey.set(normalizeBrandKey(brand), brand);
   for (const brand of apiBrands) {
-    const current = bySlug.get(brand.slug);
-    bySlug.set(brand.slug, { ...current, ...brand });
+    const key = normalizeBrandKey(brand);
+    const current = byKey.get(key);
+    byKey.set(key, { ...current, ...brand });
   }
   for (const brand of storedBrands) {
-    const current = bySlug.get(brand.slug);
-    bySlug.set(brand.slug, { ...current, ...brand });
+    const key = normalizeBrandKey(brand);
+    const current = byKey.get(key);
+    byKey.set(key, { ...current, ...brand });
   }
 
-  return Array.from(bySlug.values()).map((brand) => {
-    const init = INITIAL_BRANDS.find((item) => item.id === brand.id || item.slug === brand.slug);
+  return Array.from(byKey.values()).map((brand) => {
+    const init = INITIAL_BRANDS.find((item) => normalizeBrandKey(item) === normalizeBrandKey(brand));
     return {
       ...brand,
       logoUrl: brand.logoUrl || (init && init.logoUrl) || '',
