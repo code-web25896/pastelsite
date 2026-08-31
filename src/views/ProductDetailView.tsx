@@ -44,6 +44,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
 
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [selectedSize, setSelectedSize] = useState('');
   const [activeTab, setActiveTab] = useState<'description' | 'features' | 'reviews'>('description');
 
   // Review Form State
@@ -73,6 +74,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
   const approvedReviews = getProductReviews(product.id, true);
   const isRare = product.actionType === 'rare_call' || product.actionType === 'rare_chat' || product.actionType === 'rare_both' || product.badge === 'PIÈCE RARE';
   const customPhone = product.customPhone || '98 137 585';
+  const hasSizes = product.sizes.length > 0;
 
   const discountPercent = product.promoPrice && product.price > 0
     ? Math.round(((product.price - product.promoPrice) / product.price) * 100)
@@ -96,9 +98,19 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
   };
 
   const handleBuyNow = () => {
-    addToCart(product, quantity);
+    addToCart(product, quantity, selectedSize);
     navigateTo({ type: 'checkout' });
   };
+
+  React.useEffect(() => {
+    if (!hasSizes) {
+      setSelectedSize('');
+      return;
+    }
+    if (!selectedSize || !product.sizes.includes(selectedSize)) {
+      setSelectedSize(product.sizes[0]);
+    }
+  }, [hasSizes, product.id, product.sizes, selectedSize]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-16">
@@ -311,6 +323,24 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
             </div>
           ) : (
             <div className="space-y-3 pt-2">
+              {hasSizes && (
+                <div className="space-y-2">
+                  <span className="text-xs font-bold text-[#0B1833]">Taille :</span>
+                  <div className="flex flex-wrap gap-2">
+                    {product.sizes.map((size) => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => setSelectedSize(size)}
+                        className={selectedSize === size ? 'px-3 py-2 rounded-xl border text-xs font-bold transition-colors bg-[#0B1833] text-white border-[#0B1833]' : 'px-3 py-2 rounded-xl border text-xs font-bold transition-colors bg-white text-gray-700 border-gray-200 hover:border-[#0B1833]'}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center gap-4">
                 <span className="text-xs font-bold text-[#0B1833]">Quantité :</span>
                 <div className="flex items-center border border-gray-200 rounded-xl bg-white">
@@ -339,7 +369,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
               {/* Action Buttons */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 <button
-                  onClick={() => addToCart(product, quantity)}
+                  onClick={() => addToCart(product, quantity, selectedSize)}
                   disabled={isOutOfStock}
                   className={`py-3.5 px-6 rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md ${isOutOfStock ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-[#0B1833] hover:bg-[#8FD8C3] hover:text-[#0B1833] text-white active:scale-98'}`}
                 >

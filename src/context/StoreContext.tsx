@@ -39,9 +39,9 @@ interface StoreContextType {
   cartSubtotal: number;
   isCartDrawerOpen: boolean;
   setIsCartDrawerOpen: (open: boolean) => void;
-  addToCart: (product: Product, quantity: number) => void;
-  updateCartQuantity: (productId: string, quantity: number) => void;
-  removeFromCart: (productId: string) => void;
+  addToCart: (product: Product, quantity: number, selectedSize?: string) => void;
+  updateCartQuantity: (productId: string, quantity: number, selectedSize?: string) => void;
+  removeFromCart: (productId: string, selectedSize?: string) => void;
   clearCart: () => void;
   wishlist: string[];
   toggleWishlist: (productId: string) => void;
@@ -563,31 +563,31 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   // Cart operations
-  const addToCart = (product: Product, quantity = 1) => {
+    const addToCart = (product: Product, quantity = 1, selectedSize?: string) => {
     setCart(prev => {
-      const existing = prev.find(item => item.productId === product.id);
+      const existing = prev.find(item => item.productId === product.id && item.selectedSize === selectedSize);
       if (existing) {
         return prev.map(item => {
-          if (item.productId === product.id) {
+          if (item.productId === product.id && item.selectedSize === selectedSize) {
             return { ...item, quantity: item.quantity + quantity };
           }
           return item;
         });
       }
-      return [...prev, { productId: product.id, product, quantity }];
+      return [...prev, { productId: product.id, product, quantity, selectedSize }];
     });
-    addToast(`${product.name} ajouté au panier ✓`, 'success');
+    addToast(product.name + " ajouté au panier ✓", "success");
     setIsCartDrawerOpen(true);
   };
 
-  const updateCartQuantity = (productId: string, quantity: number) => {
+    const updateCartQuantity = (productId: string, quantity: number, selectedSize?: string) => {
     if (quantity <= 0) {
-      removeFromCart(productId);
+      removeFromCart(productId, selectedSize);
       return;
     }
     setCart(prev =>
       prev.map(item => {
-        if (item.productId === productId) {
+        if (item.productId === productId && item.selectedSize === selectedSize) {
           return { ...item, quantity };
         }
         return item;
@@ -595,12 +595,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     );
   };
 
-  const removeFromCart = (productId: string) => {
-    const item = cart.find(i => i.productId === productId);
-    setCart(prev => prev.filter(i => i.productId !== productId));
-    if (item) {
-      addToast(`${item.product.name} retiré du panier`, 'info');
-    }
+    const removeFromCart = (productId: string, selectedSize?: string) => {
+    setCart(prev => prev.filter(item => !(item.productId === productId && item.selectedSize === selectedSize)));
   };
 
   const clearCart = () => {
@@ -684,13 +680,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const payload = {
       customer: orderData.customer,
-      items: orderData.items.map((item) => ({
+            items: orderData.items.map((item) => ({
         productId: item.productId,
         productName: item.productName,
         quantity: item.quantity,
         price: item.price,
         image: item.image,
-      })),
+        selectedSize: item.selectedSize,
+      })), 
       paymentMethod: orderData.paymentMethod,
     };
 

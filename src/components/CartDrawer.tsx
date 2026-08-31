@@ -164,6 +164,9 @@ export const CartDrawer: React.FC = () => {
                         >
                           {item.product.name}
                         </h4>
+                        {item.selectedSize && (
+                          <div className="text-[11px] font-semibold text-gray-500 mt-0.5">Taille : {item.selectedSize}</div>
+                        )}
                         <div className="text-[11px] font-semibold text-[#0B1833] mt-0.5">
                           {formatPrice(unitPrice)}
                         </div>
@@ -173,7 +176,7 @@ export const CartDrawer: React.FC = () => {
                         {/* Quantity Stepper */}
                         <div className="flex items-center border border-gray-200 rounded-lg bg-[#F7F7F8] overflow-hidden">
                           <button
-                            onClick={() => updateCartQuantity(item.productId, item.quantity - 1)}
+                            onClick={() => updateCartQuantity(item.productId, item.quantity - 1, item.selectedSize)}
                             className="p-1 hover:bg-white text-gray-600 transition-colors"
                             aria-label="Diminuer quantité"
                           >
@@ -183,7 +186,7 @@ export const CartDrawer: React.FC = () => {
                             {item.quantity}
                           </span>
                           <button
-                            onClick={() => updateCartQuantity(item.productId, item.quantity + 1)}
+                            onClick={() => updateCartQuantity(item.productId, item.quantity + 1, item.selectedSize)}
                             className="p-1 hover:bg-white text-gray-600 transition-colors"
                             aria-label="Augmenter quantité"
                           >
@@ -197,7 +200,7 @@ export const CartDrawer: React.FC = () => {
                             {formatPrice(lineTotal)}
                           </span>
                           <button
-                            onClick={() => removeFromCart(item.productId)}
+                            onClick={() => removeFromCart(item.productId, item.selectedSize)}
                             className="text-gray-400 hover:text-red-500 transition-colors p-1"
                             title="Supprimer"
                             aria-label="Supprimer l'article"

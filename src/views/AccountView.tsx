@@ -395,6 +395,9 @@ export const AccountView: React.FC<AccountViewProps> = ({ initialTab = 'orders' 
                     <img src={item.image} alt={item.productName} className="w-10 h-10 object-cover rounded-lg" />
                     <div>
                       <div className="font-bold text-[#0B1833] truncate max-w-[200px]">{item.productName}</div>
+                      {item.selectedSize && (
+                        <div className="text-[11px] text-gray-500">Taille : {item.selectedSize}</div>
+                      )}
                       <div className="text-[11px] text-gray-500">{formatPrice(item.price)} × {item.quantity}</div>
                     </div>
                   </div>

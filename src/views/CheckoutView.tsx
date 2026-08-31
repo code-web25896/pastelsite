@@ -112,7 +112,8 @@ export const CheckoutView: React.FC = () => {
         price: item.product.promoPrice || item.product.price,
         quantity: item.quantity,
         image: item.product.images[0] || '',
-        brandName: item.product.brandId
+        brandName: item.product.brandId,
+        selectedSize: item.selectedSize
       }));
 
       let orderAddress = address;
@@ -519,6 +520,9 @@ export const CheckoutView: React.FC = () => {
                     <h4 className="text-xs font-semibold text-[#0B1833] truncate">
                       {item.product.name}
                     </h4>
+                    {item.selectedSize && (
+                      <div className="text-[11px] text-gray-500">Taille : {item.selectedSize}</div>
+                    )}
                     <span className="text-[11px] text-gray-500">
                       {formatPrice(unitPrice)} × {item.quantity}
                     </span>

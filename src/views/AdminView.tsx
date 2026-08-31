@@ -127,9 +127,10 @@ export const AdminView: React.FC = () => {
   const [pShortDesc, setPShortDesc] = useState('');
   const [pDesc, setPDesc] = useState('');
   const [pBadge, setPBadge] = useState<Product['badge']>('AUCUN');
-  const [pActionType, setPActionType] = useState<ProductActionType>('buy_online');
-  const [pCustomPhone, setPCustomPhone] = useState('98 137 585');
+    const [pActionType, setPActionType] = useState<ProductActionType>("buy_online");
+  const [pCustomPhone, setPCustomPhone] = useState("98 137 585");
   const [pIsNew, setPIsNew] = useState(true);
+  const [pSizes, setPSizes] = useState("");
 
   const handleImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -204,7 +205,7 @@ export const AdminView: React.FC = () => {
       shortDescription: pShortDesc || pName,
       description: pDesc || pShortDesc || pName,
       features: ['Qualité certifiée Espace Pastel', 'Usage scolaire et professionnel'],
-      sizes: [] as string[],
+      sizes: pSizes.split(",").map(size => size.trim()).filter(Boolean),
       colors: [] as Product['colors'],
       dimensions: '',
       weight: '',
@@ -243,6 +244,7 @@ export const AdminView: React.FC = () => {
     setPActionType('buy_online');
     setPCustomPhone('98 137 585');
     setPIsNew(true);
+    setPSizes("");
     if (brands.length > 0) {
       setPBrandId(brands[0].id);
       const matchingSubs = subCategories.filter(s => s.brandId === brands[0].id);
@@ -269,6 +271,7 @@ export const AdminView: React.FC = () => {
     setPActionType(prod.actionType || (prod.badge === 'PIÈCE RARE' ? 'rare_call' : 'buy_online'));
     setPCustomPhone(prod.customPhone || '98 137 585');
     setPIsNew(prod.isNew || false);
+    setPSizes(prod.sizes?.join(", ") || "");
     setIsAddProductOpen(true);
   };
 
@@ -1181,6 +1184,18 @@ export const AdminView: React.FC = () => {
                     <span className="font-bold text-gray-700">Afficher dans "Nos Nouveautés"</span>
                   </label>
                 </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Tailles disponibles</label>
+                <input
+                  type="text"
+                  value={pSizes}
+                  onChange={(e) => setPSizes(e.target.value)}
+                  placeholder="Ex: S, M, L, XL ou A4, A5"
+                  className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none"
+                />
+                <p className="mt-1 text-[11px] text-gray-500">Séparez les tailles par des virgules. Laissez vide si le produit n'a pas de tailles.</p>
               </div>
 
               {/* Mode de Vente: En ligne ou Pièce Rare */}
