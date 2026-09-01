@@ -22,7 +22,9 @@ import {
   Tag,
   LogOut,
   Upload,
-  Pencil
+  Pencil,
+  Calendar,
+  DollarSign
 } from 'lucide-react';
 
 const readImageFile = (file: File): Promise<string> => new Promise((resolve, reject) => {
@@ -270,13 +272,44 @@ export const AdminView: React.FC = () => {
   const [scImage, setScImage] = useState('https://images.unsplash.com/photo-1544716278-ca5e3f4abd8cauto=format&fit=crop&w=400&q=80');
 
   // Stats Calculations
+  const deliveredOrders = orders.filter(o => o.status === 'delivered');
+  const totalDeliveredRevenue = deliveredOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
   const totalRevenue = orders.reduce((sum, o) => {
-    if (o.status !== 'cancelled') return sum + o.total;
+    if (o.status !== 'cancelled') return sum + Number(o.total || 0);
     return sum;
   }, 0);
   const lowStockCount = products.filter(p => p.stock <= 5).length;
   const pendingOrdersCount = orders.filter(o => o.status === 'pending').length;
   const pendingReviewsCount = reviews.filter(r => r.status === 'pending').length;
+
+  const todayKey = new Date().toISOString().split('T')[0];
+  const todayDeliveredOrders = deliveredOrders.filter(o => {
+    const dKey = (o.createdAt || '').split('T')[0];
+    return dKey === todayKey;
+  });
+  const todayDeliveredRevenue = todayDeliveredOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
+  const todayDeliveredCount = todayDeliveredOrders.length;
+
+  // Calcul du total des commandes livrées groupées par jour
+  const dailyDeliveredStats = React.useMemo(() => {
+    const map = new Map<string, { dateKey: string; count: number; total: number; itemsCount: number }>();
+    
+    deliveredOrders.forEach(ord => {
+      const dateKey = (ord.createdAt || '').split('T')[0] || todayKey;
+      const current = map.get(dateKey) || { dateKey, count: 0, total: 0, itemsCount: 0 };
+      current.count += 1;
+      current.total += Number(ord.total || 0);
+      current.itemsCount += (ord.items || []).reduce((s, it) => s + (it.quantity || 1), 0);
+      map.set(dateKey, current);
+    });
+
+    // Inclure toujours la date du jour même si 0
+    if (!map.has(todayKey)) {
+      map.set(todayKey, { dateKey: todayKey, count: 0, total: 0, itemsCount: 0 });
+    }
+
+    return Array.from(map.values()).sort((a, b) => b.dateKey.localeCompare(a.dateKey));
+  }, [deliveredOrders, todayKey]);
 
   const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -583,20 +616,41 @@ export const AdminView: React.FC = () => {
       {/* 1. DASHBOARD TAB */}
       {activeTab === 'dashboard' && (
         <div className="space-y-8">
-          {/* Key KPI Metric Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-2">
+          {/* Key KPI Metric Cards (5 cartes avec Total du Jour) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+            {/* TOTAL DU JOUR (LIVRÉ) */}
+            <div className="bg-white p-5 rounded-3xl border-2 border-[#8FD8C3] bg-gradient-to-br from-[#8FD8C3]/10 to-transparent shadow-sm space-y-2 relative overflow-hidden">
+              <div className="flex items-center justify-between text-[#0B1833] text-xs font-bold">
+                <span className="uppercase tracking-wider">Total Livré Aujourd'hui</span>
+                <span className="p-1.5 rounded-xl bg-[#8FD8C3]/30 text-[#0B1833]">
+                  <TrendingUp className="w-4 h-4" />
+                </span>
+              </div>
+              <div className="font-sans font-black text-2xl text-[#0B1833]">
+                {formatPrice(todayDeliveredRevenue)}
+              </div>
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-800">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>{todayDeliveredCount} commande{todayDeliveredCount !== 1 ? 's' : ''} livrée{todayDeliveredCount !== 1 ? 's' : ''}</span>
+              </div>
+            </div>
+
+            {/* TOTAL GÉNÉRAL */}
+            <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm space-y-2">
               <div className="flex items-center justify-between text-gray-500 text-xs">
-                <span>Chiffre d'Affaires</span>
-                <TrendingUp className="w-4 h-4 text-emerald-600" />
+                <span>Chiffre d'Affaires Global</span>
+                <DollarSign className="w-4 h-4 text-emerald-600" />
               </div>
               <div className="font-sans font-black text-2xl text-[#0B1833]">
                 {formatPrice(totalRevenue)}
               </div>
-              <span className="text-[11px] text-emerald-600 font-semibold">Toutes commandes confondues</span>
+              <span className="text-[11px] text-gray-500 font-semibold">
+                Total livré : <strong className="text-emerald-700">{formatPrice(totalDeliveredRevenue)}</strong>
+              </span>
             </div>
 
-            <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-2">
+            {/* COMMANDES EN ATTENTE */}
+            <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm space-y-2">
               <div className="flex items-center justify-between text-gray-500 text-xs">
                 <span>Commandes en attente</span>
                 <ShoppingBag className="w-4 h-4 text-amber-500" />
@@ -607,7 +661,8 @@ export const AdminView: React.FC = () => {
               <span className="text-[11px] text-amber-600 font-semibold">À préparer rapidement</span>
             </div>
 
-            <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-2">
+            {/* PRODUITS AU CATALOGUE */}
+            <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm space-y-2">
               <div className="flex items-center justify-between text-gray-500 text-xs">
                 <span>Produits au catalogue</span>
                 <Package className="w-4 h-4 text-[#8FD8C3]" />
@@ -615,10 +670,11 @@ export const AdminView: React.FC = () => {
               <div className="font-sans font-black text-2xl text-[#0B1833]">
                 {products.length}
               </div>
-              <span className="text-[11px] text-gray-500 font-semibold">Sur 4 marques principales</span>
+              <span className="text-[11px] text-gray-500 font-semibold">Sur {brands.length} marques principales</span>
             </div>
 
-            <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-2">
+            {/* ALERTES STOCK */}
+            <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm space-y-2">
               <div className="flex items-center justify-between text-gray-500 text-xs">
                 <span>Alertes Stock Faible</span>
                 <AlertTriangle className="w-4 h-4 text-red-500" />
@@ -627,6 +683,76 @@ export const AdminView: React.FC = () => {
                 {lowStockCount}
               </div>
               <span className="text-[11px] text-red-600 font-semibold">Stock ≤ 5 unités</span>
+            </div>
+          </div>
+
+          {/* TABLEAU RÉCAPITULATIF : TOTAL DES COMMANDES LIVRÉES PAR JOUR */}
+          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-[#8FD8C3]/20 flex items-center justify-center text-[#0B1833]">
+                  <Calendar className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="font-sans font-black text-base text-[#0B1833]">
+                    Bilan Journalier des Commandes Livrées
+                  </h2>
+                  <p className="text-xs text-gray-500">Calcul automatique du chiffre d'affaires encaissé pour chaque jour</p>
+                </div>
+              </div>
+              <div className="px-3 py-1.5 rounded-xl bg-[#0B1833] text-white text-xs font-bold flex items-center gap-2 self-start sm:self-auto">
+                <span>Total Encaissé (Livré) :</span>
+                <span className="text-[#8FD8C3]">{formatPrice(totalDeliveredRevenue)}</span>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-gray-100 text-gray-400 font-semibold pb-2">
+                    <th className="py-2.5">Jour / Date</th>
+                    <th className="py-2.5">Commandes Livrées</th>
+                    <th className="py-2.5">Articles Vendus</th>
+                    <th className="py-2.5">Total du Jour (TND)</th>
+                    <th className="py-2.5 text-right">Statut</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {dailyDeliveredStats.map(day => {
+                    const isToday = day.dateKey === todayKey;
+                    const dateParts = day.dateKey.split('-');
+                    const formattedDate = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : day.dateKey;
+                    const label = isToday ? `Aujourd'hui (${formattedDate})` : formattedDate;
+
+                    return (
+                      <tr key={day.dateKey} className={`hover:bg-gray-50/60 ${isToday ? 'bg-[#8FD8C3]/5 font-semibold' : ''}`}>
+                        <td className="py-3.5 flex items-center gap-2">
+                          <Calendar className={`w-3.5 h-3.5 ${isToday ? 'text-emerald-600' : 'text-gray-400'}`} />
+                          <span className={`font-bold ${isToday ? 'text-emerald-900' : 'text-[#0B1833]'}`}>
+                            {label}
+                          </span>
+                        </td>
+                        <td className="py-3.5">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-100 text-emerald-800">
+                            {day.count} livrée{day.count !== 1 ? 's' : ''}
+                          </span>
+                        </td>
+                        <td className="py-3.5 text-gray-600 font-medium">
+                          {day.itemsCount} article{day.itemsCount !== 1 ? 's' : ''}
+                        </td>
+                        <td className="py-3.5 font-sans font-black text-sm text-[#0B1833]">
+                          {formatPrice(day.total)}
+                        </td>
+                        <td className="py-3.5 text-right">
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${day.count > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-gray-100 text-gray-500'}`}>
+                            {day.count > 0 ? '✓ Encaissé' : 'Aucune livraison'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
 
