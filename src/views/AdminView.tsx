@@ -24,7 +24,10 @@ import {
   Upload,
   Pencil,
   Calendar,
-  DollarSign
+  DollarSign,
+  Download,
+  FileSpreadsheet,
+  Filter
 } from 'lucide-react';
 
 const readImageFile = (file: File): Promise<string> => new Promise((resolve, reject) => {
@@ -282,6 +285,9 @@ export const AdminView: React.FC = () => {
   const pendingOrdersCount = orders.filter(o => o.status === 'pending').length;
   const pendingReviewsCount = reviews.filter(r => r.status === 'pending').length;
 
+  // Filtre de date pour le bilan du jour
+  const [dailyDateFilter, setDailyDateFilter] = useState('');
+
   const todayKey = new Date().toISOString().split('T')[0];
   const todayDeliveredOrders = deliveredOrders.filter(o => {
     const dKey = (o.createdAt || '').split('T')[0];
@@ -290,26 +296,109 @@ export const AdminView: React.FC = () => {
   const todayDeliveredRevenue = todayDeliveredOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
   const todayDeliveredCount = todayDeliveredOrders.length;
 
-  // Calcul du total des commandes livrées groupées par jour
+  // Calcul du total des commandes livrées groupées par jour avec conservation des commandes
   const dailyDeliveredStats = React.useMemo(() => {
-    const map = new Map<string, { dateKey: string; count: number; total: number; itemsCount: number }>();
+    const map = new Map<string, { dateKey: string; count: number; total: number; itemsCount: number; orders: Order[] }>();
     
     deliveredOrders.forEach(ord => {
       const dateKey = (ord.createdAt || '').split('T')[0] || todayKey;
-      const current = map.get(dateKey) || { dateKey, count: 0, total: 0, itemsCount: 0 };
+      const current = map.get(dateKey) || { dateKey, count: 0, total: 0, itemsCount: 0, orders: [] };
       current.count += 1;
       current.total += Number(ord.total || 0);
       current.itemsCount += (ord.items || []).reduce((s, it) => s + (it.quantity || 1), 0);
+      current.orders.push(ord);
       map.set(dateKey, current);
     });
 
     // Inclure toujours la date du jour même si 0
     if (!map.has(todayKey)) {
-      map.set(todayKey, { dateKey: todayKey, count: 0, total: 0, itemsCount: 0 });
+      map.set(todayKey, { dateKey: todayKey, count: 0, total: 0, itemsCount: 0, orders: [] });
     }
 
     return Array.from(map.values()).sort((a, b) => b.dateKey.localeCompare(a.dateKey));
   }, [deliveredOrders, todayKey]);
+
+  // Données filtrées par date
+  const filteredDailyDeliveredStats = React.useMemo(() => {
+    if (!dailyDateFilter.trim()) return dailyDeliveredStats;
+    return dailyDeliveredStats.filter(day => day.dateKey.includes(dailyDateFilter.trim()));
+  }, [dailyDeliveredStats, dailyDateFilter]);
+
+  const filteredTotalRevenue = filteredDailyDeliveredStats.reduce((sum, d) => sum + d.total, 0);
+  const filteredTotalCount = filteredDailyDeliveredStats.reduce((sum, d) => sum + d.count, 0);
+
+  // Fonction d'exportation Excel / CSV avec encodage UTF-8 BOM
+  const exportDailyOrdersToExcel = (dateKey: string, ordersToExport: Order[]) => {
+    if (!ordersToExport || ordersToExport.length === 0) {
+      addToast(`Aucune commande livrée à exporter pour la date : ${dateKey}`, 'warning');
+      return;
+    }
+
+    const headers = [
+      'N° Commande',
+      'Date & Heure',
+      'Nom Client',
+      'Téléphone',
+      'Email',
+      'Gouvernorat / Ville',
+      'Adresse Complète',
+      'Type de Livraison',
+      'Mode de Paiement',
+      'Détail des Articles Commandés (Taille, Couleur, Qté)',
+      'Total Articles',
+      'Sous-Total (TND)',
+      'Frais Livraison (TND)',
+      'Total Net Encaissé (TND)',
+      'Statut Commande'
+    ];
+
+    const rows = ordersToExport.map(ord => {
+      const itemsDetail = (ord.items || []).map(it => {
+        let opt = '';
+        if (it.selectedSize) opt += ` [Taille: ${it.selectedSize}]`;
+        if (it.selectedColor) {
+          const cName = typeof it.selectedColor === 'object' && it.selectedColor !== null
+            ? it.selectedColor.name
+            : String(it.selectedColor).split(':')[0];
+          opt += ` [Couleur: ${cName}]`;
+        }
+        return `${it.productName}${opt} (Qté: ${it.quantity} @ ${it.price.toFixed(3)} TND)`;
+      }).join(' | ');
+
+      const totalQty = (ord.items || []).reduce((s, it) => s + (it.quantity || 1), 0);
+      const dateFormatted = new Date(ord.createdAt).toLocaleString('fr-TN');
+
+      return [
+        `"${ord.orderNumber}"`,
+        `"${dateFormatted}"`,
+        `"${ord.customer?.firstName || ''} ${ord.customer?.lastName || ''}"`,
+        `"${ord.customer?.phone || ''}"`,
+        `"${ord.customer?.email || ''}"`,
+        `"${ord.customer?.city || ''}"`,
+        `"${(ord.customer?.address || '').replace(/"/g, '""')}"`,
+        `"${ord.deliveryType === 'pickup' ? 'Retrait en magasin' : 'Livraison à domicile'}"`,
+        `"${ord.paymentMethod || 'Espèces à la livraison'}"`,
+        `"${itemsDetail.replace(/"/g, '""')}"`,
+        totalQty,
+        (ord.subtotal || ord.total).toFixed(3),
+        (ord.deliveryFee || 0).toFixed(3),
+        ord.total.toFixed(3),
+        `"${ord.status}"`
+      ].join(';');
+    });
+
+    const csvContent = '\uFEFF' + [headers.join(';'), ...rows].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Espace_Pastel_Ventes_Livrees_${dateKey}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    addToast(`Fichier Excel exporté avec succès pour le ${dateKey} !`, 'success');
+  };
 
   const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -686,71 +775,157 @@ export const AdminView: React.FC = () => {
             </div>
           </div>
 
-          {/* TABLEAU RÉCAPITULATIF : TOTAL DES COMMANDES LIVRÉES PAR JOUR */}
-          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-[#8FD8C3]/20 flex items-center justify-center text-[#0B1833]">
-                  <Calendar className="w-4 h-4" />
+          {/* TABLEAU RÉCAPITULATIF : TOTAL DES COMMANDES LIVRÉES PAR JOUR AVEC FILTRE ET EXPORT EXCEL */}
+          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#8FD8C3]/20 flex items-center justify-center text-[#0B1833] shadow-xs">
+                  <Calendar className="w-5 h-5 text-[#0B1833]" />
                 </div>
                 <div>
-                  <h2 className="font-sans font-black text-base text-[#0B1833]">
-                    Bilan Journalier des Commandes Livrées
+                  <h2 className="font-sans font-black text-lg text-[#0B1833]">
+                    Bilan Journalier & Export Excel des Commandes Livrées
                   </h2>
-                  <p className="text-xs text-gray-500">Calcul automatique du chiffre d'affaires encaissé pour chaque jour</p>
+                  <p className="text-xs text-gray-500">Calcul automatique du chiffre d'affaires quotidien et téléchargement Excel pour chaque jour</p>
                 </div>
               </div>
-              <div className="px-3 py-1.5 rounded-xl bg-[#0B1833] text-white text-xs font-bold flex items-center gap-2 self-start sm:self-auto">
-                <span>Total Encaissé (Livré) :</span>
-                <span className="text-[#8FD8C3]">{formatPrice(totalDeliveredRevenue)}</span>
+
+              <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+                <button
+                  onClick={() => exportDailyOrdersToExcel('Total_Global', deliveredOrders)}
+                  className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+                  title="Télécharger toutes les commandes livrées dans un fichier Excel"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  <span>Exporter Tout (Excel)</span>
+                </button>
+                <div className="px-3.5 py-2 rounded-xl bg-[#0B1833] text-white text-xs font-bold flex items-center gap-2">
+                  <span className="text-white/70">Total Encaissé :</span>
+                  <span className="text-[#8FD8C3]">{formatPrice(filteredTotalRevenue)}</span>
+                </div>
               </div>
             </div>
 
+            {/* FILTRES & RECHERCHE PAR DATE */}
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-[#F7F7F8] p-3 rounded-2xl border border-gray-200">
+              <div className="flex flex-wrap items-center gap-2 flex-1">
+                <div className="relative flex items-center min-w-[200px] flex-1 sm:flex-none">
+                  <input
+                    type="date"
+                    value={dailyDateFilter}
+                    onChange={(e) => setDailyDateFilter(e.target.value)}
+                    className="w-full bg-white border border-gray-300 rounded-xl px-3 py-1.5 text-xs text-[#0B1833] font-semibold focus:outline-none focus:border-[#0B1833] shadow-xs"
+                    title="Choisir une date spécifique"
+                  />
+                </div>
+
+                <button
+                  onClick={() => setDailyDateFilter(todayKey)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    dailyDateFilter === todayKey 
+                      ? 'bg-[#0B1833] text-white shadow-xs' 
+                      : 'bg-white hover:bg-gray-100 text-[#0B1833] border border-gray-200'
+                  }`}
+                >
+                  Aujourd'hui
+                </button>
+
+                <button
+                  onClick={() => {
+                    const yest = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+                    setDailyDateFilter(yest);
+                  }}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-white hover:bg-gray-100 text-[#0B1833] border border-gray-200 transition-all"
+                >
+                  Hier
+                </button>
+
+                {dailyDateFilter && (
+                  <button
+                    onClick={() => setDailyDateFilter('')}
+                    className="px-3 py-1.5 rounded-xl text-xs font-bold bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 transition-all flex items-center gap-1"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    <span>Effacer filtre</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="text-xs text-gray-500 font-medium self-end md:self-auto">
+                Affichage de <strong>{filteredDailyDeliveredStats.length}</strong> date(s) • <strong>{filteredTotalCount}</strong> commande(s)
+              </div>
+            </div>
+
+            {/* TABLEAU DES TOTAUX JOURNALIERS */}
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-gray-100 text-gray-400 font-semibold pb-2">
-                    <th className="py-2.5">Jour / Date</th>
-                    <th className="py-2.5">Commandes Livrées</th>
-                    <th className="py-2.5">Articles Vendus</th>
-                    <th className="py-2.5">Total du Jour (TND)</th>
-                    <th className="py-2.5 text-right">Statut</th>
+                    <th className="py-3">Jour / Date</th>
+                    <th className="py-3">Commandes Livrées</th>
+                    <th className="py-3">Articles Vendus</th>
+                    <th className="py-3">Total Encaissé (TND)</th>
+                    <th className="py-3">Statut</th>
+                    <th className="py-3 text-right">Export Excel</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {dailyDeliveredStats.map(day => {
-                    const isToday = day.dateKey === todayKey;
-                    const dateParts = day.dateKey.split('-');
-                    const formattedDate = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : day.dateKey;
-                    const label = isToday ? `Aujourd'hui (${formattedDate})` : formattedDate;
+                  {filteredDailyDeliveredStats.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-gray-400">
+                        Aucune commande livrée trouvée pour cette date.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredDailyDeliveredStats.map(day => {
+                      const isToday = day.dateKey === todayKey;
+                      const dateParts = day.dateKey.split('-');
+                      const formattedDate = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : day.dateKey;
+                      const label = isToday ? `Aujourd'hui (${formattedDate})` : formattedDate;
 
-                    return (
-                      <tr key={day.dateKey} className={`hover:bg-gray-50/60 ${isToday ? 'bg-[#8FD8C3]/5 font-semibold' : ''}`}>
-                        <td className="py-3.5 flex items-center gap-2">
-                          <Calendar className={`w-3.5 h-3.5 ${isToday ? 'text-emerald-600' : 'text-gray-400'}`} />
-                          <span className={`font-bold ${isToday ? 'text-emerald-900' : 'text-[#0B1833]'}`}>
-                            {label}
-                          </span>
-                        </td>
-                        <td className="py-3.5">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-100 text-emerald-800">
-                            {day.count} livrée{day.count !== 1 ? 's' : ''}
-                          </span>
-                        </td>
-                        <td className="py-3.5 text-gray-600 font-medium">
-                          {day.itemsCount} article{day.itemsCount !== 1 ? 's' : ''}
-                        </td>
-                        <td className="py-3.5 font-sans font-black text-sm text-[#0B1833]">
-                          {formatPrice(day.total)}
-                        </td>
-                        <td className="py-3.5 text-right">
-                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${day.count > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-gray-100 text-gray-500'}`}>
-                            {day.count > 0 ? '✓ Encaissé' : 'Aucune livraison'}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                      return (
+                        <tr key={day.dateKey} className={`hover:bg-gray-50/70 transition-colors ${isToday ? 'bg-[#8FD8C3]/10 font-semibold' : ''}`}>
+                          <td className="py-3.5 flex items-center gap-2">
+                            <Calendar className={`w-4 h-4 ${isToday ? 'text-emerald-700' : 'text-gray-400'}`} />
+                            <span className={`font-bold ${isToday ? 'text-emerald-950 text-sm' : 'text-[#0B1833]'}`}>
+                              {label}
+                            </span>
+                          </td>
+                          <td className="py-3.5">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-lg text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              {day.count} livrée{day.count !== 1 ? 's' : ''}
+                            </span>
+                          </td>
+                          <td className="py-3.5 text-gray-700 font-bold">
+                            {day.itemsCount} article{day.itemsCount !== 1 ? 's' : ''}
+                          </td>
+                          <td className="py-3.5 font-sans font-black text-sm text-[#0B1833]">
+                            {formatPrice(day.total)}
+                          </td>
+                          <td className="py-3.5">
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${day.count > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-gray-100 text-gray-500'}`}>
+                              {day.count > 0 ? '✓ Encaissé' : '0 livraison'}
+                            </span>
+                          </td>
+                          <td className="py-3.5 text-right">
+                            <button
+                              onClick={() => exportDailyOrdersToExcel(day.dateKey, day.orders)}
+                              disabled={day.count === 0}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 transition-all shadow-xs ${
+                                day.count > 0
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-600 hover:text-white cursor-pointer active:scale-95'
+                                  : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed opacity-60'
+                              }`}
+                              title={day.count > 0 ? `Télécharger le fichier Excel des commandes du ${day.dateKey}` : 'Aucune commande à exporter'}
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              <span>Excel (.csv)</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
