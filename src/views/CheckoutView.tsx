@@ -449,7 +449,7 @@ export const CheckoutView: React.FC = () => {
               <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1">
                 <strong>Adresse de retrait :</strong>
                 <p>ESPACE PASTEL — 23 Rue de la Liberté, Menzah 5, Tunis.</p>
-                <p className="text-[11px] text-amber-700">Horaires d'ouverture : Du Lundi au Samedi de 08h30 à 19h30.</p>
+                <p className="text-[11px] text-amber-700">Horaires d'ouverture : 7j/7 de 09h00 à 23h30.</p>
               </div>
             )}
           </div>

@@ -95,7 +95,7 @@ export const Header: React.FC = () => {
 
           <div className="flex items-center gap-4 text-xs">
             <span className="text-white/80 hidden sm:inline">
-              7/7 : <span className="text-[#8FD8C3] font-semibold">08h30 - 22h30</span>
+              7/7 : <span className="text-[#8FD8C3] font-semibold">09h00 - 23h30</span>
             </span>
             <span className="text-white/30 hidden sm:inline">•</span>
             <button
@@ -562,7 +562,7 @@ export const Header: React.FC = () => {
                 <span>23 Rue de la Liberté, Menzah 5, Tunis</span>
               </div>
               <div className="text-[11px] text-gray-500 pt-1">
-                Ouvert 7/7 de 08h30 a 22h30
+                Ouvert 7/7 de 09h00 à 23h30
               </div>
             </div>
           </div>

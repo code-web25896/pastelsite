@@ -432,7 +432,7 @@ export const HomeView: React.FC = () => {
             </h3>
             
             <p className="text-xs text-[#0B1833]/70 leading-relaxed">
-              Retrouvez l'expérience Espace Pastel au <strong>23 Rue de la Liberté, Menzah 5, Tunis</strong>. Notre équipe vous accueille du lundi au samedi pour vous conseiller sur vos fournitures et projets créatifs.
+              Retrouvez l'expérience Espace Pastel au <strong>23 Rue de la Liberté, Menzah 5, Tunis</strong>. Notre équipe vous accueille 7j/7 de 09h00 à 23h30 pour vous conseiller sur vos fournitures et projets créatifs.
             </p>
           </div>
 

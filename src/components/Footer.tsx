@@ -148,7 +148,7 @@ export const Footer: React.FC = () => {
               </div>
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-[#7DB9DD] flex-shrink-0" />
-                <span>7/7 : 08h30 - 22h30</span>
+                <span>7/7 : 09h00 - 23h30</span>
               </div>
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-[#B58BC5] flex-shrink-0" />
