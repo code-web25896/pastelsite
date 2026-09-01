@@ -357,7 +357,26 @@ app.delete('/api/admin/reviews/:id', auth, admin, route(async (req, res) => {
 
 // ================= ORDERS =================
 app.post('/api/orders', auth, route(async (req, res) => {
-  const body = z.object({ customer: z.object({ firstName: z.string().trim().min(1).max(80), lastName: z.string().trim().max(80).optional().default(''), email: z.string().email(), phone: z.string().trim().min(4).max(40).nullable().optional(), address: z.string().trim().min(2).max(255), city: z.string().trim().min(1).max(80), postalCode: z.string().trim().max(20).optional() }), items: z.array(z.object({ productId: idString, quantity: z.number().int().min(1).max(100) })).min(1), paymentMethod: z.enum(['cash', 'card', 'transfer', 'pickup', 'cod']).default('cash') }).parse(req.body);
+  const body = z.object({
+    customer: z.object({
+      firstName: z.string().trim().min(1).max(80),
+      lastName: z.string().trim().max(80).optional().default(''),
+      email: z.string().email(),
+      phone: z.string().trim().min(4).max(40).nullable().optional(),
+      address: z.string().trim().min(2).max(255),
+      city: z.string().trim().min(1).max(80),
+      postalCode: z.string().trim().max(20).optional(),
+      notes: z.string().optional()
+    }),
+    items: z.array(z.object({
+      productId: idString,
+      quantity: z.number().int().min(1).max(100),
+      selectedSize: z.string().optional(),
+      selectedColor: z.object({ name: z.string(), hex: z.string() }).optional().nullable()
+    })).min(1),
+    paymentMethod: z.enum(['cash', 'card', 'transfer', 'pickup', 'cod']).default('cash')
+  }).parse(req.body);
+
   const items = [];
   let subtotal = 0;
   for (const input of body.items) {
@@ -366,11 +385,31 @@ app.post('/api/orders', auth, route(async (req, res) => {
     const price = Number(product.promoPrice ?? product.price);
     subtotal += price * input.quantity;
     product.stock = Math.max(0, product.stock - input.quantity);
-    items.push({ productId: product.id, productName: product.name, price, quantity: input.quantity, image: product.images?.[0] || '' });
+    items.push({
+      productId: product.id,
+      productName: product.name,
+      price,
+      quantity: input.quantity,
+      image: product.images?.[0] || '',
+      selectedSize: input.selectedSize,
+      selectedColor: input.selectedColor
+    });
   }
   const shippingFee = subtotal >= 100 ? 0 : 7;
   const number = `EP-${new Date().getFullYear()}-${String(state.orders.length + 1).padStart(4, '0')}`;
-  const order = { id: 'ord-' + Date.now(), orderNumber: number, userId: req.user.sub, customer: body.customer, items, subtotal, shippingFee, total: subtotal + shippingFee, paymentMethod: body.paymentMethod, status: 'pending', createdAt: new Date().toISOString() };
+  const order = {
+    id: 'ord-' + Date.now(),
+    orderNumber: number,
+    userId: req.user.sub,
+    customer: body.customer,
+    items,
+    subtotal,
+    shippingFee,
+    total: subtotal + shippingFee,
+    paymentMethod: body.paymentMethod,
+    status: 'pending',
+    createdAt: new Date().toISOString()
+  };
   state.orders.unshift(order);
   await persist();
   res.status(201).json(order);
@@ -387,6 +426,14 @@ app.patch('/api/admin/orders/:id/status', auth, admin, route(async (req, res) =>
   order.status = status;
   await persist();
   res.status(200).json({ success: true, status });
+}));
+
+app.delete('/api/admin/orders/:id', auth, admin, route(async (req, res) => {
+  const before = state.orders.length;
+  state.orders = (state.orders || []).filter((o) => o.id !== req.params.id);
+  if (state.orders.length === before) return res.status(404).json({ error: 'Commande introuvable.' });
+  await persist();
+  res.status(200).json({ success: true });
 }));
 
 app.use((err, _req, res, _next) => {

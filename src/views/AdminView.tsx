@@ -164,6 +164,7 @@ export const AdminView: React.FC = () => {
     updateSubCategory,
     deleteSubCategory,
     updateOrderStatus, 
+    deleteOrder,
     formatPrice,
     navigateTo,
     logout,
@@ -484,12 +485,15 @@ export const AdminView: React.FC = () => {
     p.sku.toLowerCase().includes(productSearch.toLowerCase())
   );
 
-  // Filtered Orders
-  const adminFilteredOrders = orders.filter(o => 
-    o.orderNumber.toLowerCase().includes(orderSearch.toLowerCase()) ||
-    o.customer.firstName.toLowerCase().includes(orderSearch.toLowerCase()) ||
-    o.customer.lastName.toLowerCase().includes(orderSearch.toLowerCase())
-  );
+  // Filtered Orders (triées du plus nouveau au plus ancien)
+  const adminFilteredOrders = [...orders]
+    .filter(o => 
+      o.orderNumber.toLowerCase().includes(orderSearch.toLowerCase()) ||
+      o.customer.firstName.toLowerCase().includes(orderSearch.toLowerCase()) ||
+      o.customer.lastName.toLowerCase().includes(orderSearch.toLowerCase()) ||
+      (o.customer.phone && o.customer.phone.toLowerCase().includes(orderSearch.toLowerCase()))
+    )
+    .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -822,18 +826,22 @@ export const AdminView: React.FC = () => {
               <thead>
                 <tr className="border-b border-gray-100 text-gray-400 font-semibold">
                   <th className="py-3">N° Commande</th>
+                  <th className="py-3">Date</th>
                   <th className="py-3">Client</th>
                   <th className="py-3">Téléphone</th>
                   <th className="py-3">Ville</th>
                   <th className="py-3">Total</th>
-                  <th className="py-3">Changer le statut</th>
-                  <th className="py-3 text-right">Détails</th>
+                  <th className="py-3">Statut</th>
+                  <th className="py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {adminFilteredOrders.map(ord => (
                   <tr key={ord.id} className="hover:bg-gray-50/50">
                     <td className="py-3 font-bold font-mono text-[#0B1833]">#{ord.orderNumber}</td>
+                    <td className="py-3 text-gray-500 whitespace-nowrap">
+                      {new Date(ord.createdAt).toLocaleDateString('fr-TN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </td>
                     <td className="py-3 font-semibold">{ord.customer.firstName} {ord.customer.lastName}</td>
                     <td className="py-3 text-gray-500">{ord.customer.phone}</td>
                     <td className="py-3">{ord.customer.city}</td>
@@ -845,7 +853,7 @@ export const AdminView: React.FC = () => {
                           updateOrderStatus(ord.id, e.target.value as any);
                           addToast(`Statut commande #${ord.orderNumber} mis à jour !`, 'success');
                         }}
-                        className="bg-[#F7F7F8] border border-gray-200 text-xs font-semibold rounded-lg px-2 py-1 focus:outline-none"
+                        className="bg-[#F7F7F8] border border-gray-200 text-xs font-semibold rounded-lg px-2 py-1 focus:outline-none cursor-pointer"
                       >
                         <option value="pending">En attente</option>
                         <option value="processing">En préparation</option>
@@ -855,12 +863,26 @@ export const AdminView: React.FC = () => {
                       </select>
                     </td>
                     <td className="py-3 text-right">
-                      <button
-                        onClick={() => setViewingOrder(ord)}
-                        className="p-1.5 hover:bg-gray-100 text-gray-600 rounded-lg inline-flex items-center gap-1"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="inline-flex items-center gap-1.5">
+                        <button
+                          onClick={() => setViewingOrder(ord)}
+                          className="p-1.5 hover:bg-gray-100 text-[#0B1833] rounded-lg inline-flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Voir le reçu / détails de commande"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`Supprimer définitivement la commande #${ord.orderNumber} ?`)) {
+                              void deleteOrder(ord.id);
+                            }
+                          }}
+                          className="p-1.5 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-lg inline-flex items-center gap-1 transition-colors cursor-pointer"
+                          title="Supprimer la commande"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -1572,29 +1594,90 @@ export const AdminView: React.FC = () => {
               )}
             </div>
 
-            <div className="space-y-2 max-h-48 overflow-y-auto">
+            <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+              <div className="text-xs font-bold text-gray-500 uppercase tracking-wider pb-1 border-b border-gray-100">
+                Articles commandés ({viewingOrder.items.length})
+              </div>
               {viewingOrder.items.map((it, i) => (
-                <div key={i} className="flex justify-between items-center text-xs py-1 border-b border-gray-100">
-                  <div className="flex items-center gap-2">
-                    <img src={it.image} alt={it.productName} className="w-8 h-8 rounded-lg object-cover" />
-                    <span>{it.productName} × {it.quantity}</span>
+                <div key={i} className="flex justify-between items-center text-xs py-2 border-b border-gray-100 last:border-0 gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <img 
+                      src={it.image || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=100&q=80'} 
+                      alt={it.productName} 
+                      className="w-12 h-12 rounded-xl object-cover border border-gray-200 flex-shrink-0 bg-white" 
+                    />
+                    <div className="min-w-0 space-y-1">
+                      <div className="font-bold text-[#0B1833] truncate">
+                        {it.productName} <span className="text-gray-500 font-normal">× {it.quantity}</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {it.selectedSize && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#8FD8C3]/20 text-[#0B1833] border border-[#8FD8C3]/40">
+                            Taille : {it.selectedSize}
+                          </span>
+                        )}
+                        {it.selectedColor && (
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-white text-gray-700 border border-gray-200 shadow-xs">
+                            <span 
+                              className="w-3 h-3 rounded-full border border-gray-300 flex-shrink-0" 
+                              style={{ backgroundColor: it.selectedColor.hex }} 
+                            />
+                            <span>{it.selectedColor.name}</span>
+                          </span>
+                        )}
+                        {!it.selectedSize && !it.selectedColor && (
+                          <span className="text-[10px] text-gray-400 italic">Standard</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <span className="font-bold">{formatPrice(it.price * it.quantity)}</span>
+                  <div className="text-right flex-shrink-0">
+                    <div className="font-bold text-sm text-[#0B1833]">{formatPrice(it.price * it.quantity)}</div>
+                    <div className="text-[10px] text-gray-400">{formatPrice(it.price)} / unité</div>
+                  </div>
                 </div>
               ))}
             </div>
 
-            <div className="pt-2 flex justify-between font-sans font-black text-base text-[#0B1833]">
-              <span>Total Réglé :</span>
-              <span>{formatPrice(viewingOrder.total)}</span>
+            <div className="space-y-1.5 pt-3 border-t border-gray-100 text-xs">
+              <div className="flex justify-between text-gray-500">
+                <span>Sous-total articles :</span>
+                <span className="font-bold text-[#0B1833]">{formatPrice(viewingOrder.subtotal || viewingOrder.total)}</span>
+              </div>
+              {viewingOrder.shippingFee !== undefined && (
+                <div className="flex justify-between text-gray-500">
+                  <span>Frais de livraison :</span>
+                  <span className="font-bold text-[#0B1833]">
+                    {viewingOrder.shippingFee === 0 ? <strong className="text-emerald-700">GRATUIT</strong> : formatPrice(viewingOrder.shippingFee)}
+                  </span>
+                </div>
+              )}
+              <div className="pt-2 flex justify-between font-sans font-black text-base text-[#0B1833] border-t border-gray-200">
+                <span>Total Réglé :</span>
+                <span className="text-[#0B1833]">{formatPrice(viewingOrder.total)}</span>
+              </div>
             </div>
 
-            <button
-              onClick={() => setViewingOrder(null)}
-              className="w-full py-2.5 bg-[#0B1833] text-white font-bold text-xs uppercase tracking-wider rounded-xl"
-            >
-              Fermer
-            </button>
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => {
+                  if (window.confirm(`Supprimer définitivement la commande #${viewingOrder.orderNumber} ?`)) {
+                    void deleteOrder(viewingOrder.id);
+                    setViewingOrder(null);
+                  }
+                }}
+                className="px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Supprimer</span>
+              </button>
+              <button
+                onClick={() => setViewingOrder(null)}
+                className="flex-1 py-2.5 bg-[#0B1833] hover:bg-[#8FD8C3] hover:text-[#0B1833] text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-colors cursor-pointer"
+              >
+                Fermer
+              </button>
+            </div>
           </div>
         </div>
       )}

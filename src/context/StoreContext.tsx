@@ -80,6 +80,7 @@ interface StoreContextType {
 
   // Order & Stock Management
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
+  deleteOrder: (orderId: string) => Promise<void>;
   updateProductStock: (productId: string, newStock: number) => void;
 
   // Review Management
@@ -527,7 +528,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const response = await fetch(apiPath(endpoint), { headers });
       if (!response.ok) return;
       const data = await response.json();
-      if (Array.isArray(data)) setOrders(data);
+      if (Array.isArray(data)) {
+        const sorted = [...data].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+        setOrders(sorted);
+      }
     } catch {
       /* keep local fallback */
     }
@@ -990,6 +994,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     addToast(`Statut de commande mis a jour : ${status}`, 'success');
   };
 
+  const deleteOrder = async (orderId: string) => {
+    const target = orders.find(o => o.id === orderId);
+    setOrders(prev => prev.filter(o => o.id !== orderId));
+    try {
+      const token = localStorage.getItem('espace_pastel_auth_token') || 'dev-admin-token';
+      await fetch(apiPath(`/api/admin/orders/${orderId}`), {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+    } catch { /* keep optimistic */ }
+    addToast(`Commande #${(target && target.orderNumber) || orderId} supprimée`, 'info');
+  };
+
   const updateProductStock = (productId: string, newStock: number) => {
     setProducts(prev =>
       prev.map(p => {
@@ -1124,6 +1141,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         updateSubCategory,
         deleteSubCategory,
         updateOrderStatus,
+        deleteOrder,
         updateProductStock,
         addReview,
         updateReviewStatus,
