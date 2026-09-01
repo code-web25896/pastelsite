@@ -193,14 +193,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </a>
           ) : (
             <button
-              onClick={() => addToCart(product, 1)}
+              onClick={(e) => {
+                e.stopPropagation();
+                if ((product.sizes && product.sizes.length > 0) || (product.colors && product.colors.length > 0)) {
+                  navigateTo({ type: 'product', productId: product.id });
+                } else {
+                  addToCart(product, 1);
+                }
+              }}
               disabled={isOutOfStock}
               className={`p-2.5 rounded-xl flex items-center justify-center transition-all duration-200 ${
                 isOutOfStock
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   : 'bg-[#0B1833] text-white hover:bg-[#8FD8C3] hover:text-[#0B1833] shadow-sm active:scale-95 cursor-pointer'
               }`}
-              title="Ajouter au panier"
+              title={((product.sizes && product.sizes.length > 0) || (product.colors && product.colors.length > 0)) ? 'Choisir les options (Taille / Couleur)' : 'Ajouter au panier'}
               aria-label="Ajouter au panier"
             >
               <ShoppingBag className="w-4 h-4" />

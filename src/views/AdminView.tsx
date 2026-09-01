@@ -1598,45 +1598,53 @@ export const AdminView: React.FC = () => {
               <div className="text-xs font-bold text-gray-500 uppercase tracking-wider pb-1 border-b border-gray-100">
                 Articles commandés ({viewingOrder.items.length})
               </div>
-              {viewingOrder.items.map((it, i) => (
-                <div key={i} className="flex justify-between items-center text-xs py-2 border-b border-gray-100 last:border-0 gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <img 
-                      src={it.image || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=100&q=80'} 
-                      alt={it.productName} 
-                      className="w-12 h-12 rounded-xl object-cover border border-gray-200 flex-shrink-0 bg-white" 
-                    />
-                    <div className="min-w-0 space-y-1">
-                      <div className="font-bold text-[#0B1833] truncate">
-                        {it.productName} <span className="text-gray-500 font-normal">× {it.quantity}</span>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        {it.selectedSize && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#8FD8C3]/20 text-[#0B1833] border border-[#8FD8C3]/40">
-                            Taille : {it.selectedSize}
-                          </span>
-                        )}
-                        {it.selectedColor && (
-                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-white text-gray-700 border border-gray-200 shadow-xs">
-                            <span 
-                              className="w-3 h-3 rounded-full border border-gray-300 flex-shrink-0" 
-                              style={{ backgroundColor: it.selectedColor.hex }} 
-                            />
-                            <span>{it.selectedColor.name}</span>
-                          </span>
-                        )}
-                        {!it.selectedSize && !it.selectedColor && (
-                          <span className="text-[10px] text-gray-400 italic">Standard</span>
-                        )}
+              {viewingOrder.items.map((it, i) => {
+                const colorObj = typeof it.selectedColor === 'object' && it.selectedColor !== null
+                  ? it.selectedColor
+                  : typeof it.selectedColor === 'string' && it.selectedColor
+                    ? { name: (it.selectedColor as string).split(':')[0], hex: (it.selectedColor as string).split(':')[1] || '#0B1833' }
+                    : null;
+
+                return (
+                  <div key={i} className="flex justify-between items-center text-xs py-3 border-b border-gray-100 last:border-0 gap-3 bg-gray-50/60 p-3 rounded-2xl">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <img 
+                        src={it.image || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=100&q=80'} 
+                        alt={it.productName} 
+                        className="w-14 h-14 rounded-xl object-cover border border-gray-200 flex-shrink-0 bg-white shadow-xs" 
+                      />
+                      <div className="min-w-0 space-y-1.5">
+                        <div className="font-extrabold text-[#0B1833] text-sm truncate">
+                          {it.productName} <span className="text-gray-500 font-normal text-xs">× {it.quantity}</span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {it.selectedSize && (
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-black bg-[#8FD8C3]/30 text-[#0B1833] border-2 border-[#8FD8C3]">
+                              TAILLE : {it.selectedSize}
+                            </span>
+                          )}
+                          {colorObj && (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-black bg-white text-[#0B1833] border-2 border-gray-300 shadow-xs">
+                              <span 
+                                className="w-3.5 h-3.5 rounded-full border border-gray-400 flex-shrink-0 shadow-xs" 
+                                style={{ backgroundColor: colorObj.hex }} 
+                              />
+                              <span>COULEUR : {colorObj.name}</span>
+                            </span>
+                          )}
+                          {!it.selectedSize && !colorObj && (
+                            <span className="text-xs font-bold text-gray-400 italic">Standard</span>
+                          )}
+                        </div>
                       </div>
                     </div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="font-extrabold text-sm text-[#0B1833]">{formatPrice(it.price * it.quantity)}</div>
+                      <div className="text-[11px] text-gray-400 font-medium">{formatPrice(it.price)} / unité</div>
+                    </div>
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <div className="font-bold text-sm text-[#0B1833]">{formatPrice(it.price * it.quantity)}</div>
-                    <div className="text-[10px] text-gray-400">{formatPrice(it.price)} / unité</div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="space-y-1.5 pt-3 border-t border-gray-100 text-xs">

@@ -251,7 +251,9 @@ const orderInput = z.object({
     productName: z.string().optional(),
     quantity: z.number().int().min(1).max(100),
     price: z.number().optional(),
-    image: z.string().optional()
+    image: z.string().optional(),
+    selectedSize: z.string().nullable().optional(),
+    selectedColor: z.any().nullable().optional()
   })).min(1),
   paymentMethod: z.enum(['cod', 'card', 'pickup', 'cash', 'transfer']).default('cod')
 });
@@ -554,7 +556,9 @@ app.post('/api/orders', optionalAuth, route(async (req, res) => {
       productName: product?.name || item.productName || 'Produit Espace Pastel',
       price,
       quantity,
-      image: item.image || (product ? (json(product.images)?.[0] || '') : '')
+      image: item.image || (product ? (json(product.images)?.[0] || '') : ''),
+      selectedSize: item.selectedSize || undefined,
+      selectedColor: item.selectedColor || undefined
     });
 
     // decrement stock in memory
@@ -662,6 +666,20 @@ app.patch('/api/admin/orders/:id/status', auth, admin, route(async (req, res) =>
   }
 
   return res.status(200).json({ success: true, status });
+}));
+
+app.delete('/api/admin/orders/:id', auth, admin, route(async (req, res) => {
+  const targetId = req.params.id;
+  if (pool) {
+    try {
+      await pool.execute('DELETE FROM orders WHERE id = ?', [targetId]);
+    } catch (err) {
+      console.warn('MySQL delete order failed:', err.message);
+    }
+  }
+  jsonDbState.orders = (jsonDbState.orders || []).filter((o) => o.id !== targetId);
+  persistJsonDb();
+  return res.status(200).json({ success: true });
 }));
 
 // Admin Brands
