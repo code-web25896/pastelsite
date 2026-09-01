@@ -101,6 +101,7 @@ export interface CartItem {
   product: Product;
   quantity: number;
   selectedSize?: string;
+  selectedColor?: ProductColor;
 }
 
 export interface OrderItem {
@@ -111,6 +112,7 @@ export interface OrderItem {
   image: string;
   brandName: string;
   selectedSize?: string;
+  selectedColor?: ProductColor;
 }
 
 export interface Order {

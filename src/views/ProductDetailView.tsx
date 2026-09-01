@@ -45,6 +45,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState('');
+  const [selectedColor, setSelectedColor] = useState(product?.colors[0] || null);
   const [activeTab, setActiveTab] = useState<'description' | 'features' | 'reviews'>('description');
 
   // Review Form State
@@ -75,6 +76,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
   const isRare = product.actionType === 'rare_call' || product.actionType === 'rare_chat' || product.actionType === 'rare_both' || product.badge === 'PIÈCE RARE';
   const customPhone = product.customPhone || '98 137 585';
   const hasSizes = product.sizes.length > 0;
+  const hasColors = product.colors.length > 0;
 
   const discountPercent = product.promoPrice && product.price > 0
     ? Math.round(((product.price - product.promoPrice) / product.price) * 100)
@@ -98,7 +100,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
   };
 
   const handleBuyNow = () => {
-    addToCart(product, quantity, selectedSize);
+    addToCart(product, quantity, selectedSize, selectedColor || undefined);
     navigateTo({ type: 'checkout' });
   };
 
@@ -111,6 +113,16 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
       setSelectedSize(product.sizes[0]);
     }
   }, [hasSizes, product.id, product.sizes, selectedSize]);
+
+  React.useEffect(() => {
+    if (!hasColors) {
+      setSelectedColor(null);
+      return;
+    }
+    if (!selectedColor || !product.colors.some(color => color.name === selectedColor.name && color.hex === selectedColor.hex)) {
+      setSelectedColor(product.colors[0]);
+    }
+  }, [hasColors, product.id, product.colors, selectedColor]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-16">
@@ -341,6 +353,25 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
                 </div>
               )}
 
+              {hasColors && (
+                <div className="space-y-2">
+                  <span className="text-xs font-bold text-[#0B1833]">Couleur :</span>
+                  <div className="flex flex-wrap gap-2">
+                    {product.colors.map((color) => (
+                      <button
+                        key={color.name + '-' + color.hex}
+                        type="button"
+                        onClick={() => setSelectedColor(color)}
+                        className={selectedColor?.name === color.name && selectedColor?.hex === color.hex ? 'px-3 py-2 rounded-xl border text-xs font-bold transition-colors bg-[#0B1833] text-white border-[#0B1833] flex items-center gap-2' : 'px-3 py-2 rounded-xl border text-xs font-bold transition-colors bg-white text-gray-700 border-gray-200 hover:border-[#0B1833] flex items-center gap-2'}
+                      >
+                        <span className="w-3 h-3 rounded-full border border-white/70 shadow-sm" style={{ backgroundColor: color.hex }} />
+                        {color.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center gap-4">
                 <span className="text-xs font-bold text-[#0B1833]">Quantité :</span>
                 <div className="flex items-center border border-gray-200 rounded-xl bg-white">
@@ -369,7 +400,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
               {/* Action Buttons */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                 <button
-                  onClick={() => addToCart(product, quantity, selectedSize)}
+                  onClick={() => addToCart(product, quantity, selectedSize, selectedColor || undefined)}
                   disabled={isOutOfStock}
                   className={`py-3.5 px-6 rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md ${isOutOfStock ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-[#0B1833] hover:bg-[#8FD8C3] hover:text-[#0B1833] text-white active:scale-98'}`}
                 >

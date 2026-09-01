@@ -51,6 +51,102 @@ const readImageFile = (file: File): Promise<string> => new Promise((resolve, rej
   reader.readAsDataURL(file);
 });
 
+// ─── ColorPickerField ──────────────────────────────────────────────
+// Stores colors as the same "Name:#HEX,..." string used by the product form
+interface ColorEntry { name: string; hex: string; }
+
+function parseColors(raw: string): ColorEntry[] {
+  return raw.split(',').map(s => s.trim()).filter(Boolean).map(entry => {
+    const parts = entry.split(':');
+    const name = (parts[0] || '').trim();
+    const hex = (parts[1] || '').trim();
+    return { name, hex: hex.startsWith('#') ? hex : '#' + hex };
+  }).filter(c => c.name && c.hex);
+}
+
+function serializeColors(list: ColorEntry[]): string {
+  return list.map(c => `${c.name}:${c.hex}`).join(', ');
+}
+
+const ColorPickerField: React.FC<{ colors: string; setColors: (v: string) => void }> = ({ colors, setColors }) => {
+  const list = parseColors(colors);
+  const [inputName, setInputName] = React.useState('');
+  const [inputHex, setInputHex] = React.useState('#FF0000');
+
+  const add = () => {
+    const name = inputName.trim();
+    if (!name) return;
+    const updated = [...list, { name, hex: inputHex }];
+    setColors(serializeColors(updated));
+    setInputName('');
+    setInputHex('#FF0000');
+  };
+
+  const remove = (idx: number) => {
+    const updated = list.filter((_, i) => i !== idx);
+    setColors(serializeColors(updated));
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Existing colors */}
+      {list.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {list.map((c, i) => (
+            <div key={i} className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-full px-2.5 py-1 shadow-xs">
+              <span className="w-4 h-4 rounded-full border border-gray-300 shrink-0" style={{ background: c.hex }} />
+              <span className="text-xs font-semibold text-gray-700">{c.name}</span>
+              <span className="text-[10px] text-gray-400">{c.hex}</span>
+              <button type="button" onClick={() => remove(i)} className="ml-1 text-gray-300 hover:text-red-500 transition-colors leading-none">×</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add new color row */}
+      <div className="flex items-center gap-2">
+        {/* Color swatch picker */}
+        <label className="relative cursor-pointer shrink-0">
+          <span
+            className="block w-9 h-9 rounded-xl border-2 border-gray-200 shadow-xs"
+            style={{ background: inputHex }}
+          />
+          <input
+            type="color"
+            value={inputHex}
+            onChange={e => setInputHex(e.target.value)}
+            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+          />
+        </label>
+
+        {/* Name input */}
+        <input
+          type="text"
+          value={inputName}
+          onChange={e => setInputName(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
+          placeholder="Nom (ex: Rose Pastel)"
+          className="flex-1 bg-[#F7F7F8] border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none"
+        />
+
+        {/* Hex display */}
+        <span className="text-[11px] font-mono text-gray-400 w-16 shrink-0">{inputHex}</span>
+
+        {/* Add button */}
+        <button
+          type="button"
+          onClick={add}
+          className="px-3 py-2 bg-[#0B1833] text-white rounded-xl text-xs font-bold hover:bg-[#8FD8C3] hover:text-[#0B1833] transition-colors shrink-0"
+        >
+          + Ajouter
+        </button>
+      </div>
+      <p className="text-[11px] text-gray-400">Cliquez sur la pastille pour choisir une couleur, entrez un nom, puis cliquez « Ajouter ».</p>
+    </div>
+  );
+};
+// ──────────────────────────────────────────────────────────────────
+
 export const AdminView: React.FC = () => {
   const { 
     products, 
@@ -131,6 +227,7 @@ export const AdminView: React.FC = () => {
   const [pCustomPhone, setPCustomPhone] = useState("98 137 585");
   const [pIsNew, setPIsNew] = useState(true);
   const [pSizes, setPSizes] = useState("");
+  const [pColors, setPColors] = useState("");
 
   const handleImageFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -206,7 +303,13 @@ export const AdminView: React.FC = () => {
       description: pDesc || pShortDesc || pName,
       features: ['Qualité certifiée Espace Pastel', 'Usage scolaire et professionnel'],
       sizes: pSizes.split(",").map(size => size.trim()).filter(Boolean),
-      colors: [] as Product['colors'],
+      colors: pColors.split(",").map(item => item.trim()).filter(Boolean).map((entry) => {
+        const parts = entry.split(":");
+        const name = (parts[0] || "").trim();
+        const hex = (parts[1] || "").trim();
+        if (!name || !hex) return null;
+        return { name, hex: hex.startsWith("#") ? hex : "#" + hex };
+      }).filter(Boolean) as Product['colors'],
       dimensions: '',
       weight: '',
       material: '',
@@ -245,6 +348,7 @@ export const AdminView: React.FC = () => {
     setPCustomPhone('98 137 585');
     setPIsNew(true);
     setPSizes("");
+    setPColors("");
     if (brands.length > 0) {
       setPBrandId(brands[0].id);
       const matchingSubs = subCategories.filter(s => s.brandId === brands[0].id);
@@ -272,6 +376,7 @@ export const AdminView: React.FC = () => {
     setPCustomPhone(prod.customPhone || '98 137 585');
     setPIsNew(prod.isNew || false);
     setPSizes(prod.sizes?.join(", ") || "");
+    setPColors(prod.colors?.map(c => c.name + ':' + c.hex).join(", ") || "");
     setIsAddProductOpen(true);
   };
 
@@ -1196,6 +1301,12 @@ export const AdminView: React.FC = () => {
                   className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none"
                 />
                 <p className="mt-1 text-[11px] text-gray-500">Séparez les tailles par des virgules. Laissez vide si le produit n'a pas de tailles.</p>
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-2">Couleurs disponibles</label>
+                {/* Color picker UI */}
+                <ColorPickerField colors={pColors} setColors={setPColors} />
               </div>
 
               {/* Mode de Vente: En ligne ou Pièce Rare */}

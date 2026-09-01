@@ -113,7 +113,8 @@ export const CheckoutView: React.FC = () => {
         quantity: item.quantity,
         image: item.product.images[0] || '',
         brandName: item.product.brandId,
-        selectedSize: item.selectedSize
+        selectedSize: item.selectedSize,
+        selectedColor: item.selectedColor
       }));
 
       let orderAddress = address;
@@ -510,7 +511,7 @@ export const CheckoutView: React.FC = () => {
             {cart.map(item => {
               const unitPrice = item.product.promoPrice || item.product.price;
               return (
-                <div key={item.productId} className="py-3 flex items-center gap-3">
+                <div key={item.productId + '-' + (item.selectedSize || 'no-size') + '-' + (item.selectedColor?.hex || 'no-color')} className="py-3 flex items-center gap-3">
                   <img
                     src={item.product.images[0]}
                     alt={item.product.name}
@@ -522,6 +523,12 @@ export const CheckoutView: React.FC = () => {
                     </h4>
                     {item.selectedSize && (
                       <div className="text-[11px] text-gray-500">Taille : {item.selectedSize}</div>
+                    )}
+                    {item.selectedColor && (
+                      <div className="text-[11px] text-gray-500 flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-full border border-gray-300" style={{ backgroundColor: item.selectedColor.hex }} />
+                        Couleur : {item.selectedColor.name}
+                      </div>
                     )}
                     <span className="text-[11px] text-gray-500">
                       {formatPrice(unitPrice)} × {item.quantity}

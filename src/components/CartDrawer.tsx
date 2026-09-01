@@ -142,7 +142,7 @@ export const CartDrawer: React.FC = () => {
                 const lineTotal = unitPrice * item.quantity;
 
                 return (
-                  <div key={item.productId} className="py-4 flex gap-3 first:pt-0 last:pb-0">
+                  <div key={item.productId + '-' + (item.selectedSize || 'no-size') + '-' + (item.selectedColor?.hex || 'no-color')} className="py-4 flex gap-3 first:pt-0 last:pb-0">
                     <img
                       src={item.product.images[0] || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=200&q=80'}
                       alt={item.product.name}
@@ -167,6 +167,12 @@ export const CartDrawer: React.FC = () => {
                         {item.selectedSize && (
                           <div className="text-[11px] font-semibold text-gray-500 mt-0.5">Taille : {item.selectedSize}</div>
                         )}
+                        {item.selectedColor && (
+                          <div className="text-[11px] font-semibold text-gray-500 mt-0.5 flex items-center gap-1.5">
+                            <span className="w-3 h-3 rounded-full border border-gray-300" style={{ backgroundColor: item.selectedColor.hex }} />
+                            Couleur : {item.selectedColor.name}
+                          </div>
+                        )}
                         <div className="text-[11px] font-semibold text-[#0B1833] mt-0.5">
                           {formatPrice(unitPrice)}
                         </div>
@@ -176,7 +182,7 @@ export const CartDrawer: React.FC = () => {
                         {/* Quantity Stepper */}
                         <div className="flex items-center border border-gray-200 rounded-lg bg-[#F7F7F8] overflow-hidden">
                           <button
-                            onClick={() => updateCartQuantity(item.productId, item.quantity - 1, item.selectedSize)}
+                            onClick={() => updateCartQuantity(item.productId, item.quantity - 1, item.selectedSize, item.selectedColor)}
                             className="p-1 hover:bg-white text-gray-600 transition-colors"
                             aria-label="Diminuer quantité"
                           >
@@ -186,7 +192,7 @@ export const CartDrawer: React.FC = () => {
                             {item.quantity}
                           </span>
                           <button
-                            onClick={() => updateCartQuantity(item.productId, item.quantity + 1, item.selectedSize)}
+                            onClick={() => updateCartQuantity(item.productId, item.quantity + 1, item.selectedSize, item.selectedColor)}
                             className="p-1 hover:bg-white text-gray-600 transition-colors"
                             aria-label="Augmenter quantité"
                           >
@@ -200,7 +206,7 @@ export const CartDrawer: React.FC = () => {
                             {formatPrice(lineTotal)}
                           </span>
                           <button
-                            onClick={() => removeFromCart(item.productId, item.selectedSize)}
+                            onClick={() => removeFromCart(item.productId, item.selectedSize, item.selectedColor)}
                             className="text-gray-400 hover:text-red-500 transition-colors p-1"
                             title="Supprimer"
                             aria-label="Supprimer l'article"

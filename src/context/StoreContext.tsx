@@ -39,9 +39,9 @@ interface StoreContextType {
   cartSubtotal: number;
   isCartDrawerOpen: boolean;
   setIsCartDrawerOpen: (open: boolean) => void;
-  addToCart: (product: Product, quantity: number, selectedSize?: string) => void;
-  updateCartQuantity: (productId: string, quantity: number, selectedSize?: string) => void;
-  removeFromCart: (productId: string, selectedSize?: string) => void;
+  addToCart: (product: Product, quantity: number, selectedSize?: string, selectedColor?: { name: string; hex: string }) => void;
+  updateCartQuantity: (productId: string, quantity: number, selectedSize?: string, selectedColor?: { name: string; hex: string }) => void;
+  removeFromCart: (productId: string, selectedSize?: string, selectedColor?: { name: string; hex: string }) => void;
   clearCart: () => void;
   wishlist: string[];
   toggleWishlist: (productId: string) => void;
@@ -563,31 +563,33 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   // Cart operations
-    const addToCart = (product: Product, quantity = 1, selectedSize?: string) => {
+  const colorKey = (color?: { name: string; hex: string }) => color ? color.name + '__' + color.hex : '__no_color__';
+
+  const addToCart = (product: Product, quantity = 1, selectedSize?: string, selectedColor?: { name: string; hex: string }) => {
     setCart(prev => {
-      const existing = prev.find(item => item.productId === product.id && item.selectedSize === selectedSize);
+      const existing = prev.find(item => item.productId === product.id && item.selectedSize === selectedSize && colorKey(item.selectedColor) === colorKey(selectedColor));
       if (existing) {
         return prev.map(item => {
-          if (item.productId === product.id && item.selectedSize === selectedSize) {
+          if (item.productId === product.id && item.selectedSize === selectedSize && colorKey(item.selectedColor) === colorKey(selectedColor)) {
             return { ...item, quantity: item.quantity + quantity };
           }
           return item;
         });
       }
-      return [...prev, { productId: product.id, product, quantity, selectedSize }];
+      return [...prev, { productId: product.id, product, quantity, selectedSize, selectedColor }];
     });
     addToast(product.name + " ajouté au panier ✓", "success");
     setIsCartDrawerOpen(true);
   };
 
-    const updateCartQuantity = (productId: string, quantity: number, selectedSize?: string) => {
+  const updateCartQuantity = (productId: string, quantity: number, selectedSize?: string, selectedColor?: { name: string; hex: string }) => {
     if (quantity <= 0) {
-      removeFromCart(productId, selectedSize);
+      removeFromCart(productId, selectedSize, selectedColor);
       return;
     }
     setCart(prev =>
       prev.map(item => {
-        if (item.productId === productId && item.selectedSize === selectedSize) {
+        if (item.productId === productId && item.selectedSize === selectedSize && colorKey(item.selectedColor) === colorKey(selectedColor)) {
           return { ...item, quantity };
         }
         return item;
@@ -595,8 +597,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     );
   };
 
-    const removeFromCart = (productId: string, selectedSize?: string) => {
-    setCart(prev => prev.filter(item => !(item.productId === productId && item.selectedSize === selectedSize)));
+  const removeFromCart = (productId: string, selectedSize?: string, selectedColor?: { name: string; hex: string }) => {
+    setCart(prev => prev.filter(item => !(item.productId === productId && item.selectedSize === selectedSize && colorKey(item.selectedColor) === colorKey(selectedColor))));
   };
 
   const clearCart = () => {
@@ -687,6 +689,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         price: item.price,
         image: item.image,
         selectedSize: item.selectedSize,
+        selectedColor: item.selectedColor
       })), 
       paymentMethod: orderData.paymentMethod,
     };

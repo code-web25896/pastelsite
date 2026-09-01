@@ -398,6 +398,12 @@ export const AccountView: React.FC<AccountViewProps> = ({ initialTab = 'orders' 
                       {item.selectedSize && (
                         <div className="text-[11px] text-gray-500">Taille : {item.selectedSize}</div>
                       )}
+                      {item.selectedColor && (
+                        <div className="text-[11px] text-gray-500 flex items-center gap-1.5">
+                          <span className="w-3 h-3 rounded-full border border-gray-300" style={{ backgroundColor: item.selectedColor.hex }} />
+                          Couleur : {item.selectedColor.name}
+                        </div>
+                      )}
                       <div className="text-[11px] text-gray-500">{formatPrice(item.price)} × {item.quantity}</div>
                     </div>
                   </div>
