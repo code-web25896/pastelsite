@@ -290,6 +290,19 @@ function materializeImages(images, productId) {
   });
 }
 
+function materializeSubcategoryImage(imageUrl, subId) {
+  if (!imageUrl || typeof imageUrl !== 'string' || !imageUrl.startsWith('data:image/')) return imageUrl;
+  fs.mkdirSync(path.join(uploadsDir, 'subcategories'), { recursive: true });
+  const match = imageUrl.match(/^data:image\/([a-zA-Z0-9+.-]+);base64,(.+)$/);
+  if (!match) return imageUrl;
+  let ext = match[1].toLowerCase().replace('jpeg', 'jpg');
+  if (!['jpg', 'png', 'webp', 'gif', 'svg'].includes(ext)) ext = 'jpg';
+  const fileName = `${String(subId).replace(/[^a-zA-Z0-9_-]/g, '')}.${ext}`;
+  fs.writeFileSync(path.join(uploadsDir, 'subcategories', fileName), Buffer.from(match[2], 'base64'));
+  return `/uploads/subcategories/${fileName}`;
+}
+
+
 const token = (u) => jwt.sign(
   { sub: u.id, role: u.role, email: u.email },
   JWT_SECRET,
@@ -751,7 +764,9 @@ app.post('/api/admin/subcategories', auth, admin, route(async (req, res) => {
   const x = subcategoryInput.parse(req.body);
   const newId = x.id || 'sub-' + crypto.randomUUID();
   const slug = x.slug || x.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-  const sub = { ...x, id: newId, slug, order: x.order || 0 };
+  // Persist image base64 to disk if needed
+  const imageUrl = materializeSubcategoryImage(x.imageUrl, newId);
+  const sub = { ...x, id: newId, slug, order: x.order || 0, imageUrl };
 
   if (pool) {
     try {
@@ -772,6 +787,11 @@ app.post('/api/admin/subcategories', auth, admin, route(async (req, res) => {
 app.patch('/api/admin/subcategories/:id', auth, admin, route(async (req, res) => {
   const targetId = req.params.id;
   const updates = subcategoryInput.partial().parse(req.body);
+
+  // Persist image base64 to disk if needed
+  if (updates.imageUrl) {
+    updates.imageUrl = materializeSubcategoryImage(updates.imageUrl, targetId);
+  }
 
   if (pool) {
     try {

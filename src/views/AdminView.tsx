@@ -1265,7 +1265,22 @@ export const AdminView: React.FC = () => {
               {subCategories.map(sc => {
                 const b = brands.find(x => x.id === sc.brandId);
                 return (
-                  <div key={sc.id} className="p-3 rounded-xl border border-gray-100 flex items-center justify-between text-xs gap-3">
+                  <div key={sc.id} className="p-3 rounded-xl border border-gray-100 flex items-center justify-between text-xs gap-3 hover:bg-gray-50/60 transition-colors">
+                    {/* Miniature image */}
+                    <div className="flex-shrink-0 w-10 h-10 rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+                      {sc.imageUrl ? (
+                        <img
+                          src={sc.imageUrl}
+                          alt={sc.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-[10px]">
+                          <Package className="w-4 h-4" />
+                        </div>
+                      )}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <span className="font-bold text-[#0B1833] block truncate">{sc.name}</span>
                       <span className="text-[10px] text-gray-400">Marque : {b?.name || '—'} • /{sc.slug}</span>
@@ -1842,6 +1857,68 @@ export const AdminView: React.FC = () => {
                   className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl p-2 text-xs focus:outline-none"
                 />
               </div>
+
+              {/* IMAGE SOUS-CATÉGORIE */}
+              <div>
+                <label className="block font-bold text-gray-700 mb-2">Image de la sous-catégorie</label>
+                <div className="space-y-2">
+                  {/* Aperçu de l'image */}
+                  {scImage && (
+                    <div className="relative w-full h-28 rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
+                      <img
+                        src={scImage}
+                        alt="Aperçu sous-catégorie"
+                        className="w-full h-full object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setScImage('')}
+                        className="absolute top-1.5 right-1.5 w-6 h-6 bg-red-600 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-700 cursor-pointer"
+                        title="Supprimer l'image"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Upload depuis fichier */}
+                  <label className="flex items-center gap-2 px-3 py-2 bg-[#0B1833] hover:bg-[#0B1833]/80 text-white text-xs font-bold rounded-xl cursor-pointer transition-colors">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Choisir une image (depuis appareil)</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (file.size > 8 * 1024 * 1024) {
+                          addToast('L\'image ne doit pas dépasser 8 Mo.', 'error');
+                          return;
+                        }
+                        try {
+                          const dataUrl = await readImageFile(file);
+                          setScImage(dataUrl);
+                          addToast('Image importée avec succès !', 'success');
+                        } catch {
+                          addToast('Erreur lors de la lecture du fichier.', 'error');
+                        }
+                      }}
+                    />
+                  </label>
+
+                  {/* URL externe */}
+                  <input
+                    type="text"
+                    value={scImage.startsWith('data:') ? '' : scImage}
+                    onChange={(e) => setScImage(e.target.value)}
+                    placeholder="Ou coller une URL d'image (https://...)"
+                    className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none"
+                  />
+                </div>
+              </div>
+
               <div className="pt-2 flex justify-end gap-2">
                 <button type="button" onClick={() => { setIsAddSubCategoryOpen(false); setEditingSubCat(null); }} className="px-3 py-2 text-gray-500 hover:bg-gray-100 rounded-xl cursor-pointer">Annuler</button>
                 <button type="submit" className="bg-[#0B1833] text-white px-4 py-2 rounded-xl font-bold hover:bg-[#8FD8C3] hover:text-[#0B1833] transition-colors cursor-pointer">
