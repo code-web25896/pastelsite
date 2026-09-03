@@ -969,7 +969,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     addToast(`Marque "${(target && target.name) || ''}" supprimee`, 'info');
   };
 
-  // SubCategory CRUD avec persistance immédiate et sync API
+  // SubCategory CRUD — même logique que addBrand / updateBrand
   const addSubCategory = async (subData: Omit<SubCategory, 'id' | 'slug'>): Promise<SubCategory> => {
     const slug = subData.name
       .toLowerCase()
@@ -984,99 +984,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       slug: `${slug}-${Math.floor(100 + Math.random() * 900)}`
     };
 
-    setSubCategories(prev => {
-      const next = [...prev, newSub];
-      try {
-        localStorage.setItem(LOCAL_STORAGE_KEYS.SUBCATEGORIES, JSON.stringify(next));
-      } catch {}
-      return next;
-    });
-
-    try {
-      const res = await fetch(apiPath('/api/admin/subcategories'), {
-        method: 'POST',
-        headers: authHeaders(true),
-        body: JSON.stringify(newSub),
-      });
-      if (res.ok) {
-        const saved = await res.json();
-        if (saved && saved.id) {
-          setSubCategories(prev => {
-            const next = prev.map(s => (s.id === newSub.id ? saved : s));
-            try {
-              localStorage.setItem(LOCAL_STORAGE_KEYS.SUBCATEGORIES, JSON.stringify(next));
-            } catch {}
-            return next;
-          });
-          addToast(`Sous-catégorie "${saved.name}" créée et enregistrée sur le serveur !`, 'success');
-          return saved;
-        }
-      }
-    } catch (err) {
-      console.warn('Erreur sauvegarde API sous-catégorie:', err);
-    }
-
-    addToast(`Sous-catégorie "${newSub.name}" créée localement`, 'success');
+    setSubCategories(prev => [...prev, newSub]);
+    syncApiMutation('POST', '/api/admin/subcategories', newSub);
+    addToast(`Sous-catégorie "${newSub.name}" ajoutée`, 'success');
     return newSub;
   };
 
   const updateSubCategory = async (id: string, updates: Partial<SubCategory>): Promise<void> => {
-    // 1. Mise à jour immédiate du state et de localStorage
-    setSubCategories(prev => {
-      const next = prev.map(s => (s.id === id || s.slug === id ? { ...s, ...updates } : s));
-      try {
-        localStorage.setItem(LOCAL_STORAGE_KEYS.SUBCATEGORIES, JSON.stringify(next));
-      } catch {}
-      return next;
-    });
-
-    // 2. Envoi vers le serveur
-    try {
-      const res = await fetch(apiPath(`/api/admin/subcategories/${id}`), {
-        method: 'PATCH',
-        headers: authHeaders(true),
-        body: JSON.stringify(updates),
-      });
-
-      if (res.ok) {
-        const saved = await res.json();
-        if (saved && (saved.id || saved.imageUrl)) {
-          setSubCategories(prev => {
-            const next = prev.map(s => (s.id === id || s.slug === id ? { ...s, ...saved } : s));
-            try {
-              localStorage.setItem(LOCAL_STORAGE_KEYS.SUBCATEGORIES, JSON.stringify(next));
-            } catch {}
-            return next;
-          });
-        }
-        addToast('Sous-catégorie et image enregistrées avec succès !', 'success');
-        return;
-      } else {
-        const err = await res.json().catch(() => ({}));
-        console.warn('Erreur serveur maj sous-catégorie:', err);
-        addToast(err.error || 'Sauvegarde locale effectuée.', 'info');
-      }
-    } catch (err) {
-      console.warn('Erreur réseau maj sous-catégorie:', err);
-      addToast('Image sauvegardée localement dans le navigateur.', 'info');
-    }
+    setSubCategories(prev =>
+      prev.map(s => (s.id === id || s.slug === id ? { ...s, ...updates } : s))
+    );
+    syncApiMutation('PATCH', `/api/admin/subcategories/${id}`, updates);
+    addToast('Sous-catégorie mise à jour', 'success');
   };
 
   const deleteSubCategory = async (id: string): Promise<void> => {
     const target = subCategories.find(s => s.id === id);
-    setSubCategories(prev => {
-      const next = prev.filter(s => s.id !== id);
-      try {
-        localStorage.setItem(LOCAL_STORAGE_KEYS.SUBCATEGORIES, JSON.stringify(next));
-      } catch {}
-      return next;
-    });
-    try {
-      await fetch(apiPath(`/api/admin/subcategories/${id}`), {
-        method: 'DELETE',
-        headers: authHeaders(false),
-      });
-    } catch {}
+    setSubCategories(prev => prev.filter(s => s.id !== id));
+    syncApiMutation('DELETE', `/api/admin/subcategories/${id}`, undefined);
     addToast(`Sous-catégorie "${(target && target.name) || ''}" supprimée`, 'info');
   };
 

@@ -193,12 +193,12 @@ const brandInput = z.object({
 
 const subcategoryInput = z.object({
   id: idString.optional(),
-  brandId: idString,
-  name: z.string().trim().min(1).max(120),
+  brandId: idString.optional(),
+  name: z.string().trim().min(1).max(120).optional(),
   slug: z.string().max(140).optional(),
   description: z.string().trim().max(10000).optional().default(''),
   imageUrl: imageOrUrl.nullable().optional(),
-  status: z.enum(['active', 'draft']).default('active'),
+  status: z.enum(['active', 'draft']).optional().default('active'),
   order: z.number().int().min(0).max(100000).optional().default(0)
 });
 
