@@ -74,9 +74,9 @@ interface StoreContextType {
   deleteBrand: (id: string) => void;
 
   // Admin CRUD for SubCategories
-  addSubCategory: (subCategory: Omit<SubCategory, 'id' | 'slug'>) => SubCategory;
-  updateSubCategory: (id: string, updates: Partial<SubCategory>) => void;
-  deleteSubCategory: (id: string) => void;
+  addSubCategory: (subCategory: Omit<SubCategory, 'id' | 'slug'>) => Promise<SubCategory>;
+  updateSubCategory: (id: string, updates: Partial<SubCategory>) => Promise<void>;
+  deleteSubCategory: (id: string) => Promise<void>;
 
   // Order & Stock Management
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
@@ -168,26 +168,51 @@ const mergeBrandsFromApi = (apiBrands: Brand[]): Brand[] => {
 
 const mergeSubCategoriesFromApi = (apiSubCategories: SubCategory[]): SubCategory[] => {
   const storedSubCategories = parseStoredCollection<SubCategory>(LOCAL_STORAGE_KEYS.SUBCATEGORIES);
-  const bySlug = new Map<string, SubCategory>();
+  const byKey = new Map<string, SubCategory>();
 
-  for (const subCategory of INITIAL_SUBCATEGORIES) bySlug.set(subCategory.slug, subCategory);
+  // 1. Données initiales par défaut
+  for (const subCategory of INITIAL_SUBCATEGORIES) {
+    byKey.set(subCategory.slug, subCategory);
+    byKey.set(subCategory.id, subCategory);
+  }
+
+  // 2. Données de l'API
   for (const subCategory of apiSubCategories) {
-    const current = bySlug.get(subCategory.slug);
-    bySlug.set(subCategory.slug, { ...current, ...subCategory });
-  }
-  for (const subCategory of storedSubCategories) {
-    const current = bySlug.get(subCategory.slug);
-    bySlug.set(subCategory.slug, { ...current, ...subCategory });
+    const existing = byKey.get(subCategory.slug) || byKey.get(subCategory.id);
+    const merged = { ...existing, ...subCategory };
+    byKey.set(subCategory.slug, merged);
+    byKey.set(subCategory.id, merged);
   }
 
-  return Array.from(bySlug.values()).map((subCategory) => {
-    const init = INITIAL_SUBCATEGORIES.find((item) => item.id === subCategory.id || item.slug === subCategory.slug);
-    return {
-      ...subCategory,
-      imageUrl: subCategory.imageUrl || (init && init.imageUrl) || '',
-      status: subCategory.status || 'active',
-    };
-  });
+  // 3. Données locales modifiées par l'administrateur (priorité pour conserver les images personnalisées)
+  for (const subCategory of storedSubCategories) {
+    const existing = byKey.get(subCategory.slug) || byKey.get(subCategory.id);
+    if (existing) {
+      const merged: SubCategory = {
+        ...existing,
+        ...subCategory,
+        // Si une image personnalisée existe dans le stockage local, la conserver absolument
+        imageUrl: subCategory.imageUrl || existing.imageUrl || '',
+      };
+      byKey.set(subCategory.slug, merged);
+      byKey.set(subCategory.id, merged);
+    } else {
+      byKey.set(subCategory.slug, subCategory);
+      byKey.set(subCategory.id, subCategory);
+    }
+  }
+
+  // Dédupliquer par ID unique
+  const unique = new Map<string, SubCategory>();
+  for (const sub of byKey.values()) {
+    unique.set(sub.id, sub);
+  }
+
+  return Array.from(unique.values()).map((subCategory) => ({
+    ...subCategory,
+    imageUrl: subCategory.imageUrl || '',
+    status: subCategory.status || 'active',
+  }));
 };
 
 const normalizeCustomer = (value: unknown): Customer | null => {
@@ -245,7 +270,7 @@ const authHeaders = (jsonBody = false): Record<string, string> => {
   const headers: Record<string, string> = {};
   if (jsonBody) headers['Content-Type'] = 'application/json';
   const token = getAuthToken();
-  if (token && token !== 'dev-admin-token') {
+  if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
   return headers;
@@ -943,8 +968,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     addToast(`Marque "${(target && target.name) || ''}" supprimee`, 'info');
   };
 
-  // SubCategory CRUD
-  const addSubCategory = (subData: Omit<SubCategory, 'id' | 'slug'>): SubCategory => {
+  // SubCategory CRUD avec persistance immédiate et sync API
+  const addSubCategory = async (subData: Omit<SubCategory, 'id' | 'slug'>): Promise<SubCategory> => {
     const slug = subData.name
       .toLowerCase()
       .normalize('NFD')
@@ -958,28 +983,100 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       slug: `${slug}-${Math.floor(100 + Math.random() * 900)}`
     };
 
-    setSubCategories(prev => [...prev, newSub]);
-    syncApiMutation('POST', '/api/admin/subcategories', newSub);
-    addToast(`Sous-categorie "${newSub.name}" creee`, 'success');
+    setSubCategories(prev => {
+      const next = [...prev, newSub];
+      try {
+        localStorage.setItem(LOCAL_STORAGE_KEYS.SUBCATEGORIES, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    try {
+      const res = await fetch(apiPath('/api/admin/subcategories'), {
+        method: 'POST',
+        headers: authHeaders(true),
+        body: JSON.stringify(newSub),
+      });
+      if (res.ok) {
+        const saved = await res.json();
+        if (saved && saved.id) {
+          setSubCategories(prev => {
+            const next = prev.map(s => (s.id === newSub.id ? saved : s));
+            try {
+              localStorage.setItem(LOCAL_STORAGE_KEYS.SUBCATEGORIES, JSON.stringify(next));
+            } catch {}
+            return next;
+          });
+          addToast(`Sous-catégorie "${saved.name}" créée et enregistrée sur le serveur !`, 'success');
+          return saved;
+        }
+      }
+    } catch (err) {
+      console.warn('Erreur sauvegarde API sous-catégorie:', err);
+    }
+
+    addToast(`Sous-catégorie "${newSub.name}" créée localement`, 'success');
     return newSub;
   };
 
-  const updateSubCategory = (id: string, updates: Partial<SubCategory>) => {
-    setSubCategories(prev =>
-      prev.map(s => {
-        if (s.id === id) return { ...s, ...updates };
-        return s;
-      })
-    );
-    syncApiMutation('PATCH', `/api/admin/subcategories/${id}`, updates);
-    addToast('Sous-categorie mise a jour', 'success');
+  const updateSubCategory = async (id: string, updates: Partial<SubCategory>): Promise<void> => {
+    // 1. Mise à jour immédiate du state et de localStorage
+    setSubCategories(prev => {
+      const next = prev.map(s => (s.id === id || s.slug === id ? { ...s, ...updates } : s));
+      try {
+        localStorage.setItem(LOCAL_STORAGE_KEYS.SUBCATEGORIES, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    // 2. Envoi vers le serveur
+    try {
+      const res = await fetch(apiPath(`/api/admin/subcategories/${id}`), {
+        method: 'PATCH',
+        headers: authHeaders(true),
+        body: JSON.stringify(updates),
+      });
+
+      if (res.ok) {
+        const saved = await res.json();
+        if (saved && (saved.id || saved.imageUrl)) {
+          setSubCategories(prev => {
+            const next = prev.map(s => (s.id === id || s.slug === id ? { ...s, ...saved } : s));
+            try {
+              localStorage.setItem(LOCAL_STORAGE_KEYS.SUBCATEGORIES, JSON.stringify(next));
+            } catch {}
+            return next;
+          });
+        }
+        addToast('Sous-catégorie et image enregistrées avec succès !', 'success');
+        return;
+      } else {
+        const err = await res.json().catch(() => ({}));
+        console.warn('Erreur serveur maj sous-catégorie:', err);
+        addToast(err.error || 'Sauvegarde locale effectuée.', 'info');
+      }
+    } catch (err) {
+      console.warn('Erreur réseau maj sous-catégorie:', err);
+      addToast('Image sauvegardée localement dans le navigateur.', 'info');
+    }
   };
 
-  const deleteSubCategory = (id: string) => {
+  const deleteSubCategory = async (id: string): Promise<void> => {
     const target = subCategories.find(s => s.id === id);
-    setSubCategories(prev => prev.filter(s => s.id !== id));
-    syncApiMutation('DELETE', `/api/admin/subcategories/${id}`);
-    addToast(`Sous-categorie "${(target && target.name) || ''}" supprimee`, 'info');
+    setSubCategories(prev => {
+      const next = prev.filter(s => s.id !== id);
+      try {
+        localStorage.setItem(LOCAL_STORAGE_KEYS.SUBCATEGORIES, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+    try {
+      await fetch(apiPath(`/api/admin/subcategories/${id}`), {
+        method: 'DELETE',
+        headers: authHeaders(false),
+      });
+    } catch {}
+    addToast(`Sous-catégorie "${(target && target.name) || ''}" supprimée`, 'info');
   };
 
   // Orders & Stocks

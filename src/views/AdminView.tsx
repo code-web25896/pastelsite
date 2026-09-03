@@ -272,7 +272,7 @@ export const AdminView: React.FC = () => {
   const [scName, setScName] = useState('');
   const [scSlug, setScSlug] = useState('');
   const [scDesc, setScDesc] = useState('');
-  const [scImage, setScImage] = useState('https://images.unsplash.com/photo-1544716278-ca5e3f4abd8cauto=format&fit=crop&w=400&q=80');
+  const [scImage, setScImage] = useState('');
 
   // Stats Calculations
   const deliveredOrders = orders.filter(o => o.status === 'delivered');
@@ -554,35 +554,36 @@ export const AdminView: React.FC = () => {
     }
   };
 
-  const handleCreateSubCat = (e: React.FormEvent) => {
+  const handleCreateSubCat = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!scName || !selectedBrandForSubCat) return;
 
+    const finalImage = scImage || (editingSubCat ? editingSubCat.imageUrl : '') || '';
+
     if (editingSubCat) {
-      updateSubCategory(editingSubCat.id, {
+      await updateSubCategory(editingSubCat.id, {
         brandId: selectedBrandForSubCat,
         name: scName,
         slug: scSlug || scName.toLowerCase().replace(/\s+/g, '-'),
         description: scDesc,
-        imageUrl: scImage || editingSubCat.imageUrl
+        imageUrl: finalImage
       });
-      addToast(`Sous-catégorie "${scName}" mise à jour !`, 'success');
       setEditingSubCat(null);
     } else {
-      addSubCategory({
+      await addSubCategory({
         brandId: selectedBrandForSubCat,
         name: scName,
         slug: scSlug || scName.toLowerCase().replace(/\s+/g, '-'),
         description: scDesc,
-        imageUrl: scImage
+        imageUrl: finalImage
       });
-      addToast(`Sous-catégorie "${scName}" ajoutée !`, 'success');
     }
 
     setIsAddSubCategoryOpen(false);
     setScName('');
     setScSlug('');
     setScDesc('');
+    setScImage('');
   };
 
   const handleEditSubCatClick = (sc: SubCategory) => {
@@ -1253,7 +1254,7 @@ export const AdminView: React.FC = () => {
                 Sous-Catégories ({subCategories.length})
               </h2>
               <button
-                onClick={() => { setEditingSubCat(null); setScName(''); setScSlug(''); setScDesc(''); setIsAddSubCategoryOpen(true); }}
+                onClick={() => { setEditingSubCat(null); setScName(''); setScSlug(''); setScDesc(''); setScImage(''); setIsAddSubCategoryOpen(true); }}
                 className="bg-[#0B1833] text-white text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />

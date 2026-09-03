@@ -13,6 +13,14 @@ import {
 import { motion } from 'motion/react';
 import { SubCategoryIcon } from '../components/SubCategoryIcon';
 
+const resolveImageUrl = (url?: string | null) => {
+  if (!url) return 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=400&q=80';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:image/')) return url;
+  const apiUrl = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+  const cleanPath = url.startsWith('/') ? url : `/${url}`;
+  return `${apiUrl}${cleanPath}`;
+};
+
 interface BrandViewProps {
   brandSlug: string;
 }
@@ -129,8 +137,11 @@ export const BrandView: React.FC<BrandViewProps> = ({ brandSlug }) => {
                 >
                   <div className="relative aspect-square rounded-xl overflow-hidden bg-[#F7F7F8] mb-3">
                     <img
-                      src={sub.imageUrl || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=400&q=80'}
+                      src={resolveImageUrl(sub.imageUrl)}
                       alt={sub.name}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=400&q=80';
+                      }}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     <div className="absolute top-2 left-2">
