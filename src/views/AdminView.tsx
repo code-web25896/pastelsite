@@ -168,6 +168,7 @@ export const AdminView: React.FC = () => {
     addSubCategory,
     updateSubCategory,
     deleteSubCategory,
+    syncAllSubCategoriesToServer,
     updateOrderStatus, 
     deleteOrder,
     formatPrice,
@@ -197,6 +198,7 @@ export const AdminView: React.FC = () => {
   const [editingSubCat, setEditingSubCat] = useState<SubCategory | null>(null);
   const [selectedBrandForSubCat, setSelectedBrandForSubCat] = useState<string>(brands[0]?.id || '');
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
+  const [isSyncingSubCats, setIsSyncingSubCats] = useState(false);
 
   const tabClass = (tab: 'dashboard' | 'products' | 'orders' | 'brands' | 'reviews') => {
     if (activeTab === tab) return 'px-4 py-3 rounded-t-2xl flex items-center gap-2 transition-all bg-white border-t-2 border-[#0B1833] text-[#0B1833] shadow-sm';
@@ -1249,17 +1251,36 @@ export const AdminView: React.FC = () => {
 
           {/* Subcategories list (6 cols) */}
           <div className="lg:col-span-6 bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-              <h2 className="font-sans font-bold text-base text-[#0B1833]">
-                Sous-Catégories ({subCategories.length})
-              </h2>
-              <button
-                onClick={() => { setEditingSubCat(null); setScName(''); setScSlug(''); setScDesc(''); setScImage(''); setIsAddSubCategoryOpen(true); }}
-                className="bg-[#0B1833] text-white text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1 cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Ajouter</span>
-              </button>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-gray-100">
+              <div>
+                <h2 className="font-sans font-bold text-base text-[#0B1833]">
+                  Sous-Catégories ({subCategories.length})
+                </h2>
+                <p className="text-[11px] text-gray-400">Gérez les rayons et leurs images officielles</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setIsSyncingSubCats(true);
+                    await syncAllSubCategoriesToServer();
+                    setIsSyncingSubCats(false);
+                  }}
+                  disabled={isSyncingSubCats}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                  title="Publie toutes les catégories et photos actuelles sur le serveur pour qu'elles soient visibles par tous les visiteurs, sur mobile et en navigation privée"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>{isSyncingSubCats ? 'Publication...' : 'Publier sur le site public'}</span>
+                </button>
+                <button
+                  onClick={() => { setEditingSubCat(null); setScName(''); setScSlug(''); setScDesc(''); setScImage(''); setIsAddSubCategoryOpen(true); }}
+                  className="bg-[#0B1833] text-white text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Ajouter</span>
+                </button>
+              </div>
             </div>
 
             <div className="space-y-2.5 max-h-[480px] overflow-y-auto pr-1">

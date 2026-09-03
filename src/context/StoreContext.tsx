@@ -77,6 +77,7 @@ interface StoreContextType {
   addSubCategory: (subCategory: Omit<SubCategory, 'id' | 'slug'>) => Promise<SubCategory>;
   updateSubCategory: (id: string, updates: Partial<SubCategory>) => Promise<void>;
   deleteSubCategory: (id: string) => Promise<void>;
+  syncAllSubCategoriesToServer: () => Promise<boolean>;
 
   // Order & Stock Management
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
@@ -1079,6 +1080,34 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     addToast(`Sous-catégorie "${(target && target.name) || ''}" supprimée`, 'info');
   };
 
+  const syncAllSubCategoriesToServer = async (): Promise<boolean> => {
+    try {
+      const res = await fetch(apiPath('/api/admin/subcategories/sync-all'), {
+        method: 'POST',
+        headers: authHeaders(true),
+        body: JSON.stringify(subCategories),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.subcategories) && data.subcategories.length > 0) {
+          setSubCategories(data.subcategories);
+          try {
+            localStorage.setItem(LOCAL_STORAGE_KEYS.SUBCATEGORIES, JSON.stringify(data.subcategories));
+          } catch {}
+        }
+        addToast('Toutes les catégories et images sont synchronisées et publiées sur le site public !', 'success');
+        return true;
+      } else {
+        const err = await res.json().catch(() => ({}));
+        addToast(err.error || 'Erreur lors de la synchronisation serveur.', 'error');
+      }
+    } catch (e) {
+      console.warn('Erreur syncAllSubCategoriesToServer:', e);
+      addToast('Impossible de contacter le serveur pour la synchronisation.', 'error');
+    }
+    return false;
+  };
+
   // Orders & Stocks
   const updateOrderStatus = (orderId: string, status: OrderStatus) => {
     setOrders(prev =>
@@ -1237,6 +1266,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         addSubCategory,
         updateSubCategory,
         deleteSubCategory,
+        syncAllSubCategoriesToServer,
         updateOrderStatus,
         deleteOrder,
         updateProductStock,

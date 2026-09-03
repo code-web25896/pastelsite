@@ -169,7 +169,7 @@ const route = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).ca
 // Validation Schemas
 const idString = z.string().min(1).max(128);
 const passwordSchema = z.string().min(6).max(128);
-const imageOrUrl = z.string().min(1).max(15000000);
+const imageOrUrl = z.string().max(15000000).nullable().optional();
 
 const userInput = z.object({
   email: z.string().email().max(254),
@@ -467,7 +467,17 @@ app.get('/api/subcategories', route(async (req, res) => {
         ? 'SELECT id, brand_id AS brandId, name, slug, description, image_url AS imageUrl, status, display_order AS displayOrder FROM subcategories WHERE status = ? AND brand_id = ? ORDER BY display_order, name'
         : 'SELECT id, brand_id AS brandId, name, slug, description, image_url AS imageUrl, status, display_order AS displayOrder FROM subcategories WHERE status = ? ORDER BY display_order, name';
       const [rows] = await pool.execute(sql, brandId ? ['active', brandId] : ['active']);
-      return res.json(rows.map((x) => ({ ...x, order: x.displayOrder })));
+      if (Array.isArray(rows) && rows.length > 0) {
+        const merged = rows.map((x) => {
+          const fromJson = jsonDbState.subcategories.find((s) => s.id === x.id || s.slug === x.slug);
+          return {
+            ...x,
+            order: x.displayOrder,
+            imageUrl: x.imageUrl || (fromJson && fromJson.imageUrl) || null,
+          };
+        });
+        return res.json(merged);
+      }
     } catch (err) {
       console.warn('MySQL subcategories failed:', err.message);
     }
@@ -847,6 +857,55 @@ app.delete('/api/admin/subcategories/:id', auth, admin, route(async (req, res) =
   jsonDbState.subcategories = jsonDbState.subcategories.filter((s) => s.id !== targetId);
   persistJsonDb();
   return res.status(204).end();
+}));
+
+// Synchronisation globale de toutes les sous-catégories (images incluses)
+app.post('/api/admin/subcategories/sync-all', auth, admin, route(async (req, res) => {
+  const items = Array.isArray(req.body) ? req.body : (req.body?.subcategories || []);
+  const processed = [];
+
+  for (const item of items) {
+    if (!item || !item.name) continue;
+    const subId = item.id || 'sub-' + crypto.randomUUID();
+    const slug = item.slug || item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    let imageUrl = item.imageUrl || null;
+    if (imageUrl && imageUrl.startsWith('data:image/')) {
+      imageUrl = materializeSubcategoryImage(imageUrl, subId);
+    }
+
+    const sub = {
+      id: subId,
+      brandId: item.brandId || 'brand-bomi',
+      name: item.name,
+      slug,
+      description: item.description || '',
+      imageUrl: imageUrl || item.imageUrl || null,
+      status: item.status || 'active',
+      order: Number(item.order || 0)
+    };
+
+    if (pool) {
+      try {
+        await pool.execute(
+          'INSERT INTO subcategories (id, brand_id, name, slug, description, image_url, status, display_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name), slug = VALUES(slug), description = VALUES(description), image_url = VALUES(image_url), status = VALUES(status), display_order = VALUES(display_order)',
+          [sub.id, sub.brandId, sub.name, sub.slug, sub.description, sub.imageUrl, sub.status, sub.order]
+        );
+      } catch (err) {
+        console.warn('MySQL bulk subcategory failed:', err.message);
+      }
+    }
+
+    const idx = jsonDbState.subcategories.findIndex((s) => s.id === sub.id || s.slug === sub.slug);
+    if (idx !== -1) {
+      jsonDbState.subcategories[idx] = { ...jsonDbState.subcategories[idx], ...sub };
+    } else {
+      jsonDbState.subcategories.push(sub);
+    }
+    processed.push(sub);
+  }
+
+  persistJsonDb();
+  return res.status(200).json({ success: true, count: processed.length, subcategories: processed });
 }));
 
 // Admin Products CRUD
