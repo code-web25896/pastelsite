@@ -365,6 +365,11 @@ app.post(['/api/auth/register', '/api/api/auth/register'], route(async (req, res
         'INSERT INTO users (id, email, password_hash, role, first_name, last_name, phone) VALUES (?, ?, ?, ?, ?, ?, ?)',
         [user.id, user.email, passwordHash, user.role, user.firstName, user.lastName, user.phone]
       );
+      // Keep a synchronized fallback record as well, so auth/reset still works during
+      // a transient MySQL outage after deployment.
+      jsonDbState.users = jsonDbState.users.filter((u) => u.email.toLowerCase() !== user.email);
+      jsonDbState.users.push({ ...user, passwordHash });
+      persistJsonDb();
       return res.status(201).json({ token: token(user), user });
     } catch (err) {
       if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Cet e-mail est deja enregistre.' });
