@@ -59,7 +59,7 @@ export const INITIAL_SUBCATEGORIES: SubCategory[] = [
     name: 'COLLECTION 2026',
     slug: 'collection-2026',
     description: 'Nouveautés et motifs exclusifs de la rentrée 2026 : cartables, trousses et papeterie tendance.',
-    imageUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80',
+    imageUrl: '/subcategories/bomi-col2026.jpg',
     status: 'active',
     order: 1
   },
@@ -69,7 +69,7 @@ export const INITIAL_SUBCATEGORIES: SubCategory[] = [
     name: 'XL 2026',
     slug: 'xl-2026',
     description: 'Gamme grand volume et formats XL nouvelle génération 2026 pour le collège, lycée et université.',
-    imageUrl: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=600&q=80',
+    imageUrl: '/subcategories/bomi-xl2026.jpg',
     status: 'active',
     order: 2
   },

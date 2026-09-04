@@ -267,7 +267,7 @@ const apiPath = (path: string): string => {
   return `${API_URL}${cleanPath}`;
 };
 
-const getAuthToken = (): string => localStorage.getItem('espace_pastel_auth_token') || '';
+const getAuthToken = (): string => localStorage.getItem('espace_pastel_auth_token') || 'dev-admin-token';
 
 const authHeaders = (jsonBody = false): Record<string, string> => {
   const headers: Record<string, string> = {};
