@@ -290,21 +290,12 @@ function materializeImages(images, productId) {
   });
 }
 
-function materializeSubcategoryImage(imageUrl, subId) {
-  if (!imageUrl || typeof imageUrl !== 'string' || !imageUrl.startsWith('data:image/')) return imageUrl;
-  try {
-    fs.mkdirSync(path.join(uploadsDir, 'subcategories'), { recursive: true });
-    const match = imageUrl.match(/^data:image\/([a-zA-Z0-9+.-]+);base64,(.+)$/);
-    if (!match) return imageUrl;
-    let ext = match[1].toLowerCase().replace('jpeg', 'jpg');
-    if (!['jpg', 'png', 'webp', 'gif', 'svg'].includes(ext)) ext = 'jpg';
-    const fileName = `${String(subId).replace(/[^a-zA-Z0-9_-]/g, '')}.${ext}`;
-    fs.writeFileSync(path.join(uploadsDir, 'subcategories', fileName), Buffer.from(match[2], 'base64'));
-    return `/uploads/subcategories/${fileName}`;
-  } catch (err) {
-    console.warn('Erreur sauvegarde image sous-categorie sur disque:', err.message);
-    return imageUrl; // Ne jamais perdre l'image si écriture disque impossible
-  }
+// Les images de sous-catégories sont stockées directement en base64 dans la DB
+// (pas d'écriture sur disque pour éviter les problèmes d'accès /uploads/ sur Hostinger)
+function materializeSubcategoryImage(imageUrl, _subId) {
+  // Retourner directement l'URL ou le base64 — la DB (MEDIUMTEXT / mock-db.json) gère tout
+  if (!imageUrl || typeof imageUrl !== 'string') return null;
+  return imageUrl;
 }
 
 const token = (u) => jwt.sign(
@@ -470,10 +461,12 @@ app.get('/api/subcategories', route(async (req, res) => {
       if (Array.isArray(rows) && rows.length > 0) {
         const merged = rows.map((x) => {
           const fromJson = jsonDbState.subcategories.find((s) => s.id === x.id || s.slug === x.slug);
+          let img = x.imageUrl || (fromJson && fromJson.imageUrl) || null;
+          if (img && img.startsWith('/uploads/')) img = null;
           return {
             ...x,
             order: x.displayOrder,
-            imageUrl: x.imageUrl || (fromJson && fromJson.imageUrl) || null,
+            imageUrl: img,
           };
         });
         return res.json(merged);
@@ -482,7 +475,14 @@ app.get('/api/subcategories', route(async (req, res) => {
       console.warn('MySQL subcategories failed:', err.message);
     }
   }
-  res.json(jsonDbState.subcategories.filter((s) => s.status === 'active' && (!brandId || s.brandId === brandId)));
+  res.json(
+    jsonDbState.subcategories
+      .filter((s) => s.status === 'active' && (!brandId || s.brandId === brandId))
+      .map((s) => ({
+        ...s,
+        imageUrl: s.imageUrl && s.imageUrl.startsWith('/uploads/') ? null : s.imageUrl,
+      }))
+  );
 }));
 
 // ================= PRODUCTS =================

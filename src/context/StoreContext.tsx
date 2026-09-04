@@ -167,53 +167,55 @@ const mergeBrandsFromApi = (apiBrands: Brand[]): Brand[] => {
   });
 };
 
+const normalizeSubCategoryKey = (sub: SubCategory) => {
+  const id = String(sub.id || '').trim().toLowerCase();
+  const slug = String(sub.slug || '').trim().toLowerCase();
+  return id || slug;
+};
+
 const mergeSubCategoriesFromApi = (apiSubCategories: SubCategory[]): SubCategory[] => {
   const storedSubCategories = parseStoredCollection<SubCategory>(LOCAL_STORAGE_KEYS.SUBCATEGORIES);
   const byKey = new Map<string, SubCategory>();
 
-  // 1. Données initiales par défaut
-  for (const subCategory of INITIAL_SUBCATEGORIES) {
-    byKey.set(subCategory.slug, subCategory);
-    byKey.set(subCategory.id, subCategory);
+  for (const sub of INITIAL_SUBCATEGORIES) {
+    byKey.set(normalizeSubCategoryKey(sub), sub);
+    if (sub.slug) byKey.set(sub.slug.toLowerCase(), sub);
+    if (sub.id) byKey.set(sub.id.toLowerCase(), sub);
   }
 
-  // 2. Données de l'API
-  for (const subCategory of apiSubCategories) {
-    const existing = byKey.get(subCategory.slug) || byKey.get(subCategory.id);
-    const merged = { ...existing, ...subCategory };
-    byKey.set(subCategory.slug, merged);
-    byKey.set(subCategory.id, merged);
+  for (const sub of apiSubCategories) {
+    const key = normalizeSubCategoryKey(sub);
+    const current = byKey.get(key) || (sub.slug ? byKey.get(sub.slug.toLowerCase()) : undefined) || (sub.id ? byKey.get(sub.id.toLowerCase()) : undefined);
+    const cleanImageUrl = sub.imageUrl && sub.imageUrl.startsWith('/uploads/') ? (current?.imageUrl || '') : (sub.imageUrl ?? current?.imageUrl ?? '');
+    const merged = { ...current, ...sub, imageUrl: cleanImageUrl };
+    byKey.set(key, merged);
+    if (sub.slug) byKey.set(sub.slug.toLowerCase(), merged);
+    if (sub.id) byKey.set(sub.id.toLowerCase(), merged);
   }
 
-  // 3. Données locales modifiées par l'administrateur (priorité pour conserver les images personnalisées)
-  for (const subCategory of storedSubCategories) {
-    const existing = byKey.get(subCategory.slug) || byKey.get(subCategory.id);
-    if (existing) {
-      const merged: SubCategory = {
-        ...existing,
-        ...subCategory,
-        // Si une image personnalisée existe dans le stockage local, la conserver absolument
-        imageUrl: subCategory.imageUrl || existing.imageUrl || '',
-      };
-      byKey.set(subCategory.slug, merged);
-      byKey.set(subCategory.id, merged);
-    } else {
-      byKey.set(subCategory.slug, subCategory);
-      byKey.set(subCategory.id, subCategory);
+  for (const sub of storedSubCategories) {
+    const key = normalizeSubCategoryKey(sub);
+    const current = byKey.get(key) || (sub.slug ? byKey.get(sub.slug.toLowerCase()) : undefined) || (sub.id ? byKey.get(sub.id.toLowerCase()) : undefined);
+    const cleanImageUrl = sub.imageUrl && sub.imageUrl.startsWith('/uploads/') ? (current?.imageUrl || '') : (sub.imageUrl ?? current?.imageUrl ?? '');
+    const merged = { ...current, ...sub, imageUrl: cleanImageUrl };
+    byKey.set(key, merged);
+    if (sub.slug) byKey.set(sub.slug.toLowerCase(), merged);
+    if (sub.id) byKey.set(sub.id.toLowerCase(), merged);
+  }
+
+  const unique = new Map<string, SubCategory>();
+  for (const sub of byKey.values()) {
+    if (sub && sub.id) {
+      const init = INITIAL_SUBCATEGORIES.find((item) => item.id === sub.id || item.slug === sub.slug);
+      unique.set(sub.id, {
+        ...sub,
+        imageUrl: sub.imageUrl || (init && init.imageUrl) || '',
+        status: sub.status || 'active',
+      });
     }
   }
 
-  // Dédupliquer par ID unique
-  const unique = new Map<string, SubCategory>();
-  for (const sub of byKey.values()) {
-    unique.set(sub.id, sub);
-  }
-
-  return Array.from(unique.values()).map((subCategory) => ({
-    ...subCategory,
-    imageUrl: subCategory.imageUrl || '',
-    status: subCategory.status || 'active',
-  }));
+  return Array.from(unique.values());
 };
 
 const normalizeCustomer = (value: unknown): Customer | null => {
