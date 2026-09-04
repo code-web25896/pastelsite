@@ -225,7 +225,9 @@ export const AdminView: React.FC = () => {
   const [pPrice, setPPrice] = useState('12.500');
   const [pPromoPrice, setPPromoPrice] = useState('');
   const [pStock, setPStock] = useState('20');
-  const [pImage, setPImage] = useState('https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80');
+  const defaultProductImage = 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80';
+  const [pImage, setPImage] = useState(defaultProductImage);
+  const [pGallery, setPGallery] = useState<string[]>([defaultProductImage]);
   const [imageUploadMode, setImageUploadMode] = useState<'upload' | 'url'>('upload');
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [pShortDesc, setPShortDesc] = useState('');
@@ -248,12 +250,31 @@ export const AdminView: React.FC = () => {
     try {
       const dataUrl = await readImageFile(file);
       setPImage(dataUrl);
+      setPGallery(prev => [dataUrl, ...prev.filter(image => image !== dataUrl)]);
       addToast('Image importée depuis votre appareil !', 'success');
     } catch {
       addToast('Erreur lors de la lecture du fichier image.', 'error');
     } finally {
       setIsUploadingImage(false);
     }
+  };
+
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    const valid = files.filter(file => file.size <= 8 * 1024 * 1024);
+    if (valid.length !== files.length) addToast('Certaines images dépassent 8 Mo et ont été ignorées.', 'warning');
+    try {
+      const dataUrls = await Promise.all(valid.map(readImageFile));
+      setPGallery(prev => [...prev, ...dataUrls.filter(image => !prev.includes(image))]);
+      setPImage(prev => prev || dataUrls[0] || '');
+      addToast(dataUrls.length + ' image(s) ajoutée(s) à la galerie.', 'success');
+    } catch { addToast('Erreur lors de la lecture des images.', 'error'); }
+    e.target.value = '';
+  };
+
+  const removeGalleryImage = (index: number) => {
+    setPGallery(prev => { const next = prev.filter((_, i) => i !== index); setPImage(next[0] || ''); return next; });
   };
 
   React.useEffect(() => {
@@ -409,8 +430,9 @@ export const AdminView: React.FC = () => {
       addToast('Choisissez une marque et une sous-catégorie.', 'error');
       return;
     }
-    if (!pImage) {
-      addToast('Ajoutez une photo du produit.', 'error');
+    const productImages = pGallery.length ? pGallery : (pImage ? [pImage] : []);
+    if (!productImages.length) {
+      addToast('Ajoutez au moins une photo du produit.', 'error');
       return;
     }
 
@@ -423,7 +445,7 @@ export const AdminView: React.FC = () => {
       price: parseFloat(pPrice) || 0,
       promoPrice: (pPromoPrice && parseFloat(pPromoPrice)) || undefined,
       stock: parseInt(pStock, 10) || 0,
-      images: [pImage],
+      images: productImages,
       shortDescription: pShortDesc || pName,
       description: pDesc || pShortDesc || pName,
       features: ['Qualité certifiée Espace Pastel', 'Usage scolaire et professionnel'],
@@ -462,6 +484,8 @@ export const AdminView: React.FC = () => {
 
   const resetProductForm = () => {
     setPName('');
+    setPImage(defaultProductImage);
+    setPGallery([defaultProductImage]);
     setPSku('');
     setPPrice('12.500');
     setPPromoPrice('');
@@ -494,6 +518,7 @@ export const AdminView: React.FC = () => {
     else setPPromoPrice('');
     setPStock(prod.stock.toString());
     setPImage(prod.images[0] || '');
+    setPGallery(prod.images?.length ? prod.images : []);
     setPShortDesc(prod.shortDescription);
     setPDesc(prod.description);
     setPBadge(prod.badge || 'AUCUN');
@@ -1568,7 +1593,7 @@ export const AdminView: React.FC = () => {
                   <input
                     type="url"
                     value={pImage}
-                    onChange={(e) => setPImage(e.target.value)}
+                    onChange={(e) => { const value = e.target.value; setPImage(value); setPGallery(prev => [value, ...prev.slice(1)]); }}
                     placeholder="https://images.unsplash.com/..."
                     className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none"
                   />
@@ -1599,6 +1624,11 @@ export const AdminView: React.FC = () => {
                     </button>
                   </div>
                 )}
+              </div>
+
+              <div className="mt-3 rounded-2xl border border-gray-200 bg-[#F7F7F8] p-3">
+                <div className="flex items-center justify-between gap-2 mb-2"><div><label className="block font-bold text-gray-700">Galerie du produit</label><p className="text-[10px] text-gray-500">Ajoutez plusieurs images depuis votre appareil. La première est l’image principale.</p></div><label className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#0B1833] text-white text-[11px] font-bold cursor-pointer"><Upload className="w-3.5 h-3.5" /> Ajouter des images<input type="file" accept="image/*" multiple className="hidden" onChange={handleGalleryUpload} /></label></div>
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">{pGallery.map((image, index) => (<div key={index + '-' + image.slice(0, 20)} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 bg-white"><img src={image} alt={'Image ' + (index + 1)} className="w-full h-full object-cover" />{index === 0 && <span className="absolute left-1 bottom-1 rounded bg-[#0B1833]/85 text-white text-[8px] px-1">Principale</span>}<button type="button" onClick={() => removeGalleryImage(index)} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-600 text-white flex items-center justify-center" title="Supprimer"><X className="w-3 h-3" /></button></div>))}</div>
               </div>
 
               <div>
