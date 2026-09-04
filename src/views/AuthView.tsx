@@ -20,7 +20,19 @@ export const AuthView: React.FC<{ initialMode?: Mode }> = ({ initialMode = 'logi
     event.preventDefault();
 
     if (mode === 'forgot') {
-      addToast('La reinitialisation par e-mail necessite la configuration SMTP du serveur.', 'info');
+      setLoading(true);
+      try {
+        const request = await fetch(apiUrl('auth/forgot-password'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+        const requestData = await request.json();
+        if (!request.ok) throw new Error(requestData.error || 'E-mail introuvable.');
+        if (requestData.resetToken) {
+          if (!password || password.length < 12) throw new Error('Saisissez un nouveau mot de passe de 12 caractères minimum.');
+          const reset = await fetch(apiUrl('auth/reset-password'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: requestData.resetToken, newPassword: password }) });
+          const resetData = await reset.json();
+          if (!reset.ok) throw new Error(resetData.error || 'Réinitialisation impossible.');
+          addToast('Mot de passe réinitialisé. Vous pouvez vous connecter.', 'success'); setMode('login'); setPassword('');
+        } else addToast(requestData.message || 'Consultez votre e-mail pour continuer.', 'info');
+      } catch (error) { addToast(error instanceof Error ? error.message : 'Réinitialisation impossible.', 'error'); } finally { setLoading(false); }
       return;
     }
 
@@ -134,6 +146,10 @@ export const AuthView: React.FC<{ initialMode?: Mode }> = ({ initialMode = 'logi
                 </span>
               )}
             </label>
+          )}
+
+          {mode === 'forgot' && (
+            <label className="block text-xs font-bold">Nouveau mot de passe<input required type="password" minLength={12} value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1.5 w-full rounded-xl border border-gray-200 py-3 px-3" placeholder="12 caractères minimum" /></label>
           )}
 
           <button

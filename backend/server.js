@@ -276,19 +276,10 @@ function asImageList(value) {
   return [];
 }
 
-function materializeImages(images, productId) {
-  fs.mkdirSync(path.join(uploadsDir, 'products'), { recursive: true });
-  return (images || []).map((img, index) => {
-    if (typeof img !== 'string' || !img.startsWith('data:image/')) return img;
-    const match = img.match(/^data:image\/([a-zA-Z0-9+.-]+);base64,(.+)$/);
-    if (!match) return img;
-    let ext = match[1].toLowerCase().replace('jpeg', 'jpg');
-    if (ext.includes('svg')) ext = 'svg';
-    if (!['jpg', 'png', 'webp', 'gif', 'svg'].includes(ext)) ext = 'jpg';
-    const fileName = `${String(productId).replace(/[^a-zA-Z0-9_-]/g, '')}-${index}.${ext}`;
-    fs.writeFileSync(path.join(uploadsDir, 'products', fileName), Buffer.from(match[2], 'base64'));
-    return `/uploads/products/${fileName}`;
-  });
+function materializeImages(images, _productId) {
+  // Keep uploaded data URLs in the persistent database/JSON record. The deployment
+  // filesystem may be replaced on redeploy, while DB/JSON records remain durable.
+  return (images || []).filter((img) => typeof img === 'string' && img.length <= 15000000);
 }
 
 // Les images de sous-catégories sont stockées directement en base64 dans la DB
@@ -418,6 +409,36 @@ app.post(['/api/auth/login', '/api/api/auth/login'], route(async (req, res) => {
   }
 
   return res.status(401).json({ error: 'Identifiants invalides.' });
+}));
+
+app.post(['/api/auth/forgot-password', '/api/api/auth/forgot-password'], route(async (req, res) => {
+  const { email } = z.object({ email: z.string().email() }).parse(req.body);
+  const normalized = email.toLowerCase();
+  const existsMysql = pool ? await pool.execute('SELECT id FROM users WHERE email = ? LIMIT 1').then(([rows]) => Boolean(rows[0])).catch(() => false) : false;
+  const existsJson = jsonDbState.users.some((u) => u.email.toLowerCase() === normalized);
+  if (!existsMysql && !existsJson) return res.status(404).json({ error: 'Aucun compte ne correspond à cet e-mail.' });
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  jsonDbState.passwordResets = (jsonDbState.passwordResets || []).filter((r) => new Date(r.expiresAt) > new Date());
+  jsonDbState.passwordResets.push({ token: resetToken, email: normalized, expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString() });
+  persistJsonDb();
+  const response = { success: true, message: 'Demande reçue. Utilisez le lien envoyé par e-mail pour choisir un nouveau mot de passe.' };
+  if (process.env.NODE_ENV !== 'production') response.resetToken = resetToken;
+  return res.json(response);
+}));
+
+app.post(['/api/auth/reset-password', '/api/api/auth/reset-password'], route(async (req, res) => {
+  const { token: resetToken, newPassword } = z.object({ token: z.string().min(20), newPassword: passwordSchema }).parse(req.body);
+  const entry = (jsonDbState.passwordResets || []).find((r) => r.token === resetToken && new Date(r.expiresAt) > new Date());
+  if (!entry) return res.status(400).json({ error: 'Lien de réinitialisation invalide ou expiré.' });
+  const hash = await bcrypt.hash(newPassword, 10);
+  let updated = false;
+  if (pool) { try { const [result] = await pool.execute('UPDATE users SET password_hash = ? WHERE email = ?', [hash, entry.email]); updated = Number(result.affectedRows || 0) > 0; } catch (err) { console.warn('MySQL password reset failed:', err.message); } }
+  const user = jsonDbState.users.find((u) => u.email.toLowerCase() === entry.email);
+  if (user) { user.passwordHash = hash; updated = true; }
+  jsonDbState.passwordResets = (jsonDbState.passwordResets || []).filter((r) => r.token !== resetToken);
+  persistJsonDb();
+  if (!updated) return res.status(404).json({ error: 'Utilisateur introuvable.' });
+  return res.json({ success: true, message: 'Mot de passe réinitialisé avec succès.' });
 }));
 
 app.get(['/api/auth/me', '/api/api/auth/me'], auth, route(async (req, res) => {
