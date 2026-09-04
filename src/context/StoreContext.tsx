@@ -183,7 +183,8 @@ const mergeSubCategoriesFromApi = (apiSubCategories: SubCategory[]): SubCategory
     if (sub.id) byKey.set(sub.id.toLowerCase(), sub);
   }
 
-  for (const sub of apiSubCategories) {
+  // Cached data is only a fallback; the server response below is authoritative after edits.
+  for (const sub of storedSubCategories) {
     const key = normalizeSubCategoryKey(sub);
     const current = byKey.get(key) || (sub.slug ? byKey.get(sub.slug.toLowerCase()) : undefined) || (sub.id ? byKey.get(sub.id.toLowerCase()) : undefined);
     const cleanImageUrl = sub.imageUrl && sub.imageUrl.startsWith('/uploads/') ? (current?.imageUrl || '') : (sub.imageUrl ?? current?.imageUrl ?? '');
@@ -193,7 +194,8 @@ const mergeSubCategoriesFromApi = (apiSubCategories: SubCategory[]): SubCategory
     if (sub.id) byKey.set(sub.id.toLowerCase(), merged);
   }
 
-  for (const sub of storedSubCategories) {
+  // API data wins over stale localStorage values, including the latest image upload.
+  for (const sub of apiSubCategories) {
     const key = normalizeSubCategoryKey(sub);
     const current = byKey.get(key) || (sub.slug ? byKey.get(sub.slug.toLowerCase()) : undefined) || (sub.id ? byKey.get(sub.id.toLowerCase()) : undefined);
     const cleanImageUrl = sub.imageUrl && sub.imageUrl.startsWith('/uploads/') ? (current?.imageUrl || '') : (sub.imageUrl ?? current?.imageUrl ?? '');
