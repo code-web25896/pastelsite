@@ -52,7 +52,7 @@ export const CheckoutView: React.FC = () => {
   
   // Delivery & Payment
   const [deliveryType, setDeliveryType] = useState<'delivery' | 'pickup'>('delivery');
-  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'card' | 'pickup'>('cod');
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'pickup'>('cod');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
 
@@ -479,22 +479,7 @@ export const CheckoutView: React.FC = () => {
                 </div>
               </label>
 
-              <label 
-                className={paymentOptionClass('card')}
-              >
-                <input
-                  type="radio"
-                  name="payment"
-                  checked={paymentMethod === 'card'}
-                  onChange={() => setPaymentMethod('card')}
-                  className="accent-[#0B1833]"
-                />
-                <CreditCard className="w-5 h-5 text-[#0B1833]" />
-                <div className="flex-1">
-                  <div className="font-bold text-xs text-[#0B1833]">Carte bancaire tunisienne (GIM-TEL)</div>
-                  <div className="text-[11px] text-gray-500">Paiement 100% sécurisé via passerelle bancaire tunisienne.</div>
-                </div>
-              </label>
+
             </div>
           </div>
 

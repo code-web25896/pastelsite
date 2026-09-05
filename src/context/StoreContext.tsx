@@ -123,6 +123,11 @@ const LOCAL_STORAGE_KEYS = {
   VIEW: 'espace_pastel_view_v1',
 };
 
+const safeStorageSet = (key: string, value: unknown): void => {
+  try { localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value)); }
+  catch (error) { console.warn('Stockage local plein, donnees conservees par le serveur:', error); }
+};
+
 const parseStoredCollection = <T,>(key: string): T[] => {
   try {
     const raw = localStorage.getItem(key);
@@ -434,35 +439,35 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Reactive LocalStorage persistence
   useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEYS.BRANDS, JSON.stringify(brands));
+    safeStorageSet(LOCAL_STORAGE_KEYS.BRANDS, brands);
   }, [brands]);
 
   useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEYS.SUBCATEGORIES, JSON.stringify(subCategories));
+    safeStorageSet(LOCAL_STORAGE_KEYS.SUBCATEGORIES, subCategories);
   }, [subCategories]);
 
   useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
+    safeStorageSet(LOCAL_STORAGE_KEYS.PRODUCTS, products);
   }, [products]);
 
   useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEYS.REVIEWS, JSON.stringify(reviews));
+    safeStorageSet(LOCAL_STORAGE_KEYS.REVIEWS, reviews);
   }, [reviews]);
 
   useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEYS.ORDERS, JSON.stringify(orders));
+    safeStorageSet(LOCAL_STORAGE_KEYS.ORDERS, orders);
   }, [orders]);
 
   useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEYS.CART, JSON.stringify(cart));
+    safeStorageSet(LOCAL_STORAGE_KEYS.CART, cart);
   }, [cart]);
 
   useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEYS.WISHLIST, JSON.stringify(wishlist));
+    safeStorageSet(LOCAL_STORAGE_KEYS.WISHLIST, wishlist);
   }, [wishlist]);
 
   useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEYS.USER, JSON.stringify(currentUser));
+    safeStorageSet(LOCAL_STORAGE_KEYS.USER, currentUser);
   }, [currentUser]);
 
   useEffect(() => {
@@ -603,7 +608,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const navigateTo = (view: ViewType) => {
     setCurrentView(view);
-    localStorage.setItem(LOCAL_STORAGE_KEYS.VIEW, JSON.stringify(view));
+    safeStorageSet(LOCAL_STORAGE_KEYS.VIEW, view);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -679,7 +684,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const setIsAdminMode = (admin: boolean) => {
     if (admin) {
-      localStorage.setItem('espace_pastel_auth_token', 'dev-admin-token');
+      safeStorageSet('espace_pastel_auth_token', 'dev-admin-token');
       setCurrentUser(INITIAL_CUSTOMERS[1]); // Admin user
       addToast('Mode Administrateur activé', 'info');
     } else {
@@ -691,7 +696,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const login = (email: string, role: 'customer' | 'admin' = 'customer') => {
     if (email.toLowerCase().includes('admin') || role === 'admin') {
-      localStorage.setItem('espace_pastel_auth_token', 'dev-admin-token');
+      safeStorageSet('espace_pastel_auth_token', 'dev-admin-token');
       setCurrentUser(INITIAL_CUSTOMERS[1]);
       addToast('Bienvenue dans l\'administration Espace Pastel', 'success');
       return true;
@@ -1032,7 +1037,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (data && Array.isArray(data.subcategories) && data.subcategories.length > 0) {
           setSubCategories(data.subcategories);
           try {
-            localStorage.setItem(LOCAL_STORAGE_KEYS.SUBCATEGORIES, JSON.stringify(data.subcategories));
+            safeStorageSet(LOCAL_STORAGE_KEYS.SUBCATEGORIES, data.subcategories);
           } catch {}
         }
         addToast('Toutes les catégories et images sont synchronisées et publiées sur le site public !', 'success');
