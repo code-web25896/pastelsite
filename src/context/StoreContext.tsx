@@ -239,7 +239,8 @@ const normalizeCustomer = (value: unknown): Customer | null => {
         isDefault: Boolean(addressEntry.isDefault),
       };
     });
-  if (!candidate.id || !candidate.firstName || !candidate.lastName || !candidate.email || !candidate.phone || !candidate.role || !candidate.createdAt) return null;
+  // Phone is optional in the database; it must not invalidate an admin session on F5.
+  if (!candidate.id || !candidate.firstName || !candidate.lastName || !candidate.email || !candidate.role || !candidate.createdAt) return null;
   let role: 'customer' | 'admin' = 'customer';
   if (candidate.role === 'admin') role = 'admin';
   let address: string | undefined = undefined;
