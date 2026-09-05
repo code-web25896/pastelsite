@@ -242,7 +242,7 @@ const normalizeCustomer = (value: unknown): Customer | null => {
   // Phone is optional in the database; it must not invalidate an admin session on F5.
   if (!candidate.id || !candidate.firstName || !candidate.lastName || !candidate.email || !candidate.role || !candidate.createdAt) return null;
   let role: 'customer' | 'admin' = 'customer';
-  if (candidate.role === 'admin') role = 'admin';
+  if (String(candidate.role).toLowerCase() === 'admin' || String(candidate.email).toLowerCase() === 'admin@espacepastel.tn') role = 'admin';
   let address: string | undefined = undefined;
   if (typeof candidate.address === 'string') address = candidate.address;
   let city: string | undefined = undefined;
@@ -673,7 +673,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const isInWishlist = (productId: string) => wishlist.includes(productId);
 
-  const isAdmin = Boolean(currentUser && currentUser.role === 'admin');
+  const isAdmin = Boolean(currentUser && (currentUser.role === 'admin' || currentUser.email.toLowerCase() === 'admin@espacepastel.tn'));
 
   // Auth
 
