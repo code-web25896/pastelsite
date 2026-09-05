@@ -80,7 +80,7 @@ export const AuthView: React.FC<{ initialMode?: Mode }> = ({ initialMode = 'logi
         <h1 className="font-sans font-black text-2xl text-[#0B1833]">{title}</h1>
         <p className="text-sm text-gray-500 mt-2">
           {mode === 'login'
-            ? 'Accedez a votre espace client ou a l administration.'
+            ? 'Accedez a votre espace client.'
             : mode === 'register'
               ? 'Les comptes crees sont des comptes clients.'
               : 'Saisissez votre adresse e-mail pour demander une reinitialisation.'}

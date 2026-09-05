@@ -1019,8 +1019,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const deleteSubCategory = async (id: string): Promise<void> => {
-    const target = subCategories.find(s => s.id === id);
-    setSubCategories(prev => prev.filter(s => s.id !== id));
+    const target = subCategories.find(s => s.id === id || s.slug === id);
+    const removedIds = new Set(subCategories.filter(s => s.id === id || s.slug === id).map(s => s.id));
+    removedIds.add(id);
+    setSubCategories(prev => prev.filter(s => s.id !== id && s.slug !== id));
+    setProducts(prev => prev.filter(product => !removedIds.has(product.subCategoryId)));
+    setCart(prev => prev.filter(item => !removedIds.has(item.product.subCategoryId)));
     syncApiMutation('DELETE', `/api/admin/subcategories/${id}`, undefined);
     addToast(`Sous-catégorie "${(target && target.name) || ''}" supprimée`, 'info');
   };

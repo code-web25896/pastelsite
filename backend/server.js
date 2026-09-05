@@ -878,12 +878,19 @@ app.delete('/api/admin/subcategories/:id', auth, admin, route(async (req, res) =
   const targetId = req.params.id;
   if (pool) {
     try {
-      await pool.execute('DELETE FROM subcategories WHERE id = ?', [targetId]);
+      const [rows] = await pool.execute('SELECT id FROM subcategories WHERE id = ? OR slug = ? LIMIT 1', [targetId, targetId]);
+      const subId = rows[0]?.id || targetId;
+      // Products reference their subcategory, so remove them first to keep DB and catalogue consistent.
+      await pool.execute('DELETE FROM products WHERE subcategory_id = ?', [subId]);
+      await pool.execute('DELETE FROM subcategories WHERE id = ? OR slug = ?', [targetId, targetId]);
     } catch (err) {
       console.warn('MySQL delete subcategory failed:', err.message);
     }
   }
-  jsonDbState.subcategories = jsonDbState.subcategories.filter((s) => s.id !== targetId);
+  const removedIds = new Set(jsonDbState.subcategories.filter((s) => s.id === targetId || s.slug === targetId).map((s) => s.id));
+  removedIds.add(targetId);
+  jsonDbState.subcategories = jsonDbState.subcategories.filter((s) => s.id !== targetId && s.slug !== targetId);
+  jsonDbState.products = jsonDbState.products.filter((p) => !removedIds.has(p.subCategoryId));
   persistJsonDb();
   return res.status(204).end();
 }));
