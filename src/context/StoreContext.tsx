@@ -571,6 +571,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     void refreshOrders();
   }, [refreshOrders]);
 
+  // Auto-refresh admin data so new orders/products appear without a manual reload.
+  useEffect(() => {
+    if (currentUser?.role !== 'admin') return;
+    const timer = window.setInterval(() => {
+      void refreshOrders();
+      if (document.visibilityState === 'visible') window.dispatchEvent(new Event('visibilitychange'));
+    }, 30000);
+    return () => window.clearInterval(timer);
+  }, [currentUser?.role, refreshOrders]);
+
 
 
 
