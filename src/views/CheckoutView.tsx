@@ -72,7 +72,7 @@ export const CheckoutView: React.FC = () => {
     'Autre gouvernorat'
   ];
 
-  const FREE_SHIPPING_THRESHOLD = 100.0;
+  const FREE_SHIPPING_THRESHOLD = 500.0;
   let shippingFee = 7.0;
   if (deliveryType === 'pickup' || cartSubtotal >= FREE_SHIPPING_THRESHOLD) shippingFee = 0;
   const total = cartSubtotal + shippingFee;

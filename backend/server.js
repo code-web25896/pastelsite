@@ -628,7 +628,7 @@ app.post('/api/orders', optionalAuth, route(async (req, res) => {
   }
 
   const isPickup = x.paymentMethod === 'pickup' || x.customer.address.toLowerCase().includes('retrait');
-  const shippingFee = (isPickup || subtotal >= 100) ? 0 : 7;
+  const shippingFee = (isPickup || subtotal >= 500) ? 0 : 7;
   const total = subtotal + shippingFee;
   const userId = req.user?.sub || 'usr-guest-' + crypto.randomUUID().slice(0, 8);
 
