@@ -6,9 +6,10 @@ function requiredVars(names) {
 
 export function getMysqlConnectionConfig() {
   const databaseUrl = String(process.env.DATABASE_URL || '').trim();
-  if (databaseUrl) return databaseUrl;
-
-  const missing = requiredVars(['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD']);
+  const required = ['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'];
+  const missing = requiredVars(required);
+  // Hostinger exposes separate DB_* variables; they must take precedence over a stale DATABASE_URL.
+  if (missing.length === required.length && databaseUrl) return databaseUrl;
   if (missing.length) {
     throw new Error('Variables manquantes : ' + missing.join(', '));
   }
