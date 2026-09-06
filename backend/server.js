@@ -995,8 +995,8 @@ app.post('/api/admin/products', auth, admin, route(async (req, res) => {
         ]
       );
     } catch (err) {
-      console.error('MySQL insert product failed:', err.message);
-      return res.status(500).json({ error: 'Impossible d\'enregistrer le produit en base. ' + err.message });
+      // Keep the product in the persistent JSON catalogue when MySQL rejects a legacy relation.
+      console.warn('MySQL insert product failed, saved to JSON catalogue:', err.message);
     }
   }
 
