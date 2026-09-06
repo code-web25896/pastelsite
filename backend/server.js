@@ -18,6 +18,17 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DB_FILE = path.join(__dirname, 'mock-db.json');
 const uploadsDir = path.join(__dirname, 'uploads');
 const clientDist = path.resolve(__dirname, '..', 'dist');
+// Produits de démonstration de l'ancien catalogue local. Ils ne doivent jamais
+// être mélangés avec le catalogue MySQL réel ni réapparaître après déploiement.
+const DEMO_PRODUCT_IDS = new Set([
+  'prod-bomi-cahier-a4', 'prod-bomi-stylo-gel', 'prod-bomi-crayons-couleurs',
+  'prod-bomi-sac-scolaire', 'prod-bomi-trousse-double', 'prod-wama-carnet-cuir',
+  'prod-wama-surligneurs-pastel', 'prod-wama-set-bureau',
+  'prod-fourniture-classeur-levier', 'prod-fourniture-bloc-notes',
+  'prod-fourniture-kit-geometrie', 'prod-arts-coffret-aquarelle',
+  'prod-arts-set-pinceaux', 'prod-arts-carnet-croquis',
+  'prod-arts-toile-chassis', 'prod-arts-marqueurs-alcool'
+]);
 
 const JWT_SECRET = process.env.JWT_SECRET && process.env.JWT_SECRET.length >= 32
   ? process.env.JWT_SECRET
@@ -96,6 +107,25 @@ function persistJsonDb() {
   }
 }
 
+function removeDemoProductsFromJson() {
+  const products = Array.isArray(jsonDbState.products) ? jsonDbState.products : [];
+  const cleaned = products.filter((product) => !DEMO_PRODUCT_IDS.has(String(product?.id)));
+  if (cleaned.length !== products.length) {
+    jsonDbState.products = cleaned;
+    persistJsonDb();
+    console.log(`Catalogue local nettoyé: ${products.length - cleaned.length} produits de démonstration supprimés.`);
+  }
+}
+
+async function removeDemoProductsFromMysql() {
+  if (!pool || DEMO_PRODUCT_IDS.size === 0) return;
+  const ids = Array.from(DEMO_PRODUCT_IDS);
+  const placeholders = ids.map(() => '?').join(',');
+  const [result] = await pool.query(`DELETE FROM products WHERE id IN (${placeholders})`, ids);
+  if (result.affectedRows) console.log(`Catalogue MySQL nettoyé: ${result.affectedRows} produits de démonstration supprimés.`);
+}
+
+removeDemoProductsFromJson();
 function mergeById(primary = [], secondary = []) {
   const map = new Map();
   for (const item of secondary) {
@@ -1133,6 +1163,7 @@ async function bootstrap() {
   if (pool) {
     try {
       await initializeDatabase(pool);
+      await removeDemoProductsFromMysql();
     } catch (error) {
       console.warn('Initialisation MySQL non executee:', error.message || error);
     }
