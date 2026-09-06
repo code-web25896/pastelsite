@@ -69,7 +69,7 @@ export async function initializeDatabase(pool) {
   const adminEmail = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase();
   if (adminEmail) {
     try {
-      await pool.execute('UPDATE users SET role = 'admin' WHERE email = ?', [adminEmail]);
+      await pool.execute("UPDATE users SET role = 'admin' WHERE email = ?", [adminEmail]);
     } catch (error) {
       console.warn('Role admin non migre:', error.message || error);
     }
