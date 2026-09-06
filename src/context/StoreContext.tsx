@@ -539,7 +539,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             nextProducts = mergeByIdProducts(extras, published);
           }
         }
-        if (nextProducts) setProducts(nextProducts);
+        const storedProducts = parseStoredCollection<Product>(LOCAL_STORAGE_KEYS.PRODUCTS).filter(isUsableProduct);
+        if (currentUser?.role === 'admin' && storedProducts.length > (nextProducts?.length || 0)) {
+          const serverIds = new Set((nextProducts || []).map((product) => product.id));
+          const pending = storedProducts.filter((product) => !serverIds.has(product.id));
+          // Recover products created while the API was unavailable, including their data-url images.
+          await Promise.all(pending.map(async (product) => {
+            try {
+              await fetch(apiPath('/api/admin/products'), {
+                method: 'POST',
+                headers: authHeaders(true),
+                body: JSON.stringify({ ...product, promoPrice: product.promoPrice ?? null, badge: product.badge || null, status: product.status || 'published' }),
+              });
+            } catch { /* keep local copy; retry on next dashboard refresh */ }
+          }));
+        }
+        if (nextProducts) setProducts(mergeByIdProducts(nextProducts, storedProducts));
       } catch {
         /* keep local fallback */
       }
