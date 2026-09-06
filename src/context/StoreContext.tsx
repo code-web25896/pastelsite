@@ -287,6 +287,18 @@ const authHeaders = (jsonBody = false): Record<string, string> => {
   return headers;
 };
 
+const DEMO_PRODUCT_IDS = new Set([
+  'prod-bomi-cahier-a4', 'prod-bomi-stylo-gel', 'prod-bomi-crayons-couleurs',
+  'prod-bomi-sac-scolaire', 'prod-bomi-trousse-double', 'prod-wama-carnet-cuir',
+  'prod-wama-surligneurs-pastel', 'prod-wama-set-bureau',
+  'prod-fourniture-classeur-levier', 'prod-fourniture-bloc-notes',
+  'prod-fourniture-kit-geometrie', 'prod-arts-coffret-aquarelle',
+  'prod-arts-set-pinceaux', 'prod-arts-carnet-croquis',
+  'prod-arts-toile-chassis', 'prod-arts-marqueurs-alcool'
+]);
+
+const withoutDemoProducts = <T extends Partial<Product>>(products: T[]): T[] =>
+  products.filter((product) => !DEMO_PRODUCT_IDS.has(String(product?.id)));
 const isUsableProduct = (product: Partial<Product> | null | undefined): product is Product =>
   Boolean(product && product.id && product.name);
 
@@ -366,13 +378,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       try {
         const parsed = JSON.parse(saved) as Product[];
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.filter(isUsableProduct);
+          return withoutDemoProducts(parsed).filter(isUsableProduct);
         }
       } catch {
-        return INITIAL_PRODUCTS;
+        return withoutDemoProducts(INITIAL_PRODUCTS);
       }
     }
-    return INITIAL_PRODUCTS;
+    return withoutDemoProducts(INITIAL_PRODUCTS);
   });
 
   const [reviews, setReviews] = useState<Review[]>(() => {
@@ -539,7 +551,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             nextProducts = mergeByIdProducts(extras, published);
           }
         }
-        const storedProducts = parseStoredCollection<Product>(LOCAL_STORAGE_KEYS.PRODUCTS).filter(isUsableProduct);
+        const storedProducts = withoutDemoProducts(parseStoredCollection<Product>(LOCAL_STORAGE_KEYS.PRODUCTS)).filter(isUsableProduct);
         if (currentUser?.role === 'admin' && storedProducts.length > (nextProducts?.length || 0)) {
           const serverIds = new Set((nextProducts || []).map((product) => product.id));
           const pending = storedProducts.filter((product) => !serverIds.has(product.id));
