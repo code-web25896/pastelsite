@@ -499,14 +499,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       try {
         const token = getAuthToken();
         const productHeaders: Record<string, string> = {};
-        if (token && token !== 'dev-admin-token') {
+        if (token) {
           productHeaders.Authorization = `Bearer ${token}`;
         }
         const [brandsResponse, subcategoriesResponse, productsResponse, adminProductsResponse] = await Promise.all([
           fetch(apiPath('/api/brands')),
           fetch(apiPath('/api/subcategories')),
           fetch(apiPath('/api/products')),
-          token && token !== 'dev-admin-token'
+          currentUser?.role === 'admin'
             ? fetch(apiPath('/api/admin/products'), { headers: productHeaders })
             : Promise.resolve(null),
         ]);
