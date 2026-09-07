@@ -605,16 +605,31 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Chargement prioritaire du catalogue : ne pas attendre les marques ou le back-office.
   useEffect(() => {
     let cancelled = false;
-    fetch(apiPath('/api/products?limit=500'))
-      .then((response) => response.ok ? response.json() : null)
-      .then((data) => {
-        if (!cancelled && Array.isArray(data)) {
-          setProducts(data.filter(isUsableProduct));
-          setCatalogLoading(false);
+    const url = apiPath('/api/products?limit=500');
+    const apply = (data: unknown) => {
+      if (!cancelled && Array.isArray(data)) {
+        setProducts(data.filter(isUsableProduct));
+        setCatalogLoading(false);
+      }
+    };
+    const load = async () => {
+      try {
+        if ('caches' in window) {
+          const cache = await caches.open('espace-pastel-catalog-v1');
+          const cached = await cache.match(url);
+          if (cached) apply(await cached.json());
         }
-      })
-      .catch(() => { /* le chargement complet conserve le cache local */ });
-    return () => { cancelled = true; };
+        const response = await fetch(url);
+        if (!response.ok) return;
+        const copy = response.clone();
+        apply(await response.json());
+        if ('caches' in window) {
+          const cache = await caches.open('espace-pastel-catalog-v1');
+          await cache.put(url, copy);
+        }
+      } catch { /* le chargement complet conserve le cache local */ }
+    };
+    void load();    return () => { cancelled = true; };
   }, []);
   useEffect(() => {
     void refreshOrders();
