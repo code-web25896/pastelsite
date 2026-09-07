@@ -31,7 +31,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
   initialPromoOnly = false,
   initialIsNewOnly = false
 }) => {
-  const { products, brands, subCategories, formatPrice, navigateTo } = useStore();
+  const { products, brands, subCategories, formatPrice, navigateTo, catalogLoading } = useStore();
 
   // Filter States
   const [search, setSearch] = useState(initialSearchQuery);
@@ -450,7 +450,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
               </button>
 
               <span className="text-xs font-semibold text-[#0B1833]">
-                <strong>{sortedProducts.length}</strong> produit{sortedProducts.length > 1 ? 's' : ''} trouvé{sortedProducts.length > 1 ? 's' : ''}
+                {catalogLoading && sortedProducts.length === 0 ? <strong>Chargement…</strong> : <strong>{sortedProducts.length}</strong>} produit{sortedProducts.length > 1 ? 's' : ''} trouvé{sortedProducts.length > 1 ? 's' : ''}
               </span>
             </div>
 

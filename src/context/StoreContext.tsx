@@ -30,6 +30,7 @@ interface StoreContextType {
   brands: Brand[];
   subCategories: SubCategory[];
   products: Product[];
+  catalogLoading: boolean;
   reviews: Review[];
   orders: Order[];
   
@@ -374,6 +375,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return INITIAL_SUBCATEGORIES;
   });
 
+  const [catalogLoading, setCatalogLoading] = useState(true);
+
   const [products, setProducts] = useState<Product[]>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.PRODUCTS);
     if (saved) {
@@ -510,6 +513,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     let cancelled = false;
     const loadCatalog = async () => {
+      setCatalogLoading(true);
       try {
         const token = getAuthToken();
         const productHeaders: Record<string, string> = {};
@@ -557,6 +561,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (nextProducts) setProducts(nextProducts);
       } catch {
         /* keep local fallback */
+      } finally {
+        setCatalogLoading(false);
       }
     };
     void loadCatalog();
@@ -1197,6 +1203,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         brands,
         subCategories,
         products,
+        catalogLoading,
         reviews,
         orders,
         refreshOrders,
