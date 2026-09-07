@@ -465,7 +465,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     // Cache léger : conserver le catalogue complet sans saturer localStorage avec les images.
-    const lightweightProducts = products.map((product) => ({ ...product, images: [] }));
+    const lightweightProducts = products.map((product) => ({
+      ...product,
+      // Conserver les images originales (URLs/uploads) ; retirer seulement les base64 lourdes.
+      images: Array.isArray(product.images)
+        ? product.images.filter((src) => !String(src).startsWith('data:image/')).slice(0, 4)
+        : [],
+    }));
     safeStorageSet(LOCAL_STORAGE_KEYS.PRODUCTS, lightweightProducts);
   }, [products]);
 
