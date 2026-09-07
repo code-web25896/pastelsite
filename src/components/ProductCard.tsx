@@ -3,6 +3,7 @@ import { Product } from '../types';
 import { useStore } from '../context/StoreContext';
 import { Star, ShoppingBag, Heart, Eye, Phone, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
+import { resolveProductImage } from '../utils/imageUrl';
 
 interface ProductCardProps {
   product: Product;
@@ -49,10 +50,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         onClick={() => navigateTo({ type: 'product', productId: product.id })}
       >
         <img
-          src={product.images[0] || '/logo.webp'}
+          src={resolveProductImage(product.images?.[0])}
           alt={product.name}
           className="w-full h-full object-cover object-center transform transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = '/logo.webp';
+          }}
         />
 
         {/* Badges on Top-Left */}

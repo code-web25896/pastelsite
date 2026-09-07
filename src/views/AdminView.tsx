@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useStore } from '../context/StoreContext';
+import { resolveProductImage } from '../utils/imageUrl';
 import { Product, Brand, SubCategory, Order, Review, ProductActionType } from '../types';
 import { 
   LayoutDashboard, 
@@ -1080,7 +1081,12 @@ export const AdminView: React.FC = () => {
                   return (
                     <tr key={p.id} className="hover:bg-gray-50/50">
                       <td className="py-3">
-                        <img src={p.images[0]} alt={p.name} className="w-10 h-10 object-cover rounded-lg border border-gray-100" />
+                        <img
+                          src={resolveProductImage(p.images?.[0])}
+                          alt={p.name}
+                          className="w-10 h-10 object-cover rounded-lg border border-gray-100"
+                          onError={(e) => { (e.target as HTMLImageElement).src = '/logo.webp'; }}
+                        />
                       </td>
                       <td className="py-3 font-mono text-[11px] text-gray-500">{p.sku}</td>
                       <td className="py-3 font-bold text-[#0B1833] max-w-[200px] truncate">{p.name}</td>
@@ -1603,7 +1609,7 @@ export const AdminView: React.FC = () => {
                 {pImage && (
                   <div className="mt-2.5 flex items-center gap-3 bg-[#F7F7F8] p-2.5 rounded-xl border border-gray-200">
                     <img
-                      src={pImage}
+                      src={resolveProductImage(pImage)}
                       alt="Aperçu produit"
                       className="w-12 h-12 object-cover rounded-lg border border-gray-200 bg-white"
                       onError={(e) => {
@@ -2039,9 +2045,10 @@ export const AdminView: React.FC = () => {
                   <div key={i} className="flex justify-between items-center text-xs py-3 border-b border-gray-100 last:border-0 gap-3 bg-gray-50/60 p-3 rounded-2xl">
                     <div className="flex items-center gap-3 min-w-0">
                       <img 
-                        src={it.image || '/logo.webp'} 
+                        src={resolveProductImage(it.image)} 
                         alt={it.productName} 
                         className="w-14 h-14 rounded-xl object-cover border border-gray-200 flex-shrink-0 bg-white shadow-xs" 
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/logo.webp'; }}
                       />
                       <div className="min-w-0 space-y-1.5">
                         <div className="font-extrabold text-[#0B1833] text-sm truncate">

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
+import { resolveProductImage } from '../utils/imageUrl';
 import { 
   X, 
   Trash2, 
@@ -144,9 +145,10 @@ export const CartDrawer: React.FC = () => {
                 return (
                   <div key={item.productId + '-' + (item.selectedSize || 'no-size') + '-' + (item.selectedColor?.hex || 'no-color')} className="py-4 flex gap-3 first:pt-0 last:pb-0">
                     <img
-                      src={item.product.images[0] || '/logo.webp'}
+                      src={resolveProductImage(item.product.images?.[0])}
                       alt={item.product.name}
                       className="w-16 h-16 object-cover rounded-xl border border-gray-100 flex-shrink-0 cursor-pointer"
+                      onError={(e) => { (e.target as HTMLImageElement).src = '/logo.webp'; }}
                       onClick={() => {
                         setIsCartDrawerOpen(false);
                         navigateTo({ type: 'product', productId: item.productId });
