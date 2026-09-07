@@ -302,8 +302,10 @@ const withoutDemoProducts = <T extends Partial<Product>>(products: T[]): T[] =>
 const isUsableProduct = (product: Partial<Product> | null | undefined): product is Product =>
   Boolean(product && product.id && product.name);
 
-const isPublishedProduct = (product: Product): boolean =>
-  !product.status || String(product.status).trim().toLowerCase() === 'published';
+const isPublishedProduct = (product: Product): boolean => {
+  const status = String(product.status || '').trim().toLowerCase();
+  return !status || !['deleted', 'archived', 'inactive'].includes(status);
+};
 
 const mergeByIdProducts = (primary: Product[], secondary: Product[]): Product[] => {
   const map = new Map<string, Product>();
