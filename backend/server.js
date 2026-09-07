@@ -1154,6 +1154,12 @@ app.patch('/api/admin/products/:id/stock', auth, admin, route(async (req, res) =
 }));
 
 // ================= STATIC ASSETS & SPA ROUTING =================
+app.get('/uploads/products/:file', (req, res) => {
+  const file = path.basename(req.params.file);
+  const target = path.join(productUploadsDir, file);
+  if (!fs.existsSync(target)) return res.status(404).end();
+  return res.sendFile(target, { maxAge: '1y', immutable: true });
+});
 app.use('/uploads', express.static(uploadsDir));
 app.use(express.static(clientDist, {
   index: false,
