@@ -27,7 +27,8 @@ const DEMO_PRODUCT_IDS = new Set([
   'prod-fourniture-classeur-levier', 'prod-fourniture-bloc-notes',
   'prod-fourniture-kit-geometrie', 'prod-arts-coffret-aquarelle',
   'prod-arts-set-pinceaux', 'prod-arts-carnet-croquis',
-  'prod-arts-toile-chassis', 'prod-arts-marqueurs-alcool'
+  'prod-arts-toile-chassis', 'prod-arts-marqueurs-alcool',
+  'prd-bomi-horizon', 'prd-wama-gel'
 ]);
 
 const JWT_SECRET = process.env.JWT_SECRET && process.env.JWT_SECRET.length >= 32
@@ -86,8 +87,6 @@ const seedData = () => {
       { id: 'sub-wama-ink', brandId: 'brand-wama', name: 'Ecriture', slug: 'ecriture', description: 'Stylos, feutres et accessoires.', imageUrl: '/brands/wama.jpeg', status: 'active', order: 3 },
     ],
     products: [
-      { id: 'prd-bomi-horizon', brandId: 'brand-bomi', subCategoryId: 'sub-bomi-2026', name: 'Cartable BOMI Horizon', slug: 'cartable-bomi-horizon', category: 'Papeterie', price: 129.9, promoPrice: 109.9, sku: 'BOMI-HZN-001', stock: 14, isNew: true, isPromo: true, isBestSeller: true, badge: 'NOUVEAU', images: ['https://images.unsplash.com/photo-1514477917009-389c76a86b68?auto=format&fit=crop&w=900&q=80'], shortDescription: 'Cartable leger et robuste pour la rentree.', description: 'Un cartable compact avec plusieurs compartiments et finition durable.', features: ['Compartiment principal', 'Dos rembourre', 'Tissu resistant'], sizes: ['M'], colors: [{ name: 'Rose', hex: '#F4A9C8' }, { name: 'Bleu', hex: '#8FD8C3' }], dimensions: '42 x 30 x 18 cm', weight: '0.9 kg', material: 'Polyester', actionType: 'buy_online', customPhone: null, customWhatsapp: null, rareNote: null, status: 'published', createdAt: now },
-      { id: 'prd-wama-gel', brandId: 'brand-wama', subCategoryId: 'sub-wama-ink', name: 'Stylo gel WAMA Precision', slug: 'stylo-gel-wama-precision', category: 'Papeterie', price: 3.5, promoPrice: null, sku: 'WAMA-GEL-010', stock: 120, isNew: true, isPromo: false, isBestSeller: true, badge: 'BEST-SELLER', images: ['https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?auto=format&fit=crop&w=900&q=80'], shortDescription: 'Glisse fluide et trait net.', description: 'Stylo gel pour ecriture rapide et confortable.', features: ['Encre fluide', 'Pointe fine', 'Prise en main confortable'], sizes: ['0.5'], colors: [{ name: 'Noir', hex: '#000000' }, { name: 'Bleu', hex: '#0055FF' }], dimensions: '14 cm', weight: '0.02 kg', material: 'Plastique', actionType: 'buy_online', customPhone: null, customWhatsapp: null, rareNote: null, status: 'published', createdAt: now },
     ],
     reviews: [],
     orders: [],
