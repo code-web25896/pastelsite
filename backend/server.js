@@ -51,7 +51,7 @@ app.use(helmet({
   crossOriginResourcePolicy: false,
   contentSecurityPolicy: {
     directives: {
-      imgSrc: [\"'self'\", 'data:', 'blob:', 'https:']
+      imgSrc: ["'self'", 'data:', 'blob:', 'https:']
     }
   }
 }));
