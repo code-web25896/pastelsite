@@ -464,7 +464,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [subCategories]);
 
   useEffect(() => {
-    safeStorageSet(LOCAL_STORAGE_KEYS.PRODUCTS, products);
+    // Cache léger : conserver le catalogue complet sans saturer localStorage avec les images.
+    const lightweightProducts = products.map((product) => ({ ...product, images: [] }));
+    safeStorageSet(LOCAL_STORAGE_KEYS.PRODUCTS, lightweightProducts);
   }, [products]);
 
   useEffect(() => {
