@@ -138,7 +138,7 @@ function mergeById(primary = [], secondary = []) {
 }
 
 function isPublishedProduct(product) {
-  return !product?.status || product.status === 'published';
+  return !product?.status || String(product.status).trim().toLowerCase() === 'published';
 }
 
 function filterCatalogProducts(list, { q, brandId, subCategoryId } = {}) {
@@ -572,7 +572,7 @@ app.get('/api/products', route(async (req, res) => {
 
   if (pool) {
     try {
-      const where = ['(p.status = ? OR p.status IS NULL)'];
+      const where = ['(LOWER(TRIM(p.status)) = ? OR p.status IS NULL)'];
       const values = ['published'];
       if (brandId) { where.push('p.brand_id = ?'); values.push(brandId); }
       if (subCategoryId) { where.push('p.subcategory_id = ?'); values.push(subCategoryId); }

@@ -303,7 +303,7 @@ const isUsableProduct = (product: Partial<Product> | null | undefined): product 
   Boolean(product && product.id && product.name);
 
 const isPublishedProduct = (product: Product): boolean =>
-  !product.status || product.status === 'published';
+  !product.status || String(product.status).trim().toLowerCase() === 'published';
 
 const mergeByIdProducts = (primary: Product[], secondary: Product[]): Product[] => {
   const map = new Map<string, Product>();
