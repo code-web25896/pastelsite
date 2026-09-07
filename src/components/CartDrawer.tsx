@@ -36,7 +36,7 @@ export const CartDrawer: React.FC = () => {
   const remainingForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - cartSubtotal);
   const freeShippingProgress = Math.min(100, (cartSubtotal / FREE_SHIPPING_THRESHOLD) * 100);
 
-  const shippingFee = cartSubtotal >= FREE_SHIPPING_THRESHOLD || cartSubtotal === 0 ? 0 : 7.0;
+  const shippingFee = cartSubtotal >= FREE_SHIPPING_THRESHOLD || cartSubtotal === 0 ? 0 : 7.2;
   const discountAmount = (cartSubtotal * discountPercent) / 100;
   const finalTotal = Math.max(0, cartSubtotal - discountAmount + shippingFee);
 
