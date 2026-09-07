@@ -1004,6 +1004,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (isUsableProduct(saved)) {
           setProducts(prev => prev.map(p => p.id === id ? { ...p, ...saved } : p));
         }
+        // Recharger la liste publique pour propager immédiatement la nouvelle image.
+        try {
+          const catalogRes = await fetch(apiPath('/api/products?limit=500'));
+          if (catalogRes.ok) {
+            const catalog = await catalogRes.json();
+            if (Array.isArray(catalog)) setProducts(catalog.filter(isUsableProduct));
+          }
+        } catch { /* conserver l'image reçue dans la réponse PATCH */ }
         addToast('Produit mis à jour avec succès', 'success');
         return;
       } else {

@@ -338,7 +338,7 @@ function materializeImages(images, productId) {
     const match = img.match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i);
     if (!match) return img;
     const ext = match[1].split('/')[1].replace('jpeg', 'jpg').replace(/[^a-z0-9]/gi, '') || 'jpg';
-    const fileName = `${safeId}-${index}.${ext}`;
+    const fileName = `${safeId}-${Date.now()}-${index}.${ext}`;
     try {
       fs.writeFileSync(path.join(productUploadsDir, fileName), Buffer.from(match[2], 'base64'));
       return `/uploads/products/${fileName}`;
