@@ -1336,7 +1336,7 @@ app.patch('/api/admin/products/:id', auth, admin, route(async (req, res) => {
             [...validKeys.map((k) => serializeVal(k, updates[k])), targetId]
           );
         }
-        const [updatedRows] = await pool.execute(SELECT  FROM products p WHERE p.id = ? LIMIT 1, [targetId]);
+        const [updatedRows] = await pool.execute('SELECT ' + productSelect + ' FROM products p WHERE p.id = ? LIMIT 1', [targetId]);
         if (updatedRows[0]) {
           const savedProduct = outputProduct(updatedRows[0]);
           const jsonIndex = jsonDbState.products.findIndex((p) => p.id === targetId);
