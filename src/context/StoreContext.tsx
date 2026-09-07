@@ -594,6 +594,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [currentUser?.role]);
 
+  // Chargement prioritaire du catalogue : ne pas attendre les marques ou le back-office.
+  useEffect(() => {
+    let cancelled = false;
+    fetch(apiPath('/api/products?limit=500'))
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => {
+        if (!cancelled && Array.isArray(data)) {
+          setProducts(data.filter(isUsableProduct));
+          setCatalogLoading(false);
+        }
+      })
+      .catch(() => { /* le chargement complet conserve le cache local */ });
+    return () => { cancelled = true; };
+  }, []);
   useEffect(() => {
     void refreshOrders();
   }, [refreshOrders]);
