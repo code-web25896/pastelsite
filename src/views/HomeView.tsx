@@ -126,7 +126,7 @@ export const HomeView: React.FC = () => {
     {
       title: 'Papeterie de Luxe & Cahiers',
       desc: 'Papier vélin soyeux 90g et carnets de notes soft-touch.',
-      image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80',
+      image: '/logo.webp',
       badge: 'Premium Paper',
       badgeColor: 'bg-[#F5E7A6] text-[#0B1833]',
       link: () => navigateTo({ type: 'shop' }),

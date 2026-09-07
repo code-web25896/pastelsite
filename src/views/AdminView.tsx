@@ -225,7 +225,7 @@ export const AdminView: React.FC = () => {
   const [pPrice, setPPrice] = useState('12.500');
   const [pPromoPrice, setPPromoPrice] = useState('');
   const [pStock, setPStock] = useState('20');
-  const defaultProductImage = 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80';
+  const defaultProductImage = '/logo.webp';
   const [pImage, setPImage] = useState(defaultProductImage);
   const [pGallery, setPGallery] = useState<string[]>([defaultProductImage]);
   const [imageUploadMode, setImageUploadMode] = useState<'upload' | 'url'>('upload');
@@ -1607,7 +1607,7 @@ export const AdminView: React.FC = () => {
                       alt="Aperçu produit"
                       className="w-12 h-12 object-cover rounded-lg border border-gray-200 bg-white"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80';
+                        (e.target as HTMLImageElement).src = '/logo.webp';
                       }}
                     />
                     <div className="flex-1 min-w-0">
@@ -2039,7 +2039,7 @@ export const AdminView: React.FC = () => {
                   <div key={i} className="flex justify-between items-center text-xs py-3 border-b border-gray-100 last:border-0 gap-3 bg-gray-50/60 p-3 rounded-2xl">
                     <div className="flex items-center gap-3 min-w-0">
                       <img 
-                        src={it.image || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=100&q=80'} 
+                        src={it.image || '/logo.webp'} 
                         alt={it.productName} 
                         className="w-14 h-14 rounded-xl object-cover border border-gray-200 flex-shrink-0 bg-white shadow-xs" 
                       />

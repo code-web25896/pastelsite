@@ -129,7 +129,7 @@ export const BrandView: React.FC<BrandViewProps> = ({ brandSlug }) => {
                 >
                   <div className="relative aspect-square rounded-xl overflow-hidden bg-[#F7F7F8] mb-3">
                     <img
-                      src={sub.imageUrl || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=400&q=80'}
+                      src={sub.imageUrl || '/logo.webp'}
                       alt={sub.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       loading="lazy"

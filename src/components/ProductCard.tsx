@@ -49,7 +49,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         onClick={() => navigateTo({ type: 'product', productId: product.id })}
       >
         <img
-          src={product.images[0] || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80'}
+          src={product.images[0] || '/logo.webp'}
           alt={product.name}
           className="w-full h-full object-cover object-center transform transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
