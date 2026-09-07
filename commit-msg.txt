@@ -1,0 +1,7 @@
+feat: ajout gestion des clients dans dashboard admin lie a la base de donnees
+
+- Endpoints backend /api/admin/users (GET, POST, PATCH, DELETE)
+- Synchronisation MySQL table users et fallbacks
+- Onglet Gestion des Clients dans AdminView avec liste, recherche et filtres
+- Modal de creation et modification de client (nom, email, telephone, role, mot de passe)
+- Suppression securisee avec gestion des cles etrangeres et protection compte actif

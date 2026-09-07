@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useStore } from '../context/StoreContext';
-import { Product, Brand, SubCategory, Order, Review, ProductActionType } from '../types';
+import { Product, Brand, SubCategory, Order, Review, ProductActionType, Customer, UserRole } from '../types';
 import { 
   LayoutDashboard, 
   Package, 
@@ -27,7 +27,12 @@ import {
   DollarSign,
   Download,
   FileSpreadsheet,
-  Filter
+  Filter,
+  Users,
+  UserPlus,
+  Shield,
+  Mail,
+  Phone
 } from 'lucide-react';
 
 const readImageFile = (file: File): Promise<string> => new Promise((resolve, reject) => {
@@ -176,18 +181,126 @@ export const AdminView: React.FC = () => {
     logout,
     addToast,
     updateReviewStatus,
-    refreshOrders
+    refreshOrders,
+    adminUsers,
+    refreshAdminUsers,
+    createAdminUser,
+    updateAdminUser,
+    deleteAdminUser,
+    currentUser
   } = useStore();
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders' | 'brands' | 'reviews'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'products' | 'orders' | 'brands' | 'reviews' | 'customers'>('dashboard');
 
   useEffect(() => {
     if (activeTab === 'dashboard' || activeTab === 'orders') void refreshOrders();
-  }, [activeTab, refreshOrders]);
+    if (activeTab === 'dashboard' || activeTab === 'customers') void refreshAdminUsers();
+  }, [activeTab, refreshOrders, refreshAdminUsers]);
 
   // Search & Filter in Admin
   const [productSearch, setProductSearch] = useState('');
   const [orderSearch, setOrderSearch] = useState('');
+
+  // Customer Management States
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [customerRoleFilter, setCustomerRoleFilter] = useState<'all' | 'customer' | 'admin'>('all');
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [cFirstName, setCFirstName] = useState('');
+  const [cLastName, setCLastName] = useState('');
+  const [cEmail, setCEmail] = useState('');
+  const [cPhone, setCPhone] = useState('');
+  const [cRole, setCRole] = useState<UserRole>('customer');
+  const [cPassword, setCPassword] = useState('');
+  const [cFormError, setCFormError] = useState('');
+  const [isSavingCustomer, setIsSavingCustomer] = useState(false);
+
+  const openAddCustomer = () => {
+    setEditingCustomer(null);
+    setCFirstName('');
+    setCLastName('');
+    setCEmail('');
+    setCPhone('');
+    setCRole('customer');
+    setCPassword('');
+    setCFormError('');
+    setIsCustomerModalOpen(true);
+  };
+
+  const openEditCustomer = (cust: Customer) => {
+    setEditingCustomer(cust);
+    setCFirstName(cust.firstName);
+    setCLastName(cust.lastName || '');
+    setCEmail(cust.email);
+    setCPhone(cust.phone || '');
+    setCRole(cust.role);
+    setCPassword('');
+    setCFormError('');
+    setIsCustomerModalOpen(true);
+  };
+
+  const handleSaveCustomer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCFormError('');
+    if (!cFirstName.trim()) {
+      setCFormError('Le prénom est obligatoire.');
+      return;
+    }
+    if (!cEmail.trim() || !cEmail.includes('@')) {
+      setCFormError('Une adresse e-mail valide est obligatoire.');
+      return;
+    }
+    if (!editingCustomer && (!cPassword || cPassword.length < 6)) {
+      setCFormError('Le mot de passe doit contenir au moins 6 caractères.');
+      return;
+    }
+    if (editingCustomer && cPassword && cPassword.length < 6) {
+      setCFormError('Le nouveau mot de passe doit contenir au moins 6 caractères.');
+      return;
+    }
+
+    setIsSavingCustomer(true);
+    try {
+      if (editingCustomer) {
+        await updateAdminUser(editingCustomer.id, {
+          firstName: cFirstName.trim(),
+          lastName: cLastName.trim(),
+          email: cEmail.trim().toLowerCase(),
+          phone: cPhone.trim(),
+          role: cRole,
+          password: cPassword ? cPassword.trim() : undefined
+        });
+      } else {
+        await createAdminUser({
+          firstName: cFirstName.trim(),
+          lastName: cLastName.trim(),
+          email: cEmail.trim().toLowerCase(),
+          phone: cPhone.trim(),
+          role: cRole,
+          password: cPassword.trim()
+        });
+      }
+      setIsCustomerModalOpen(false);
+    } catch (err: any) {
+      setCFormError(err.message || "Erreur lors de l'enregistrement du client.");
+    } finally {
+      setIsSavingCustomer(false);
+    }
+  };
+
+  const handleDeleteCustomer = async (cust: Customer) => {
+    if (currentUser?.id === cust.id || currentUser?.email?.toLowerCase() === cust.email.toLowerCase()) {
+      addToast('Vous ne pouvez pas supprimer votre propre compte.', 'error');
+      return;
+    }
+    if (window.confirm(`Confirmez-vous la suppression définitive du compte "${cust.firstName} ${cust.lastName}" (${cust.email}) ? Cette action est irréversible dans la base de données.`)) {
+      try {
+        await deleteAdminUser(cust.id);
+      } catch (err: any) {
+        addToast(err.message || 'Erreur lors de la suppression.', 'error');
+      }
+    }
+  };
 
   // Modals & Form States
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
@@ -200,7 +313,7 @@ export const AdminView: React.FC = () => {
   const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
   const [isSyncingSubCats, setIsSyncingSubCats] = useState(false);
 
-  const tabClass = (tab: 'dashboard' | 'products' | 'orders' | 'brands' | 'reviews') => {
+  const tabClass = (tab: 'dashboard' | 'products' | 'orders' | 'brands' | 'reviews' | 'customers') => {
     if (activeTab === tab) return 'px-4 py-3 rounded-t-2xl flex items-center gap-2 transition-all bg-white border-t-2 border-[#0B1833] text-[#0B1833] shadow-sm';
     return 'px-4 py-3 rounded-t-2xl flex items-center gap-2 transition-all text-gray-500 hover:text-[#0B1833]';
   };
@@ -645,6 +758,17 @@ export const AdminView: React.FC = () => {
     )
     .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
 
+  const filteredCustomers = adminUsers.filter(cust => {
+    const q = customerSearch.trim().toLowerCase();
+    const matchesSearch = 
+      !q ||
+      [cust.firstName, cust.lastName, cust.email, cust.phone].some(val => 
+        String(val || '').toLowerCase().includes(q)
+      );
+    const matchesRole = customerRoleFilter === 'all' || cust.role === customerRoleFilter;
+    return matchesSearch && matchesRole;
+  });
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       
@@ -658,7 +782,7 @@ export const AdminView: React.FC = () => {
             PANNEAU DE GESTION & BACKOFFICE
           </h1>
           <p className="text-xs text-white/70">
-            Gestion des stocks, commandes, marques, sous-catégories et modération des avis.
+            Gestion des stocks, commandes, clients, marques, sous-catégories et modération des avis.
           </p>
         </div>
 
@@ -727,6 +851,14 @@ export const AdminView: React.FC = () => {
           {pendingReviewsCount > 0 && (
             <span className="w-2 h-2 rounded-full bg-red-500" />
           )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab('customers')}
+          className={tabClass('customers')}
+        >
+          <Users className="w-4 h-4" />
+          <span>Gestion des Clients ({adminUsers.length})</span>
         </button>
       </div>
 
@@ -1425,6 +1557,300 @@ export const AdminView: React.FC = () => {
         </div>
       )}
 
+      {/* 6. CUSTOMERS TAB (GESTION DES CLIENTS) */}
+      {activeTab === 'customers' && (
+        <div className="space-y-6">
+          {/* Header & Add Button */}
+          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-100">
+              <div>
+                <h2 className="font-sans font-black text-xl text-[#0B1833] flex items-center gap-2">
+                  <Users className="w-5 h-5 text-[#8FD8C3]" />
+                  <span>Gestion des Clients & Utilisateurs ({adminUsers.length})</span>
+                </h2>
+                <p className="text-xs text-gray-500 mt-1">
+                  Consultez, modifiez ou supprimez les comptes utilisateurs liés directement à la base de données.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => void refreshAdminUsers()}
+                  className="px-3.5 py-2.5 bg-gray-50 hover:bg-gray-100 text-[#0B1833] text-xs font-bold rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer border border-gray-200"
+                  title="Rafraîchir depuis la base de données"
+                >
+                  <span>Actualiser</span>
+                </button>
+                <button
+                  onClick={openAddCustomer}
+                  className="px-4 py-2.5 bg-[#0B1833] hover:bg-[#8FD8C3] hover:text-[#0B1833] text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>Nouveau Client</span>
+                </button>
+              </div>
+            </div>
+
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-4 rounded-2xl bg-[#F7F7F8] border border-gray-100 flex items-center justify-between">
+                <div>
+                  <span className="text-xs text-gray-500 font-semibold">Total Comptes</span>
+                  <div className="font-sans font-black text-2xl text-[#0B1833] mt-0.5">
+                    {adminUsers.length}
+                  </div>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-[#0B1833]/10 flex items-center justify-center text-[#0B1833]">
+                  <Users className="w-5 h-5" />
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-100 flex items-center justify-between">
+                <div>
+                  <span className="text-xs text-emerald-800 font-semibold">Clients</span>
+                  <div className="font-sans font-black text-2xl text-emerald-900 mt-0.5">
+                    {adminUsers.filter(u => u.role === 'customer').length}
+                  </div>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700">
+                  <ShoppingBag className="w-5 h-5" />
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-purple-50/50 border border-purple-100 flex items-center justify-between">
+                <div>
+                  <span className="text-xs text-purple-800 font-semibold">Administrateurs</span>
+                  <div className="font-sans font-black text-2xl text-purple-900 mt-0.5">
+                    {adminUsers.filter(u => u.role === 'admin').length}
+                  </div>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center text-purple-700">
+                  <Shield className="w-5 h-5" />
+                </div>
+              </div>
+            </div>
+
+            {/* Search & Filter Toolbar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+              <div className="relative flex-1 max-w-md">
+                <input
+                  type="text"
+                  placeholder="Rechercher par nom, prénom, e-mail, téléphone..."
+                  value={customerSearch}
+                  onChange={(e) => setCustomerSearch(e.target.value)}
+                  className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none focus:border-[#0B1833]"
+                />
+                <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                {customerSearch && (
+                  <button
+                    onClick={() => setCustomerSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1.5 self-end sm:self-auto">
+                <button
+                  onClick={() => setCustomerRoleFilter('all')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                    customerRoleFilter === 'all'
+                      ? 'bg-[#0B1833] text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Tous ({adminUsers.length})
+                </button>
+                <button
+                  onClick={() => setCustomerRoleFilter('customer')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                    customerRoleFilter === 'customer'
+                      ? 'bg-emerald-700 text-white'
+                      : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                  }`}
+                >
+                  Clients ({adminUsers.filter(u => u.role === 'customer').length})
+                </button>
+                <button
+                  onClick={() => setCustomerRoleFilter('admin')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                    customerRoleFilter === 'admin'
+                      ? 'bg-purple-700 text-white'
+                      : 'bg-purple-50 text-purple-800 hover:bg-purple-100'
+                  }`}
+                >
+                  Admins ({adminUsers.filter(u => u.role === 'admin').length})
+                </button>
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-gray-100 text-gray-400 font-semibold">
+                    <th className="py-3">Utilisateur</th>
+                    <th className="py-3">Contact</th>
+                    <th className="py-3">Rôle</th>
+                    <th className="py-3">Commandes</th>
+                    <th className="py-3">Adresse Principale</th>
+                    <th className="py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filteredCustomers.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-gray-400 space-y-2">
+                        <Users className="w-8 h-8 mx-auto text-gray-300" />
+                        <p className="font-semibold text-sm text-[#0B1833]">Aucun client trouvé</p>
+                        <p className="text-xs text-gray-400">
+                          {customerSearch ? 'Aucun résultat ne correspond à votre recherche.' : 'Aucun compte enregistré pour le moment.'}
+                        </p>
+                      </td>
+                    </tr>
+                  )}
+                  {filteredCustomers.map((cust) => {
+                    const defaultAddress = cust.addresses?.find(a => a.isDefault) || cust.addresses?.[0];
+                    const isSelf = currentUser?.id === cust.id || currentUser?.email?.toLowerCase() === cust.email.toLowerCase();
+                    const initials = `${cust.firstName?.[0] || ''}${cust.lastName?.[0] || ''}`.toUpperCase() || 'U';
+
+                    return (
+                      <tr key={cust.id} className="hover:bg-gray-50/50 transition-colors">
+                        {/* Utilisateur */}
+                        <td className="py-3.5">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs flex-shrink-0 shadow-xs ${
+                              cust.role === 'admin'
+                                ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                                : 'bg-[#8FD8C3]/30 text-[#0B1833] border border-[#8FD8C3]/40'
+                            }`}>
+                              {initials}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-bold text-[#0B1833] text-xs flex items-center gap-1.5">
+                                <span>{cust.firstName} {cust.lastName}</span>
+                                {isSelf && (
+                                  <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.2 rounded-md font-bold">
+                                    Vous
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[10px] text-gray-400">
+                                Inscrit le {new Date(cust.createdAt).toLocaleDateString('fr-TN', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Contact */}
+                        <td className="py-3.5 space-y-0.5">
+                          <a
+                            href={`mailto:${cust.email}`}
+                            className="flex items-center gap-1.5 text-gray-600 hover:text-[#0B1833] font-medium transition-colors"
+                          >
+                            <Mail className="w-3 h-3 text-gray-400" />
+                            <span>{cust.email}</span>
+                          </a>
+                          {cust.phone ? (
+                            <a
+                              href={`tel:${cust.phone}`}
+                              className="flex items-center gap-1.5 text-gray-500 hover:text-[#0B1833] text-[11px] transition-colors"
+                            >
+                              <Phone className="w-3 h-3 text-gray-400" />
+                              <span>{cust.phone}</span>
+                            </a>
+                          ) : (
+                            <span className="text-[11px] text-gray-400 italic">Sans téléphone</span>
+                          )}
+                        </td>
+
+                        {/* Rôle */}
+                        <td className="py-3.5">
+                          {cust.role === 'admin' ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200">
+                              <Shield className="w-3 h-3 text-purple-700" />
+                              <span>Administrateur</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-700" />
+                              <span>Client</span>
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Commandes */}
+                        <td className="py-3.5">
+                          <div className="font-semibold text-[#0B1833]">
+                            {cust.ordersCount ?? 0} commande{(cust.ordersCount ?? 0) > 1 ? 's' : ''}
+                          </div>
+                          {(cust.totalSpent ?? 0) > 0 && (
+                            <div className="text-[11px] text-emerald-700 font-bold">
+                              {formatPrice(cust.totalSpent ?? 0)}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Adresse */}
+                        <td className="py-3.5 text-gray-600 max-w-[200px]">
+                          {defaultAddress ? (
+                            <div className="truncate" title={`${defaultAddress.address}, ${defaultAddress.city}`}>
+                              <span className="font-semibold text-[#0B1833]">{defaultAddress.city}</span>
+                              {defaultAddress.address && (
+                                <span className="text-gray-400 text-[11px] block truncate">
+                                  {defaultAddress.address}
+                                </span>
+                              )}
+                            </div>
+                          ) : cust.city || cust.address ? (
+                            <div className="truncate">
+                              <span className="font-semibold text-[#0B1833]">{cust.city || '—'}</span>
+                              {cust.address && (
+                                <span className="text-gray-400 text-[11px] block truncate">
+                                  {cust.address}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 italic">Aucune adresse</span>
+                          )}
+                        </td>
+
+                        {/* Actions */}
+                        <td className="py-3.5 text-right">
+                          <div className="inline-flex items-center gap-1">
+                            <button
+                              onClick={() => openEditCustomer(cust)}
+                              className="p-1.5 hover:bg-gray-100 text-[#0B1833] rounded-lg transition-colors cursor-pointer"
+                              title="Modifier ce client"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteCustomer(cust)}
+                              disabled={isSelf}
+                              className={`p-1.5 rounded-lg transition-colors ${
+                                isSelf
+                                  ? 'opacity-30 cursor-not-allowed text-gray-400'
+                                  : 'hover:bg-red-50 text-gray-400 hover:text-red-600 cursor-pointer'
+                              }`}
+                              title={isSelf ? 'Impossible de supprimer votre propre compte' : 'Supprimer définitivement'}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Add / Edit Product Modal */}
       {isAddProductOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-[#0B1833]/50 backdrop-blur-sm">
@@ -2116,6 +2542,184 @@ export const AdminView: React.FC = () => {
                 Fermer
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add / Edit Customer Modal */}
+      {isCustomerModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-[#0B1833]/50 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-4 border-b border-gray-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-[#0B1833]/10 text-[#0B1833] flex items-center justify-center">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-sans font-black text-lg text-[#0B1833]">
+                    {editingCustomer ? 'Modifier le compte' : 'Nouveau compte client'}
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    {editingCustomer ? `Modification des informations de ${editingCustomer.firstName} ${editingCustomer.lastName}` : 'Création d\'un compte dans la base de données'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsCustomerModalOpen(false)}
+                className="p-1 text-gray-400 hover:text-[#0B1833] rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {cFormError && (
+              <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2 font-medium">
+                <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                <span>{cFormError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveCustomer} className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-bold text-[#0B1833] mb-1.5">
+                    Prénom <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={cFirstName}
+                    onChange={(e) => setCFirstName(e.target.value)}
+                    placeholder="Ex: Ahmed"
+                    className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#0B1833]"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-[#0B1833] mb-1.5">
+                    Nom
+                  </label>
+                  <input
+                    type="text"
+                    value={cLastName}
+                    onChange={(e) => setCLastName(e.target.value)}
+                    placeholder="Ex: Ben Ali"
+                    className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#0B1833]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-[#0B1833] mb-1.5">
+                  Adresse e-mail <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="email"
+                    required
+                    value={cEmail}
+                    onChange={(e) => setCEmail(e.target.value)}
+                    placeholder="client@exemple.tn"
+                    className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none focus:border-[#0B1833]"
+                  />
+                  <Mail className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-[#0B1833] mb-1.5">
+                  Numéro de téléphone
+                </label>
+                <div className="relative">
+                  <input
+                    type="tel"
+                    value={cPhone}
+                    onChange={(e) => setCPhone(e.target.value)}
+                    placeholder="Ex: 55 123 456"
+                    className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none focus:border-[#0B1833]"
+                  />
+                  <Phone className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-[#0B1833] mb-1.5">
+                  Rôle de l'utilisateur
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className={`border rounded-xl p-3 flex items-center gap-2.5 cursor-pointer transition-all ${
+                    cRole === 'customer'
+                      ? 'border-emerald-500 bg-emerald-50/50 text-emerald-900 font-bold'
+                      : 'border-gray-200 bg-[#F7F7F8] text-gray-600'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="userRole"
+                      value="customer"
+                      checked={cRole === 'customer'}
+                      onChange={() => setCRole('customer')}
+                      className="sr-only"
+                    />
+                    <CheckCircle2 className={`w-4 h-4 ${cRole === 'customer' ? 'text-emerald-600' : 'text-gray-400'}`} />
+                    <span>Client Standard</span>
+                  </label>
+
+                  <label className={`border rounded-xl p-3 flex items-center gap-2.5 cursor-pointer transition-all ${
+                    cRole === 'admin'
+                      ? 'border-purple-500 bg-purple-50/50 text-purple-900 font-bold'
+                      : 'border-gray-200 bg-[#F7F7F8] text-gray-600'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="userRole"
+                      value="admin"
+                      checked={cRole === 'admin'}
+                      onChange={() => setCRole('admin')}
+                      className="sr-only"
+                    />
+                    <Shield className={`w-4 h-4 ${cRole === 'admin' ? 'text-purple-600' : 'text-gray-400'}`} />
+                    <span>Administrateur</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-bold text-[#0B1833] mb-1.5">
+                  {editingCustomer ? 'Nouveau mot de passe (optionnel)' : 'Mot de passe initial *'}
+                </label>
+                <input
+                  type="password"
+                  value={cPassword}
+                  onChange={(e) => setCPassword(e.target.value)}
+                  placeholder={editingCustomer ? 'Laisser vide pour ne pas modifier' : 'Minimum 6 caractères'}
+                  required={!editingCustomer}
+                  minLength={6}
+                  className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-[#0B1833]"
+                />
+                <span className="text-[10px] text-gray-400 mt-1 block">
+                  {editingCustomer
+                    ? 'Remplir uniquement si vous souhaitez réinitialiser le mot de passe de cet utilisateur.'
+                    : 'Le client pourra utiliser ce mot de passe pour se connecter.'}
+                </span>
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setIsCustomerModalOpen(false)}
+                  className="flex-1 py-2.5 border border-gray-200 hover:bg-gray-50 text-gray-600 font-bold rounded-xl transition-colors cursor-pointer"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingCustomer}
+                  className="flex-1 py-2.5 bg-[#0B1833] hover:bg-[#8FD8C3] hover:text-[#0B1833] text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{isSavingCustomer ? 'Enregistrement...' : (editingCustomer ? 'Enregistrer les modifications' : 'Créer le compte')}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

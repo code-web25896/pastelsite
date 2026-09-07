@@ -80,6 +80,13 @@ interface StoreContextType {
   deleteSubCategory: (id: string) => Promise<void>;
   syncAllSubCategoriesToServer: () => Promise<boolean>;
 
+  // Admin CRUD for Users / Clients
+  adminUsers: Customer[];
+  refreshAdminUsers: () => Promise<void>;
+  createAdminUser: (userData: { firstName: string; lastName?: string; email: string; phone?: string; role: UserRole; password: string }) => Promise<Customer>;
+  updateAdminUser: (id: string, updates: { firstName: string; lastName?: string; email: string; phone?: string; role: UserRole; password?: string }) => Promise<void>;
+  deleteAdminUser: (id: string) => Promise<void>;
+
   // Order & Stock Management
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   deleteOrder: (orderId: string) => Promise<void>;
@@ -245,8 +252,8 @@ const normalizeCustomer = (value: unknown): Customer | null => {
         isDefault: Boolean(addressEntry.isDefault),
       };
     });
-  // Phone is optional in the database; it must not invalidate an admin session on F5.
-  if (!candidate.id || !candidate.firstName || !candidate.lastName || !candidate.email || !candidate.role || !candidate.createdAt) return null;
+  // Phone and lastName are optional in the database; it must not invalidate a session or user record.
+  if (!candidate.id || !candidate.firstName || !candidate.email || !candidate.role) return null;
   let role: 'customer' | 'admin' = 'customer';
   if (String(candidate.role).toLowerCase() === 'admin' || String(candidate.email).toLowerCase() === 'admin@espacepastel.tn') role = 'admin';
   let address: string | undefined = undefined;
@@ -258,15 +265,17 @@ const normalizeCustomer = (value: unknown): Customer | null => {
   return {
     id: String(candidate.id),
     firstName: String(candidate.firstName),
-    lastName: String(candidate.lastName),
+    lastName: String(candidate.lastName || ''),
     email: String(candidate.email),
-    phone: String(candidate.phone),
+    phone: String(candidate.phone || ''),
     role,
     addresses,
     address,
     city,
     postalCode,
-    createdAt: String(candidate.createdAt),
+    createdAt: String(candidate.createdAt || new Date().toISOString()),
+    ordersCount: typeof candidate.ordersCount === 'number' ? candidate.ordersCount : undefined,
+    totalSpent: typeof candidate.totalSpent === 'number' ? candidate.totalSpent : undefined,
   };
 };
 
@@ -443,6 +452,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   });
 
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
+  const [adminUsers, setAdminUsers] = useState<Customer[]>([]);
 
   const [currentUser, setCurrentUser] = useState<Customer | null>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.USER);
@@ -601,6 +611,23 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       /* keep local fallback */
     }
   }, [currentUser?.role]);
+
+  const refreshAdminUsers = useCallback(async () => {
+    const token = localStorage.getItem('espace_pastel_auth_token') || 'dev-admin-token';
+    try {
+      const response = await fetch(apiPath('/api/admin/users'), {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        const mapped = data.map(normalizeCustomer).filter(Boolean) as Customer[];
+        setAdminUsers(mapped);
+      }
+    } catch {
+      /* keep local fallback */
+    }
+  }, []);
 
   // Chargement prioritaire du catalogue : ne pas attendre les marques ou le back-office.
   useEffect(() => {
@@ -1140,6 +1167,66 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     addToast(`Commande #${(target && target.orderNumber) || orderId} supprimée`, 'info');
   };
 
+  const createAdminUser = async (userData: { firstName: string; lastName?: string; email: string; phone?: string; role: UserRole; password: string }): Promise<Customer> => {
+    const token = localStorage.getItem('espace_pastel_auth_token') || 'dev-admin-token';
+    const res = await fetch(apiPath('/api/admin/users'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(userData)
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      const msg = data.error || 'Erreur lors de la création du compte client.';
+      addToast(msg, 'error');
+      throw new Error(msg);
+    }
+    const created: Customer = normalizeCustomer(data)!;
+    setAdminUsers(prev => [created, ...prev]);
+    addToast(`Client ${created.firstName} ${created.lastName} créé avec succès !`, 'success');
+    return created;
+  };
+
+  const updateAdminUser = async (id: string, updates: { firstName: string; lastName?: string; email: string; phone?: string; role: UserRole; password?: string }) => {
+    const token = localStorage.getItem('espace_pastel_auth_token') || 'dev-admin-token';
+    const res = await fetch(apiPath(`/api/admin/users/${id}`), {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(updates)
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      const msg = data.error || 'Erreur lors de la mise à jour du client.';
+      addToast(msg, 'error');
+      throw new Error(msg);
+    }
+    setAdminUsers(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
+    addToast('Client mis à jour avec succès !', 'success');
+  };
+
+  const deleteAdminUser = async (id: string) => {
+    const token = localStorage.getItem('espace_pastel_auth_token') || 'dev-admin-token';
+    const res = await fetch(apiPath(`/api/admin/users/${id}`), {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg = data.error || 'Erreur lors de la suppression du client.';
+      addToast(msg, 'error');
+      throw new Error(msg);
+    }
+    setAdminUsers(prev => prev.filter(u => u.id !== id));
+    addToast('Client supprimé avec succès.', 'info');
+  };
+
   const updateProductStock = (productId: string, newStock: number) => {
     setProducts(prev =>
       prev.map(p => {
@@ -1275,6 +1362,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         updateSubCategory,
         deleteSubCategory,
         syncAllSubCategoriesToServer,
+        adminUsers,
+        refreshAdminUsers,
+        createAdminUser,
+        updateAdminUser,
+        deleteAdminUser,
         updateOrderStatus,
         deleteOrder,
         updateProductStock,

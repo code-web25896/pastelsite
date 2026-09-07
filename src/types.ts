@@ -155,6 +155,8 @@ export interface Customer {
   city?: string;
   postalCode?: string;
   createdAt: string;
+  ordersCount?: number;
+  totalSpent?: number;
 }
 
 export interface ToastNotification {

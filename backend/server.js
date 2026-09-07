@@ -809,6 +809,245 @@ app.delete('/api/admin/orders/:id', auth, admin, route(async (req, res) => {
   return res.status(200).json({ success: true });
 }));
 
+// ================= ADMIN USERS (GESTION DES CLIENTS) =================
+app.get('/api/admin/users', auth, admin, route(async (_q, res) => {
+  if (pool) {
+    try {
+      const [rows] = await pool.execute(
+        'SELECT u.id, u.email, u.role, u.first_name AS firstName, u.last_name AS lastName, u.phone, u.created_at AS createdAt, ' +
+        '(SELECT COUNT(*) FROM orders o WHERE o.user_id = u.id) AS ordersCount, ' +
+        '(SELECT COALESCE(SUM(o.total), 0) FROM orders o WHERE o.user_id = u.id) AS totalSpent ' +
+        'FROM users u ORDER BY u.created_at DESC'
+      );
+
+      let addressesByUserId = new Map();
+      try {
+        const [addrRows] = await pool.execute('SELECT id, user_id AS userId, label, address, city, postal_code AS postalCode, is_default AS isDefault FROM addresses');
+        for (const addr of addrRows) {
+          const list = addressesByUserId.get(addr.userId) || [];
+          list.push({ ...addr, isDefault: Boolean(addr.isDefault) });
+          addressesByUserId.set(addr.userId, list);
+        }
+      } catch (err) {
+        console.warn('MySQL addresses for admin users:', err.message);
+      }
+
+      const mysqlUsers = rows.map((u) => ({
+        id: u.id,
+        email: u.email,
+        role: u.role,
+        firstName: u.firstName,
+        lastName: u.lastName || '',
+        phone: u.phone || '',
+        createdAt: u.createdAt,
+        ordersCount: Number(u.ordersCount || 0),
+        totalSpent: Number(u.totalSpent || 0),
+        addresses: addressesByUserId.get(u.id) || []
+      }));
+
+      // Merge with jsonDbState.users if any exist
+      const combined = new Map();
+      for (const u of jsonDbState.users || []) {
+        const userOrders = (jsonDbState.orders || []).filter((o) => o.userId === u.id);
+        const totalSpent = userOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
+        combined.set(u.id, {
+          id: u.id,
+          email: u.email,
+          role: u.role,
+          firstName: u.firstName,
+          lastName: u.lastName || '',
+          phone: u.phone || '',
+          createdAt: u.createdAt,
+          ordersCount: userOrders.length,
+          totalSpent,
+          addresses: (jsonDbState.addresses || []).filter((a) => a.userId === u.id)
+        });
+      }
+      for (const u of mysqlUsers) {
+        combined.set(u.id, u);
+      }
+      return res.json([...combined.values()].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()));
+    } catch (err) {
+      console.warn('MySQL admin get users failed, falling back:', err.message);
+    }
+  }
+
+  // Fallback JSON DB
+  const users = (jsonDbState.users || []).map((u) => {
+    const userOrders = (jsonDbState.orders || []).filter((o) => o.userId === u.id);
+    const totalSpent = userOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
+    return {
+      id: u.id,
+      email: u.email,
+      role: u.role,
+      firstName: u.firstName,
+      lastName: u.lastName || '',
+      phone: u.phone || '',
+      createdAt: u.createdAt,
+      ordersCount: userOrders.length,
+      totalSpent,
+      addresses: (jsonDbState.addresses || []).filter((a) => a.userId === u.id)
+    };
+  });
+  return res.json(users.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()));
+}));
+
+app.post('/api/admin/users', auth, admin, route(async (req, res) => {
+  const schema = z.object({
+    firstName: z.string().min(1, 'Prenom requis').max(80),
+    lastName: z.string().max(80).optional().default(''),
+    email: z.string().email('Email invalide'),
+    phone: z.string().max(30).optional().default(''),
+    role: z.enum(['customer', 'admin']).default('customer'),
+    password: z.string().min(6, 'Mot de passe au moins 6 caracteres')
+  });
+
+  const parsed = schema.parse(req.body);
+  const emailLower = parsed.email.toLowerCase();
+  const passwordHash = await bcrypt.hash(parsed.password, 10);
+  const now = new Date().toISOString();
+  const newId = 'usr-' + crypto.randomUUID().slice(0, 8);
+
+  if (pool) {
+    try {
+      await pool.execute(
+        'INSERT INTO users (id, email, password_hash, role, first_name, last_name, phone) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [newId, emailLower, passwordHash, parsed.role, parsed.firstName, parsed.lastName, parsed.phone || null]
+      );
+    } catch (err) {
+      if (err.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({ error: 'Cet email est deja utilise par un autre compte.' });
+      }
+      console.warn('MySQL admin create user failed:', err.message);
+    }
+  }
+
+  if (jsonDbState.users.some((u) => u.email.toLowerCase() === emailLower)) {
+    return res.status(409).json({ error: 'Cet email est deja utilise par un autre compte.' });
+  }
+
+  const userObj = {
+    id: newId,
+    email: emailLower,
+    passwordHash,
+    role: parsed.role,
+    firstName: parsed.firstName,
+    lastName: parsed.lastName,
+    phone: parsed.phone,
+    createdAt: now,
+    addresses: []
+  };
+  jsonDbState.users.push(userObj);
+  persistJsonDb();
+
+  return res.status(201).json({
+    id: newId,
+    email: emailLower,
+    role: parsed.role,
+    firstName: parsed.firstName,
+    lastName: parsed.lastName,
+    phone: parsed.phone,
+    createdAt: now,
+    ordersCount: 0,
+    totalSpent: 0,
+    addresses: []
+  });
+}));
+
+app.patch('/api/admin/users/:id', auth, admin, route(async (req, res) => {
+  const targetId = req.params.id;
+  const schema = z.object({
+    firstName: z.string().min(1, 'Prenom requis').max(80),
+    lastName: z.string().max(80).optional().default(''),
+    email: z.string().email('Email invalide'),
+    phone: z.string().max(30).optional().default(''),
+    role: z.enum(['customer', 'admin']),
+    password: z.string().min(6).optional().or(z.literal(''))
+  });
+
+  const parsed = schema.parse(req.body);
+  const emailLower = parsed.email.toLowerCase();
+  let passwordHash = null;
+  if (parsed.password && parsed.password.trim().length >= 6) {
+    passwordHash = await bcrypt.hash(parsed.password.trim(), 10);
+  }
+
+  if (pool) {
+    try {
+      if (passwordHash) {
+        await pool.execute(
+          'UPDATE users SET first_name = ?, last_name = ?, email = ?, phone = ?, role = ?, password_hash = ? WHERE id = ?',
+          [parsed.firstName, parsed.lastName, emailLower, parsed.phone || null, parsed.role, passwordHash, targetId]
+        );
+      } else {
+        await pool.execute(
+          'UPDATE users SET first_name = ?, last_name = ?, email = ?, phone = ?, role = ? WHERE id = ?',
+          [parsed.firstName, parsed.lastName, emailLower, parsed.phone || null, parsed.role, targetId]
+        );
+      }
+    } catch (err) {
+      if (err.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({ error: 'Cet email est deja utilise par un autre compte.' });
+      }
+      console.warn('MySQL admin update user failed:', err.message);
+    }
+  }
+
+  const localUser = jsonDbState.users.find((u) => u.id === targetId);
+  if (localUser) {
+    localUser.firstName = parsed.firstName;
+    localUser.lastName = parsed.lastName;
+    localUser.email = emailLower;
+    localUser.phone = parsed.phone;
+    localUser.role = parsed.role;
+    if (passwordHash) {
+      localUser.passwordHash = passwordHash;
+    }
+    persistJsonDb();
+  }
+
+  return res.json({
+    id: targetId,
+    email: emailLower,
+    role: parsed.role,
+    firstName: parsed.firstName,
+    lastName: parsed.lastName,
+    phone: parsed.phone
+  });
+}));
+
+app.delete('/api/admin/users/:id', auth, admin, route(async (req, res) => {
+  const targetId = req.params.id;
+
+  if (req.user?.sub === targetId) {
+    return res.status(400).json({ error: 'Vous ne pouvez pas supprimer votre propre compte administrateur.' });
+  }
+
+  if (pool) {
+    try {
+      await pool.execute('DELETE FROM addresses WHERE user_id = ?', [targetId]);
+      await pool.execute('DELETE FROM reviews WHERE user_id = ?', [targetId]);
+      try {
+        await pool.execute('DELETE FROM orders WHERE user_id = ?', [targetId]);
+      } catch (err) {
+        console.warn('Orders delete before user delete:', err.message);
+      }
+      await pool.execute('DELETE FROM users WHERE id = ?', [targetId]);
+    } catch (err) {
+      console.warn('MySQL admin delete user failed:', err.message);
+      return res.status(500).json({ error: 'Erreur lors de la suppression en base de donnees.' });
+    }
+  }
+
+  jsonDbState.addresses = (jsonDbState.addresses || []).filter((a) => a.userId !== targetId);
+  jsonDbState.reviews = (jsonDbState.reviews || []).filter((r) => r.userId !== targetId);
+  jsonDbState.orders = (jsonDbState.orders || []).filter((o) => o.userId !== targetId);
+  jsonDbState.users = (jsonDbState.users || []).filter((u) => u.id !== targetId);
+  persistJsonDb();
+
+  return res.json({ success: true });
+}));
+
 // Admin Brands
 app.post('/api/admin/brands', auth, admin, route(async (req, res) => {
   const x = brandInput.parse(req.body);
