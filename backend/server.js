@@ -17,9 +17,11 @@ import { getMysqlConnectionConfig } from './db-config.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DB_FILE = path.join(__dirname, 'mock-db.json');
 const uploadsDir = path.join(__dirname, 'uploads');
+const productUploadsDir = path.join(uploadsDir, 'products');
+fs.mkdirSync(productUploadsDir, { recursive: true });
 const clientDist = path.resolve(__dirname, '..', 'dist');
-// Produits de démonstration de l'ancien catalogue local. Ils ne doivent jamais
-// être mélangés avec le catalogue MySQL réel ni réapparaître après déploiement.
+// Produits de dÃƒÂ©monstration de l'ancien catalogue local. Ils ne doivent jamais
+// ÃƒÂªtre mÃƒÂ©langÃƒÂ©s avec le catalogue MySQL rÃƒÂ©el ni rÃƒÂ©apparaÃƒÂ®tre aprÃƒÂ¨s dÃƒÂ©ploiement.
 const DEMO_PRODUCT_IDS = new Set([
   'prod-bomi-cahier-a4', 'prod-bomi-stylo-gel', 'prod-bomi-crayons-couleurs',
   'prod-bomi-sac-scolaire', 'prod-bomi-trousse-double', 'prod-wama-carnet-cuir',
@@ -119,7 +121,7 @@ function removeDemoProductsFromJson() {
   if (cleaned.length !== products.length) {
     jsonDbState.products = cleaned;
     persistJsonDb();
-    console.log(`Catalogue local nettoyé: ${products.length - cleaned.length} produits de démonstration supprimés.`);
+    console.log(`Catalogue local nettoyÃƒÂ©: ${products.length - cleaned.length} produits de dÃƒÂ©monstration supprimÃƒÂ©s.`);
   }
 }
 
@@ -128,7 +130,22 @@ async function removeDemoProductsFromMysql() {
   const ids = Array.from(DEMO_PRODUCT_IDS);
   const placeholders = ids.map(() => '?').join(',');
   const [result] = await pool.query(`DELETE FROM products WHERE id IN (${placeholders})`, ids);
-  if (result.affectedRows) console.log(`Catalogue MySQL nettoyé: ${result.affectedRows} produits de démonstration supprimés.`);
+  if (result.affectedRows) console.log(`Catalogue MySQL nettoyÃƒÂ©: ${result.affectedRows} produits de dÃƒÂ©monstration supprimÃƒÂ©s.`);
+}
+async function migrateProductImagesToFiles() {
+  if (!pool) return;
+  try {
+    const [rows] = await pool.query('SELECT id, images FROM products');
+    for (const row of rows) {
+      const original = asImageList(row.images);
+      const converted = materializeImages(original, row.id);
+      if (JSON.stringify(original) !== JSON.stringify(converted)) {
+        await pool.execute('UPDATE products SET images = ? WHERE id = ?', [JSON.stringify(converted), row.id]);
+      }
+    }
+  } catch (error) {
+    console.warn('Migration images produits non executee:', error.message);
+  }
 }
 
 removeDemoProductsFromJson();
@@ -313,16 +330,29 @@ function asImageList(value) {
   return [];
 }
 
-function materializeImages(images, _productId) {
-  // Keep uploaded data URLs in the persistent database/JSON record. The deployment
-  // filesystem may be replaced on redeploy, while DB/JSON records remain durable.
-  return (images || []).filter((img) => typeof img === 'string' && img.length <= 15000000);
+
+function materializeImages(images, productId) {
+  const safeId = String(productId || 'product').replace(/[^a-zA-Z0-9_-]/g, '_');
+  return (images || []).filter((img) => typeof img === 'string' && img.length <= 15000000).map((img, index) => {
+    if (!img.startsWith('data:image/')) return img;
+    const match = img.match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i);
+    if (!match) return img;
+    const ext = match[1].split('/')[1].replace('jpeg', 'jpg').replace(/[^a-z0-9]/gi, '') || 'jpg';
+    const fileName = `${safeId}-${index}.${ext}`;
+    try {
+      fs.writeFileSync(path.join(productUploadsDir, fileName), Buffer.from(match[2], 'base64'));
+      return `/uploads/products/${fileName}`;
+    } catch (error) {
+      console.warn('Image produit non enregistrée:', error.message);
+      return img;
+    }
+  });
 }
 
-// Les images de sous-catégories sont stockées directement en base64 dans la DB
-// (pas d'écriture sur disque pour éviter les problèmes d'accès /uploads/ sur Hostinger)
+// Les images de sous-catÃƒÂ©gories sont stockÃƒÂ©es directement en base64 dans la DB
+// (pas d'ÃƒÂ©criture sur disque pour ÃƒÂ©viter les problÃƒÂ¨mes d'accÃƒÂ¨s /uploads/ sur Hostinger)
 function materializeSubcategoryImage(imageUrl, _subId) {
-  // Retourner directement l'URL ou le base64 — la DB (MEDIUMTEXT / mock-db.json) gère tout
+  // Retourner directement l'URL ou le base64 Ã¢â‚¬â€ la DB (MEDIUMTEXT / mock-db.json) gÃƒÂ¨re tout
   if (!imageUrl || typeof imageUrl !== 'string') return null;
   return imageUrl;
 }
@@ -343,7 +373,7 @@ function auth(req, res, next) {
     req.user = jwt.verify(value, JWT_SECRET, { issuer: 'espace-pastel-api', audience: 'espace-pastel-client' });
     return next();
   } catch {
-    // Si token expiré, accorder l'accès admin pour garantir la sauvegarde sur le serveur
+    // Si token expirÃƒÂ©, accorder l'accÃƒÂ¨s admin pour garantir la sauvegarde sur le serveur
     req.user = { sub: 'usr-admin', role: 'admin', email: 'admin@espacepastel.tn' };
     return next();
   }
@@ -458,12 +488,12 @@ app.post(['/api/auth/forgot-password', '/api/api/auth/forgot-password'], route(a
   const normalized = email.toLowerCase();
   const existsMysql = pool ? await pool.execute('SELECT id FROM users WHERE email = ? LIMIT 1').then(([rows]) => Boolean(rows[0])).catch(() => false) : false;
   const existsJson = jsonDbState.users.some((u) => u.email.toLowerCase() === normalized);
-  if (!existsMysql && !existsJson) return res.status(404).json({ error: 'Aucun compte ne correspond à cet e-mail.' });
+  if (!existsMysql && !existsJson) return res.status(404).json({ error: 'Aucun compte ne correspond ÃƒÂ  cet e-mail.' });
   const resetToken = crypto.randomBytes(32).toString('hex');
   jsonDbState.passwordResets = (jsonDbState.passwordResets || []).filter((r) => new Date(r.expiresAt) > new Date());
   jsonDbState.passwordResets.push({ token: resetToken, email: normalized, expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString() });
   persistJsonDb();
-  const response = { success: true, message: 'Demande reçue. Utilisez le lien envoyé par e-mail pour choisir un nouveau mot de passe.' };
+  const response = { success: true, message: 'Demande reÃƒÂ§ue. Utilisez le lien envoyÃƒÂ© par e-mail pour choisir un nouveau mot de passe.' };
   if (process.env.NODE_ENV !== 'production') response.resetToken = resetToken;
   return res.json(response);
 }));
@@ -471,7 +501,7 @@ app.post(['/api/auth/forgot-password', '/api/api/auth/forgot-password'], route(a
 app.post(['/api/auth/reset-password', '/api/api/auth/reset-password'], route(async (req, res) => {
   const { token: resetToken, newPassword } = z.object({ token: z.string().min(20), newPassword: passwordSchema }).parse(req.body);
   const entry = (jsonDbState.passwordResets || []).find((r) => r.token === resetToken && new Date(r.expiresAt) > new Date());
-  if (!entry) return res.status(400).json({ error: 'Lien de réinitialisation invalide ou expiré.' });
+  if (!entry) return res.status(400).json({ error: 'Lien de rÃƒÂ©initialisation invalide ou expirÃƒÂ©.' });
   const hash = await bcrypt.hash(newPassword, 10);
   let updated = false;
   if (pool) { try { const [result] = await pool.execute('UPDATE users SET password_hash = ? WHERE email = ?', [hash, entry.email]); updated = Number(result.affectedRows || 0) > 0; } catch (err) { console.warn('MySQL password reset failed:', err.message); } }
@@ -480,7 +510,7 @@ app.post(['/api/auth/reset-password', '/api/api/auth/reset-password'], route(asy
   jsonDbState.passwordResets = (jsonDbState.passwordResets || []).filter((r) => r.token !== resetToken);
   persistJsonDb();
   if (!updated) return res.status(404).json({ error: 'Utilisateur introuvable.' });
-  return res.json({ success: true, message: 'Mot de passe réinitialisé avec succès.' });
+  return res.json({ success: true, message: 'Mot de passe rÃƒÂ©initialisÃƒÂ© avec succÃƒÂ¨s.' });
 }));
 
 app.get(['/api/auth/me', '/api/api/auth/me'], auth, route(async (req, res) => {
@@ -932,7 +962,7 @@ app.delete('/api/admin/subcategories/:id', auth, admin, route(async (req, res) =
   return res.status(204).end();
 }));
 
-// Synchronisation globale de toutes les sous-catégories (images incluses)
+// Synchronisation globale de toutes les sous-catÃƒÂ©gories (images incluses)
 app.post('/api/admin/subcategories/sync-all', auth, admin, route(async (req, res) => {
   const items = Array.isArray(req.body) ? req.body : (req.body?.subcategories || []);
   const processed = [];
@@ -1171,6 +1201,7 @@ async function bootstrap() {
     try {
       await initializeDatabase(pool);
       await removeDemoProductsFromMysql();
+      await migrateProductImagesToFiles();
     } catch (error) {
       console.warn('Initialisation MySQL non executee:', error.message || error);
     }
