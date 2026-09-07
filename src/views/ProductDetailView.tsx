@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { ProductCard } from '../components/ProductCard';
-import { resolveProductImage } from '../utils/imageUrl';
 import { 
   Star, 
   ShoppingBag, 
@@ -160,10 +159,9 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
           {/* Main Large Image */}
           <div className="relative aspect-[4/3] sm:aspect-square bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm group">
             <img
-              src={resolveProductImage(product.images[selectedImageIndex] || product.images[0])}
+              src={product.images[selectedImageIndex] || product.images[0]}
               alt={product.name}
               className="w-full h-full object-cover object-center transform group-hover:scale-105 transition-transform duration-500"
-              onError={(e) => { (e.target as HTMLImageElement).src = '/logo.webp'; }}
             />
 
             {/* Badges on main image */}
@@ -210,12 +208,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
                   onClick={() => setSelectedImageIndex(idx)}
                   className={`w-20 h-20 rounded-2xl overflow-hidden border-2 flex-shrink-0 transition-all ${selectedImageIndex === idx ? 'border-[#0B1833] ring-2 ring-[#0B1833]/20' : 'border-transparent opacity-70 hover:opacity-100'}`}
                 >
-                  <img
-                    src={resolveProductImage(img)}
-                    alt={`Aperçu ${idx + 1}`}
-                    className="w-full h-full object-cover"
-                    onError={(e) => { (e.target as HTMLImageElement).src = '/logo.webp'; }}
-                  />
+                  <img src={img} alt={`Aperçu ${idx + 1}`} className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>

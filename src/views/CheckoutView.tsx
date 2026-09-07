@@ -14,7 +14,6 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { Order } from '../types';
-import { resolveProductImage } from '../utils/imageUrl';
 
 export const CheckoutView: React.FC = () => {
   const { 
@@ -499,10 +498,9 @@ export const CheckoutView: React.FC = () => {
               return (
                 <div key={item.productId + '-' + (item.selectedSize || 'no-size') + '-' + (item.selectedColor?.hex || 'no-color')} className="py-3 flex items-center gap-3">
                   <img
-                    src={resolveProductImage(item.product.images?.[0])}
+                    src={item.product.images[0]}
                     alt={item.product.name}
                     className="w-12 h-12 rounded-xl object-cover border border-gray-100"
-                    onError={(e) => { (e.target as HTMLImageElement).src = '/logo.webp'; }}
                   />
                   <div className="flex-1 min-w-0">
                     <h4 className="text-xs font-semibold text-[#0B1833] truncate">

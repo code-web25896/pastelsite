@@ -1157,16 +1157,10 @@ app.patch('/api/admin/products/:id/stock', auth, admin, route(async (req, res) =
 app.get('/uploads/products/:file', (req, res) => {
   const file = path.basename(req.params.file);
   const target = path.join(productUploadsDir, file);
-  if (fs.existsSync(target)) {
-    return res.sendFile(target, { maxAge: '1y', immutable: true });
-  }
-  const fallback = path.join(clientDist, 'logo.webp');
-  if (fs.existsSync(fallback)) return res.sendFile(fallback);
-  const publicFallback = path.resolve(__dirname, '..', 'public', 'logo.webp');
-  if (fs.existsSync(publicFallback)) return res.sendFile(publicFallback);
-  return res.status(404).end();
+  if (!fs.existsSync(target)) return res.status(404).end();
+  return res.sendFile(target, { maxAge: '1y', immutable: true });
 });
-app.use(['/uploads', '/api/uploads'], express.static(uploadsDir));
+app.use('/uploads', express.static(uploadsDir));
 app.use(express.static(clientDist, {
   index: false,
   setHeaders(res, filePath) {

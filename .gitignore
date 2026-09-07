@@ -16,3 +16,6 @@ backend/mock-db.json
 
 bun.lock
 
+# Garder les dossiers uploads mais ignorer les images uploadées
+backend/uploads/**/*
+!backend/uploads/**/.gitkeep

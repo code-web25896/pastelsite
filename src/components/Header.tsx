@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../context/StoreContext';
 import { Logo } from './Logo';
-import { resolveProductImage } from '../utils/imageUrl';
 import { 
   Search, 
   ShoppingBag, 
@@ -318,10 +317,9 @@ export const Header: React.FC = () => {
                               className="flex items-center gap-3 p-2 rounded-xl hover:bg-[#F7F7F8] cursor-pointer transition-colors"
                             >
                               <img 
-                                src={resolveProductImage(prod.images?.[0])} 
+                                src={prod.images[0]} 
                                 alt={prod.name} 
                                 className="w-11 h-11 object-cover rounded-lg border border-gray-100 flex-shrink-0"
-                                onError={(e) => { (e.target as HTMLImageElement).src = '/logo.webp'; }}
                               />
                               <div className="flex-1 min-w-0">
                                 <h4 className="text-xs font-semibold text-[#0B1833] truncate">
