@@ -47,7 +47,14 @@ const origins = (process.env.CORS_ORIGIN || 'http://127.0.0.1:3000,http://localh
   .map((x) => x.trim())
   .filter(Boolean);
 
-app.use(helmet({ crossOriginResourcePolicy: false }));
+app.use(helmet({
+  crossOriginResourcePolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      imgSrc: [\"'self'\", 'data:', 'blob:', 'https:']
+    }
+  }
+}));
 app.use(cors({
   origin(origin, done) {
     if (!origin || origins.includes(origin) || process.env.NODE_ENV !== 'production') {
