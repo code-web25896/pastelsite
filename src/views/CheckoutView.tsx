@@ -73,7 +73,7 @@ export const CheckoutView: React.FC = () => {
   ];
 
   const FREE_SHIPPING_THRESHOLD = 500.0;
-  let shippingFee = 7.0;
+  let shippingFee = 7.2;
   if (deliveryType === 'pickup' || cartSubtotal >= FREE_SHIPPING_THRESHOLD) shippingFee = 0;
   const total = cartSubtotal + shippingFee;
 
@@ -373,7 +373,7 @@ export const CheckoutView: React.FC = () => {
                   </div>
                   <span className="text-xs font-bold text-[#0B1833]">
                     {cartSubtotal >= FREE_SHIPPING_THRESHOLD && <strong className="text-emerald-700">GRATUIT</strong>}
-                    {cartSubtotal < FREE_SHIPPING_THRESHOLD && '7,000 TND'}
+                    {cartSubtotal < FREE_SHIPPING_THRESHOLD && '7,200 TND'}
                   </span>
                 </div>
                 <p className="text-[11px] text-gray-500">Expédition 24h/48h partout en Tunisie.</p>
