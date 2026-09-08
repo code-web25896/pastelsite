@@ -76,7 +76,7 @@ app.use(rateLimit({
   standardHeaders: 'draft-8',
   legacyHeaders: false,
   // Le frontend et les fichiers statiques ne doivent pas être bloqués par le quota API.
-  skip: (req) => !req.path.startsWith('/api/') || req.method === 'OPTIONS'
+  skip: (req) => !req.path.startsWith('/api/') || req.method === 'OPTIONS' || (req.method === 'GET' && ['/api/products', '/api/brands', '/api/subcategories'].some((path) => req.path === path || req.path.startsWith(path + '/')))
 }));
 
 // Fallback JSON DB State
