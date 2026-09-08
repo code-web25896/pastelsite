@@ -70,7 +70,14 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '20mb' }));
 app.use('/uploads', express.static(uploadsDir, { maxAge: '1y', immutable: true }));
-app.use(rateLimit({ windowMs: 900000, limit: 1000, standardHeaders: 'draft-8', legacyHeaders: false }));
+app.use(rateLimit({
+  windowMs: 900000,
+  limit: 1000,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  // Le frontend et les fichiers statiques ne doivent pas être bloqués par le quota API.
+  skip: (req) => !req.path.startsWith('/api/') || req.method === 'OPTIONS'
+}));
 
 // Fallback JSON DB State
 const seedData = () => {
