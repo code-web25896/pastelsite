@@ -69,6 +69,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json({ limit: '20mb' }));
+app.use('/uploads', express.static(uploadsDir, { maxAge: '1y', immutable: true }));
 app.use(rateLimit({ windowMs: 900000, limit: 1000, standardHeaders: 'draft-8', legacyHeaders: false }));
 
 // Fallback JSON DB State
@@ -1407,7 +1408,6 @@ app.get('/uploads/products/:file', (req, res) => {
   if (!fs.existsSync(target)) return res.status(404).end();
   return res.sendFile(target, { maxAge: '1y', immutable: true });
 });
-app.use('/uploads', express.static(uploadsDir));
 app.use(express.static(clientDist, {
   index: false,
   setHeaders(res, filePath) {
