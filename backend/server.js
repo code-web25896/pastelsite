@@ -146,7 +146,17 @@ async function migrateProductImagesToFiles() {
     const [rows] = await pool.query('SELECT id, images FROM products');
     for (const row of rows) {
       const original = asImageList(row.images);
-      const converted = materializeImages(original, row.id);
+      const converted = original.map((image) => {
+        if (typeof image !== 'string' || !image.startsWith('/uploads/products/')) return image;
+        const file = path.join(productUploadsDir, path.basename(image));
+        try {
+          if (fs.existsSync(file)) {
+            const ext = path.extname(file).slice(1).toLowerCase() || 'jpeg';
+            return 'data:image/' + (ext === 'jpg' ? 'jpeg' : ext) + ';base64,' + fs.readFileSync(file).toString('base64');
+          }
+        } catch {}
+        return image;
+      });
       if (JSON.stringify(original) !== JSON.stringify(converted)) {
         await pool.execute('UPDATE products SET images = ? WHERE id = ?', [JSON.stringify(converted), row.id]);
       }
@@ -339,22 +349,9 @@ function asImageList(value) {
 }
 
 
-function materializeImages(images, productId) {
-  const safeId = String(productId || 'product').replace(/[^a-zA-Z0-9_-]/g, '_');
-  return (images || []).filter((img) => typeof img === 'string' && img.length <= 15000000).map((img, index) => {
-    if (!img.startsWith('data:image/')) return img;
-    const match = img.match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i);
-    if (!match) return img;
-    const ext = match[1].split('/')[1].replace('jpeg', 'jpg').replace(/[^a-z0-9]/gi, '') || 'jpg';
-    const fileName = `${safeId}-${Date.now()}-${index}.${ext}`;
-    try {
-      fs.writeFileSync(path.join(productUploadsDir, fileName), Buffer.from(match[2], 'base64'));
-      return `/uploads/products/${fileName}`;
-    } catch (error) {
-      console.warn('Image produit non enregistrée:', error.message);
-      return img;
-    }
-  });
+function materializeImages(images, _productId) {
+  // Les data URLs restent dans MySQL : le disque d'un déploiement n'est pas durable.
+  return (images || []).filter((img) => typeof img === 'string' && img.length <= 15000000);
 }
 
 // Les images de sous-catÃƒÂ©gories sont stockÃƒÂ©es directement en base64 dans la DB
@@ -639,10 +636,31 @@ app.get('/api/products', route(async (req, res) => {
   const merged = mergeById(mysqlProducts, jsonDbState.products);
   const filtered = filterCatalogProducts(merged, { q, brandId, subCategoryId })
     .map(outputProduct)
+    .map(publicProduct)
     .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
   return res.json(filtered);
 }));
 
+function publicProduct(product) {
+  return {
+    ...product,
+    images: (product.images || []).map((image, index) => String(image).startsWith('data:image/')
+      ? `/api/products/${encodeURIComponent(product.id)}/image/${index}`
+      : image),
+  };
+}
+
+app.get('/api/products/:id/image/:index', route(async (req, res) => {
+  const index = Number(req.params.index);
+  if (!Number.isInteger(index) || index < 0 || !pool) return res.status(404).end();
+  const [rows] = await pool.execute('SELECT images FROM products WHERE id = ? LIMIT 1', [req.params.id]);
+  const image = asImageList(rows[0]?.images)[index];
+  const match = typeof image === 'string' ? image.match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i) : null;
+  if (!match) return res.status(404).end();
+  res.set('Cache-Control', 'public, max-age=31536000, immutable');
+  res.type(match[1]);
+  return res.send(Buffer.from(match[2], 'base64'));
+}));
 app.get('/api/products/:idOrSlug', route(async (req, res) => {
   const target = req.params.idOrSlug;
   if (pool) {
@@ -650,7 +668,7 @@ app.get('/api/products/:idOrSlug', route(async (req, res) => {
       const [rows] = await pool.execute(`SELECT ${productSelect} FROM products p WHERE (p.id = ? OR p.slug = ?) LIMIT 1`, [target, target]);
       if (rows[0]) {
         const product = outputProduct(rows[0]);
-        if (isPublishedProduct(product)) return res.json(product);
+        if (isPublishedProduct(product)) return res.json(publicProduct(product));
       }
     } catch (err) {
       console.warn('MySQL product lookup failed:', err.message);
@@ -659,7 +677,7 @@ app.get('/api/products/:idOrSlug', route(async (req, res) => {
 
   const product = jsonDbState.products.find((p) => p.id === target || p.slug === target);
   if (!product || !isPublishedProduct(product)) return res.status(404).json({ error: 'Produit introuvable.' });
-  return res.json(product);
+  return res.json(publicProduct(product));
 }));
 
 // ================= ORDERS (CLIENT & GUEST CHECKOUT) =================
