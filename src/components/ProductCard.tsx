@@ -34,9 +34,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const isLowStock = product.stock > 0 && product.stock <= 5;
   const isRare = product.actionType === 'rare_call' || product.actionType === 'rare_chat' || product.actionType === 'rare_both' || product.badge === 'PIÈCE RARE';
   const customPhone = product.customPhone || '98 137 585';
-  const showRareChat = product.actionType === 'rare_chat' || product.actionType === 'rare_both';
-  const showRareCall = product.actionType !== 'rare_chat';
-  const facebookChatUrl = `https://m.me/espacepastel?ref=${encodeURIComponent(product.sku || product.name)}`;
+  const showRareChat = isRare;
+  const showRareCall = isRare;
+  const facebookChatUrl = 'https://www.facebook.com/share/19Fu6v8H9D/?mibextid=wwXIfr';
 
   const currentPrice = product.promoPrice ?? product.price;
 
