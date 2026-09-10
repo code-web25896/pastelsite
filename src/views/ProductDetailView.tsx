@@ -75,6 +75,8 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
   const approvedReviews = getProductReviews(product.id, true);
   const isRare = product.actionType === 'rare_call' || product.actionType === 'rare_chat' || product.actionType === 'rare_both' || product.badge === 'PIÈCE RARE';
   const customPhone = product.customPhone || '98 137 585';
+  const showRareChat = product.actionType === 'rare_chat' || product.actionType === 'rare_both';
+  const showRareCall = product.actionType !== 'rare_chat';
   const hasSizes = product.sizes.length > 0;
   const hasColors = product.colors.length > 0;
 
@@ -313,24 +315,19 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <a
-                  href={`tel:${customPhone.replace(/\s+/g, '')}`}
-                  className="py-4 px-6 rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 bg-[#0B1833] hover:bg-[#1a2d54] text-white transition-all shadow-md active:scale-98 cursor-pointer"
-                >
-                  <Phone className="w-4 h-4 text-[#8FD8C3]" />
-                  <span>Appeler le {customPhone}</span>
-                </a>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">`r`n                {showRareCall && (
+                  <a href={`tel:${customPhone.replace(/\s+/g, '')}`} className="py-4 px-6 rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 bg-[#0B1833] hover:bg-[#1a2d54] text-white transition-all shadow-md active:scale-98 cursor-pointer">
+                    <Phone className="w-4 h-4 text-[#8FD8C3]" />
+                    <span>Appeler le {customPhone}</span>
+                  </a>
+                )}
 
-                <a
-                  href={`https://wa.me/21698137585?text=${encodeURIComponent(`Bonjour Espace Pastel, je souhaite commander la pièce rare : ${product.name} (Réf: ${product.sku})`)}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="py-4 px-6 rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20ba59] text-white transition-all shadow-md active:scale-98 cursor-pointer"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  <span>WhatsApp : {customPhone}</span>
-                </a>
+                {showRareChat && (
+                  <a href={`https://m.me/espacepastel?ref=${encodeURIComponent(product.sku || product.name)}`} target="_blank" rel="noreferrer" className="py-4 px-6 rounded-2xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 bg-[#1877F2] hover:bg-[#166fe5] text-white transition-all shadow-md active:scale-98 cursor-pointer">
+                    <MessageCircle className="w-4 h-4" />
+                    <span>Discuter sur Facebook</span>
+                  </a>
+                )}
               </div>
             </div>
           ) : (

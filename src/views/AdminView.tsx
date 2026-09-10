@@ -2155,9 +2155,13 @@ export const AdminView: React.FC = () => {
                     />
                     <span>Pièce rare (Bouton "Appeler")</span>
                   </label>
+                  <label className="flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition-all">
+                    <input type="radio" name="adminProductActionType" value="rare_both" checked={pActionType === 'rare_both'} onChange={() => { setPActionType('rare_both'); if (pBadge === 'AUCUN') setPBadge('PIÈCE RARE'); }} className="accent-amber-600" />
+                    <span>Pièce rare (Discuter + Appeler)</span>
+                  </label>
                 </div>
 
-                {pActionType === 'rare_call' && (
+                {(pActionType === 'rare_call' || pActionType === 'rare_both') && (
                   <div className="pt-1">
                     <label className="block text-[11px] font-bold text-amber-900 mb-1">
                       Numéro de téléphone pour la commande :

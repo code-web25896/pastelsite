@@ -1,7 +1,7 @@
 import React from 'react';
 import { Product } from '../types';
 import { useStore } from '../context/StoreContext';
-import { Star, ShoppingBag, Heart, Eye, Phone, Sparkles } from 'lucide-react';
+import { Star, ShoppingBag, Heart, Eye, Phone, MessageCircle, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface ProductCardProps {
@@ -34,6 +34,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const isLowStock = product.stock > 0 && product.stock <= 5;
   const isRare = product.actionType === 'rare_call' || product.actionType === 'rare_chat' || product.actionType === 'rare_both' || product.badge === 'PIÈCE RARE';
   const customPhone = product.customPhone || '98 137 585';
+  const showRareChat = product.actionType === 'rare_chat' || product.actionType === 'rare_both';
+  const showRareCall = product.actionType !== 'rare_chat';
+  const facebookChatUrl = `https://m.me/espacepastel?ref=${encodeURIComponent(product.sku || product.name)}`;
 
   const currentPrice = product.promoPrice ?? product.price;
 
@@ -182,15 +185,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
           {/* Action Button: Appeler for Rare Pieces or Ajouter au panier */}
           {isRare ? (
-            <a
-              href={`tel:${customPhone.replace(/\s+/g, '')}`}
-              onClick={(e) => e.stopPropagation()}
-              className="px-3 py-2 rounded-xl flex items-center gap-1.5 bg-[#0B1833] hover:bg-[#1a2d54] text-white font-bold text-xs transition-all shadow-sm active:scale-95 cursor-pointer"
-              title={`Appeler pour commander : ${customPhone}`}
-            >
-              <Phone className="w-3.5 h-3.5 text-[#8FD8C3]" />
-              <span>Appeler</span>
-            </a>
+            <div className="flex items-center gap-1.5">
+              {showRareChat && (
+                <a href={facebookChatUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="px-2.5 py-2 rounded-xl flex items-center gap-1.5 bg-[#1877F2] hover:bg-[#166fe5] text-white font-bold text-xs transition-all shadow-sm active:scale-95 cursor-pointer" title="Discuter sur Facebook Messenger">
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  <span>Discuter</span>
+                </a>
+              )}
+              {showRareCall && (
+                <a href={`tel:${customPhone.replace(/\s+/g, '')}`} onClick={(e) => e.stopPropagation()} className="px-2.5 py-2 rounded-xl flex items-center gap-1.5 bg-[#0B1833] hover:bg-[#1a2d54] text-white font-bold text-xs transition-all shadow-sm active:scale-95 cursor-pointer" title={`Appeler pour commander : ${customPhone}`}>
+                  <Phone className="w-3.5 h-3.5 text-[#8FD8C3]" />
+                  <span>Appeler</span>
+                </a>
+              )}
+            </div>
           ) : (
             <button
               onClick={(e) => {
