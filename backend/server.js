@@ -225,38 +225,25 @@ function filterCatalogProducts(list, { q, brandId, subCategoryId } = {}) {
 }
 
 async function ensureProductRelations(product) {
-  if (!pool) return;
-  const brand = jsonDbState.brands.find((item) => item.id === product.brandId) || {
-    id: product.brandId,
-    name: product.brandId,
-    slug: String(product.brandId || 'marque').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'marque',
-    description: '',
-    logoUrl: null,
-    bannerUrl: null,
-    accentColor: null,
-    status: 'active',
-    order: 0,
+  if (!pool) return product;
+  let brand = jsonDbState.brands.find((item) => item.id === product.brandId) || {
+    id: product.brandId, name: product.brandId, slug: String(product.brandId || 'marque').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'marque',
+    description: '', logoUrl: null, bannerUrl: null, accentColor: null, status: 'active', order: 0,
   };
+  // Toujours réutiliser la marque MySQL existante par ID ou par nom normalisé.
+  const [existingBrands] = await pool.execute('SELECT id, name, slug, description, logo_url AS logoUrl, banner_url AS bannerUrl, accent_color AS accentColor, status, display_order AS `order` FROM brands WHERE id = ? OR LOWER(TRIM(name)) = LOWER(TRIM(?)) LIMIT 1', [product.brandId, brand.name]);
+  if (existingBrands[0]) brand = { ...brand, ...existingBrands[0] };
   const sub = jsonDbState.subcategories.find((item) => item.id === product.subCategoryId) || {
-    id: product.subCategoryId,
-    brandId: product.brandId,
-    name: product.subCategoryId,
+    id: product.subCategoryId, brandId: brand.id, name: product.subCategoryId,
     slug: String(product.subCategoryId || 'categorie').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'categorie',
-    description: '',
-    imageUrl: null,
-    status: 'active',
-    order: 0,
+    description: '', imageUrl: null, status: 'active', order: 0,
   };
-  await pool.execute(
-    'INSERT INTO brands (id, name, slug, description, logo_url, banner_url, accent_color, status, display_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name), status = VALUES(status)',
-    [brand.id, brand.name, brand.slug, brand.description || '', brand.logoUrl || null, brand.bannerUrl || null, brand.accentColor || null, brand.status || 'active', brand.order || 0]
-  );
-  await pool.execute(
-    'INSERT INTO subcategories (id, brand_id, name, slug, description, image_url, status, display_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name), status = VALUES(status)',
-    [sub.id, sub.brandId, sub.name, sub.slug, sub.description || '', sub.imageUrl || null, sub.status || 'active', sub.order || 0]
-  );
+  await pool.execute('INSERT INTO brands (id, name, slug, description, logo_url, banner_url, accent_color, status, display_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name), status = VALUES(status)',
+    [brand.id, brand.name, brand.slug, brand.description || '', brand.logoUrl || null, brand.bannerUrl || null, brand.accentColor || null, brand.status || 'active', brand.order || 0]);
+  await pool.execute('INSERT INTO subcategories (id, brand_id, name, slug, description, image_url, status, display_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name), status = VALUES(status)',
+    [sub.id, brand.id, sub.name, sub.slug, sub.description || '', sub.imageUrl || null, sub.status || 'active', sub.order || 0]);
+  return { ...product, brandId: brand.id, subCategoryId: sub.id };
 }
-
 // MySQL connection pool
 let pool = null;
 try {
@@ -1368,7 +1355,8 @@ app.post('/api/admin/products', auth, admin, route(async (req, res) => {
 
   if (pool) {
     try {
-      await ensureProductRelations(product);
+      const canonicalProduct = await ensureProductRelations(product);
+      Object.assign(product, canonicalProduct);
       await pool.execute(
         'INSERT INTO products (id, brand_id, subcategory_id, name, slug, category, price, promo_price, sku, stock, is_new, is_promo, is_best_seller, badge, images, short_description, description, features, sizes, colors, dimensions, weight, material, action_type, custom_phone, custom_whatsapp, rare_note, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [

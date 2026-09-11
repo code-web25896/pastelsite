@@ -148,9 +148,15 @@ const parseStoredCollection = <T,>(key: string): T[] => {
 
 
 const normalizeBrandKey = (brand: Brand) => {
+  const name = String(brand.name || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/^brand\s+/, '')
+    .replace(/[^a-z0-9]+/g, '');
   const slug = String(brand.slug || '').trim().toLowerCase().replace(/^brand-+/, '');
-  const name = String(brand.name || '').trim().toLowerCase().replace(/^brand\s+/, '');
-  return slug || name;
+  return name || slug;
 };
 
 const mergeBrandsFromApi = (apiBrands: Brand[]): Brand[] => {
@@ -166,7 +172,7 @@ const mergeBrandsFromApi = (apiBrands: Brand[]): Brand[] => {
   for (const brand of storedBrands) {
     const key = normalizeBrandKey(brand);
     const current = byKey.get(key);
-    byKey.set(key, { ...current, ...brand });
+    if (!current) byKey.set(key, brand);
   }
 
   return Array.from(byKey.values()).map((brand) => {
