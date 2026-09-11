@@ -131,6 +131,33 @@ const LOCAL_STORAGE_KEYS = {
   VIEW: 'espace_pastel_view_v1',
 };
 
+const viewToPath = (view: ViewType): string => {
+  if (view.type === 'home') return '/';
+  if (view.type === 'shop') { const q = new URLSearchParams(); if (view.searchQuery) q.set('q', view.searchQuery); if (view.promoOnly) q.set('promo', '1'); if (view.isNewOnly) q.set('nouveautes', '1'); return '/boutique' + (q.toString() ? '?' + q.toString() : ''); }
+  if (view.type === 'brand') return '/marque/' + encodeURIComponent(view.brandSlug);
+  if (view.type === 'subcategory') return '/marque/' + encodeURIComponent(view.brandSlug) + '/' + encodeURIComponent(view.subCategorySlug);
+  if (view.type === 'product') return '/produit/' + encodeURIComponent(view.productId);
+  if (view.type === 'cart') return '/panier';
+  if (view.type === 'checkout') return '/checkout';
+  if (view.type === 'auth') return '/' + (view.mode === 'register' ? 'inscription' : view.mode === 'forgot' ? 'mot-de-passe-oublie' : 'connexion');
+  if (view.type === 'account') return '/compte' + (view.tab !== 'profile' ? '?onglet=' + view.tab : '');
+  if (view.type === 'admin') return '/administration';
+  if (view.type === 'about') return '/apropos';
+  if (view.type === 'contact') return '/contact';
+  if (view.type === 'shipping') return '/livraison';
+  if (view.type === 'legal') return '/mentions-legales';
+  return '/';
+};
+const pathToView = (rawPath: string, search = ''): ViewType => {
+  const path = rawPath.replace(/\/+$/, '') || '/'; const parts = path.split('/').filter(Boolean).map(decodeURIComponent); const p = new URLSearchParams(search);
+  const shop: ViewType = { type: 'shop', filterBrand: '', filterSubCategory: '', filterCategory: '', searchQuery: p.get('q') || '', promoOnly: p.get('promo') === '1', isNewOnly: p.get('nouveautes') === '1', brandId: '', subCategoryId: '', category: '' };
+  if (path === '/') return { type: 'home' }; if (parts[0] === 'boutique' || parts[0] === 'nos-marques' || parts[0] === 'nos-marque') return shop;
+  if (parts[0] === 'marque' && parts[1]) return parts[2] ? { type: 'subcategory', brandSlug: parts[1], subCategorySlug: parts[2] } : { type: 'brand', brandSlug: parts[1] };
+  if (parts[0] === 'produit' && parts[1]) return { type: 'product', productId: parts[1] }; if (parts[0] === 'panier') return { type: 'cart' }; if (parts[0] === 'checkout') return { type: 'checkout' };
+  if (parts[0] === 'connexion') return { type: 'auth', mode: 'login' }; if (parts[0] === 'inscription') return { type: 'auth', mode: 'register' }; if (parts[0] === 'mot-de-passe-oublie') return { type: 'auth', mode: 'forgot' };
+  if (parts[0] === 'compte') return { type: 'account', tab: (p.get('onglet') as 'orders' | 'profile' | 'addresses' | 'reviews') || 'profile' }; if (parts[0] === 'administration') return { type: 'admin', tab: 'dashboard' };
+  if (parts[0] === 'apropos' || parts[0] === 'a-propos') return { type: 'about' }; if (parts[0] === 'contact') return { type: 'contact' }; if (parts[0] === 'livraison') return { type: 'shipping' }; if (parts[0] === 'mentions-legales') return { type: 'legal' }; return { type: 'home' };
+};
 const safeStorageSet = (key: string, value: unknown): void => {
   try { localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value)); }
   catch (error) { console.warn('Stockage local plein, donnees conservees par le serveur:', error); }
@@ -350,6 +377,7 @@ const syncApiMutation = (method: string, endpoint: string, body: unknown | undef
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Navigation state
   const [currentView, setCurrentView] = useState<ViewType>(() => {
+    if (window.location.pathname !== '/') return pathToView(window.location.pathname, window.location.search);
     const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.VIEW);
     if (saved) {
       try {
@@ -700,8 +728,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const navigateTo = (view: ViewType) => {
     setCurrentView(view);
     safeStorageSet(LOCAL_STORAGE_KEYS.VIEW, view);
+    const nextPath = viewToPath(view);
+    if (window.location.pathname + window.location.search !== nextPath) window.history.pushState({}, '', nextPath);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  useEffect(() => {
+    const handlePopState = () => setCurrentView(pathToView(window.location.pathname, window.location.search));
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Cart operations
   const colorKey = (color?: { name: string; hex: string }) => color ? color.name + '__' + color.hex : '__no_color__';

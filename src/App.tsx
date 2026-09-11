@@ -20,12 +20,13 @@ import { StaticPagesView } from './views/StaticPagesView';
 import { AuthView } from './views/AuthView';
 
 const MainContent: React.FC = () => {
-  const { currentView, currentUser, isAdmin } = useStore();
+  const { currentView, currentUser, isAdmin, setIsCartDrawerOpen } = useStore();
 
   // Scroll to top on view changes
   useEffect(() => {
+    if (currentView.type === 'cart') setIsCartDrawerOpen(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [currentView]);
+  }, [currentView, setIsCartDrawerOpen]);
 
   const viewKey = `${currentView.type}-${(currentView as any).brandSlug || ''}-${(currentView as any).subCategorySlug || ''}-${(currentView as any).productId || ''}-${(currentView as any).tab || ''}`;
 
@@ -42,6 +43,8 @@ const MainContent: React.FC = () => {
           {currentView.type === 'auth' && <AuthView initialMode={currentView.mode} />}
 
           {currentView.type === 'home' && <HomeView />}
+
+          {currentView.type === 'cart' && <ShopView />}
 
           {currentView.type === 'shop' && (
             <ShopView
