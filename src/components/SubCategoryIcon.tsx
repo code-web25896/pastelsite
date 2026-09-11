@@ -101,7 +101,7 @@ export const getSubCategoryIconComponent = (slug?: string, name?: string) => {
   if (s.includes('feutre') || n.includes('feutre') || s.includes('marqueur') || n.includes('marqueur')) {
     return Highlighter;
   }
-  if (s.includes('papeterie') || n.includes('papeterie') || s.includes('feuille')) {
+  if (s.includes('papeterie') || s.includes('bagagerie') || n.includes('papeterie') || n.includes('bagagerie') || s.includes('feuille')) {
     return FileText;
   }
   if (s.includes('bureau') || n.includes('bureau') || s.includes('classeur')) {

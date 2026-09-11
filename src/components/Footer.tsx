@@ -75,7 +75,7 @@ export const Footer: React.FC = () => {
               <Logo colorMode="white" size="md" />
             </div>
             <p className="text-xs text-white/70 leading-relaxed max-w-sm">
-              Espace Pastel est une librairie et papeterie dédiée à tous ceux qui aiment lire, apprendre, créer et partager. Retrouvez le meilleur du scolaire, du bureau et des beaux-arts.
+              Espace Pastel est une librairie et bagagerie dédiée à tous ceux qui aiment lire, apprendre, créer et partager. Retrouvez le meilleur du scolaire, du bureau et des beaux-arts.
             </p>
           </div>
 

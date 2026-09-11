@@ -51,7 +51,7 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
               Bienvenue chez Espace Pastel
             </h1>
             <p className="text-sm text-gray-600 leading-relaxed">
-              La référence tunisienne pour les passionnés de belle papeterie, de littérature, de fournitures scolaires d'excellence et de création artistique.
+              La référence tunisienne pour les passionnés de belle bagagerie, de littérature, de fournitures scolaires d'excellence et de création artistique.
             </p>
           </div>
 
@@ -317,7 +317,7 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
           </div>
 
           <div className="space-y-4 text-xs text-[#0B1833]/80 leading-relaxed">
-            <p><strong>Éditeur du site :</strong> Librairie & Papeterie ESPACE PASTEL</p>
+            <p><strong>Éditeur du site :</strong> Librairie & Bagagerie ESPACE PASTEL</p>
             <p><strong>Siège social :</strong> 23 Rue de la Liberté, Menzah 5, Tunis, Tunisie</p>
             <p><strong>Téléphone :</strong> +216 98 137 585</p>
             <p><strong>Directeur de la publication :</strong> Direction Espace Pastel</p>

@@ -469,7 +469,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
           <div className="space-y-4 max-w-3xl text-sm text-[#0B1833]/80 leading-relaxed">
             <p>{product.description}</p>
             <p>
-              Sélectionné rigoureusement par <strong>Espace Pastel</strong> pour répondre aux exigences des étudiants, des professionnels et des amateurs de belle papeterie et de dessin à Tunis.
+              Sélectionné rigoureusement par <strong>Espace Pastel</strong> pour répondre aux exigences des étudiants, des professionnels et des amateurs de belle bagagerie et de dessin à Tunis.
             </p>
           </div>
         )}

@@ -75,7 +75,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
   }, [initialBrandId, initialSubCategoryId, initialCategory, initialSearchQuery, initialPromoOnly, initialIsNewOnly]);
 
   // Main Categories list
-  const categoriesList = ['Papeterie', 'Scolaire', 'Arts & Peinture', 'Bureau & Organisation'];
+  const categoriesList = ['Bagagerie', 'Scolaire', 'Arts & Peinture', 'Bureau & Organisation'];
 
   // Filter Logic
   const filteredProducts = useMemo(() => {
@@ -107,7 +107,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
       }
 
       // Category
-      if (selectedCategory !== 'all' && p.category !== selectedCategory) {
+      if (selectedCategory !== 'all' && p.category !== (selectedCategory === 'Bagagerie' ? 'Papeterie' : selectedCategory)) {
         return false;
       }
 

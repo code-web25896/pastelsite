@@ -124,7 +124,7 @@ export const HomeView: React.FC = () => {
       icon: Palette
     },
     {
-      title: 'Papeterie de Luxe & Cahiers',
+      title: 'Bagagerie de Luxe & Cahiers',
       desc: 'Papier vélin soyeux 90g et carnets de notes soft-touch.',
       image: '/logo.webp',
       badge: 'Premium Paper',
@@ -203,7 +203,7 @@ export const HomeView: React.FC = () => {
                     >
                       <Sparkles className="w-3 h-3 text-[#0B1833]" />
                     </motion.div>
-                    <span>Librairie &bull; Papeterie &bull; Beaux-Arts</span>
+                    <span>Librairie &bull; Bagagerie &bull; Beaux-Arts</span>
                   </motion.div>
 
                   {/* Main Title */}
@@ -217,7 +217,7 @@ export const HomeView: React.FC = () => {
                       ESPACE PASTEL
                     </h1>
                     <p className="font-sans text-[10px] sm:text-xs md:text-sm text-gray-600 font-medium max-w-xs sm:max-w-sm mx-auto leading-snug hidden xs:block">
-                      L'excellence de la papeterie, des livres et de la création artistique à Tunis.
+                      L'excellence de la bagagerie, des livres et de la création artistique à Tunis.
                     </p>
                   </motion.div>
 
@@ -286,14 +286,14 @@ export const HomeView: React.FC = () => {
             <span>✦ LIVRAISON EXPRESS EN TUNISIE (OFFERTE DÈS 500 DT)</span>
             <span className="text-[#8FD8C3]">✦ 100% PRODUITS CERTIFIÉS & GRANDES MARQUES</span>
             <span>✦ BOUTIQUE MENZAH 5 OUVERTE 7/7 DE 09H00 À 23H30</span>
-            <span className="text-[#F4A9C8]">✦ PAPETERIE SCOLAIRE, LIVRES & BEAUX-ARTS</span>
+            <span className="text-[#F4A9C8]">✦ BAGAGERIE SCOLAIRE, LIVRES & BEAUX-ARTS</span>
             <span>✦ RETRAIT GRATUIT EN BOUTIQUE SOUS 2H</span>
             <span className="text-[#F5E7A6]">✦ SERVICE CLIENT DÉDIÉ : 98 137 585</span>
             {/* Duplication for seamless loop */}
             <span>✦ LIVRAISON EXPRESS EN TUNISIE (OFFERTE DÈS 500 DT)</span>
             <span className="text-[#8FD8C3]">✦ 100% PRODUITS CERTIFIÉS & GRANDES MARQUES</span>
             <span>✦ BOUTIQUE MENZAH 5 OUVERTE 7/7 DE 09H00 À 23H30</span>
-            <span className="text-[#F4A9C8]">✦ PAPETERIE SCOLAIRE, LIVRES & BEAUX-ARTS</span>
+            <span className="text-[#F4A9C8]">✦ BAGAGERIE SCOLAIRE, LIVRES & BEAUX-ARTS</span>
             <span>✦ RETRAIT GRATUIT EN BOUTIQUE SOUS 2H</span>
           </motion.div>
         </div>
@@ -442,7 +442,7 @@ export const HomeView: React.FC = () => {
                 L'ENGAGEMENT ESPACE PASTEL
               </h2>
               <p className="text-xs sm:text-sm text-white/70 leading-relaxed">
-                Une librairie-papeterie moderne alliant proximité locale, conseils d'experts et service e-commerce irréprochable.
+                Une librairie-bagagerie moderne alliant proximité locale, conseils d'experts et service e-commerce irréprochable.
               </p>
             </div>
 
@@ -496,7 +496,7 @@ export const HomeView: React.FC = () => {
       </section>
 
 
-      {/* 8. CREATIVE SPOTLIGHT BANNER (BEAUX-ARTS & PAPETERIE FINE) */}
+      {/* 8. CREATIVE SPOTLIGHT BANNER (BEAUX-ARTS & BAGAGERIE FINE) */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div 
           initial={{ opacity: 0, scale: 0.98 }}
@@ -548,7 +548,7 @@ export const HomeView: React.FC = () => {
               NOS OFFRES DU MOMENT
             </h2>
             <p className="text-sm text-[#0B1833]/70 mt-1">
-              Profitez de réductions exclusives sur les indispensables de la papeterie et des fournitures.
+              Profitez de réductions exclusives sur les indispensables de la bagagerie et des fournitures.
             </p>
           </div>
 
@@ -617,7 +617,7 @@ export const HomeView: React.FC = () => {
               Transmettez votre liste dès aujourd'hui
             </h3>
             <p className="text-xs text-gray-500">
-              Contactez directement notre responsable papeterie par WhatsApp ou téléphone.
+              Contactez directement notre responsable bagagerie par WhatsApp ou téléphone.
             </p>
 
             <div className="space-y-2.5">

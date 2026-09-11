@@ -184,6 +184,29 @@ app.get('/api/auth/me', auth, route(async (req, res) => {
   res.json({ ...publicUser(user), addresses });
 }));
 
+app.post('/api/auth/forgot-password', route(async (req, res) => {
+  const body = z.object({ email: z.string().email() }).parse(req.body);
+  const email = body.email.toLowerCase();
+  const user = state.users.find((item) => item.email.toLowerCase() === email);
+  if (!user) return res.status(404).json({ error: 'Aucun compte ne correspond à cet e-mail.' });
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  state.passwordResets = (state.passwordResets || []).filter((item) => new Date(item.expiresAt) > new Date());
+  state.passwordResets.push({ token: resetToken, email, expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString() });
+  await persist();
+  res.json({ success: true, message: 'Instructions de réinitialisation envoyées.', resetToken });
+}));
+
+app.post('/api/auth/reset-password', route(async (req, res) => {
+  const body = z.object({ token: z.string().min(20), newPassword: z.string().min(12).max(128) }).parse(req.body);
+  const entry = (state.passwordResets || []).find((item) => item.token === body.token && new Date(item.expiresAt) > new Date());
+  if (!entry) return res.status(400).json({ error: 'Lien de réinitialisation invalide ou expiré.' });
+  const user = state.users.find((item) => item.email.toLowerCase() === entry.email);
+  if (!user) return res.status(404).json({ error: 'Utilisateur introuvable.' });
+  user.passwordHash = await bcrypt.hash(body.newPassword, 10);
+  state.passwordResets = state.passwordResets.filter((item) => item.token !== body.token);
+  await persist();
+  res.json({ success: true, message: 'Mot de passe réinitialisé avec succès.' });
+}));
 // ================= BRANDS =================
 app.get('/api/brands', route(async (_req, res) => res.json((state.brands || []).filter((brand) => brand.status === 'active'))));
 
