@@ -561,8 +561,8 @@ app.get('/api/subcategories', route(async (req, res) => {
       if (Array.isArray(rows) && rows.length > 0) {
         const merged = rows.map((x) => {
           const fromJson = jsonDbState.subcategories.find((s) => s.id === x.id || s.slug === x.slug);
-          // Prefer the JSON state updated by admin mutations so a stale MySQL row cannot hide the latest upload.
-          let img = (fromJson && fromJson.imageUrl) || x.imageUrl || null;
+          // MySQL est la source de vérité après une modification admin.
+          let img = x.imageUrl || (fromJson && fromJson.imageUrl) || null;
           if (img && img.startsWith('/uploads/')) img = null;
           return {
             ...x,
@@ -1230,7 +1230,8 @@ app.delete('/api/admin/subcategories/:id', auth, admin, route(async (req, res) =
       await pool.execute('DELETE FROM products WHERE subcategory_id = ?', [subId]);
       await pool.execute('DELETE FROM subcategories WHERE id = ? OR slug = ?', [targetId, targetId]);
     } catch (err) {
-      console.warn('MySQL delete subcategory failed:', err.message);
+      console.error('MySQL delete subcategory failed:', err.message);
+      throw err;
     }
   }
   const removedIds = new Set(jsonDbState.subcategories.filter((s) => s.id === targetId || s.slug === targetId).map((s) => s.id));

@@ -332,7 +332,7 @@ const syncApiMutation = (method: string, endpoint: string, body: unknown | undef
   const headers = authHeaders(body !== undefined);
   let payload: string | undefined = undefined;
   if (body !== undefined) payload = JSON.stringify(body);
-  void fetch(apiPath(endpoint), {
+  return fetch(apiPath(endpoint), {
     method,
     headers,
     body: payload,
@@ -1098,7 +1098,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     setSubCategories(prev => [...prev, newSub]);
-    syncApiMutation('POST', '/api/admin/subcategories', newSub);
+    await syncApiMutation('POST', '/api/admin/subcategories', newSub);
     addToast(`Sous-catégorie "${newSub.name}" ajoutée`, 'success');
     return newSub;
   };
@@ -1107,7 +1107,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setSubCategories(prev =>
       prev.map(s => (s.id === id || s.slug === id ? { ...s, ...updates } : s))
     );
-    syncApiMutation('PATCH', `/api/admin/subcategories/${id}`, updates);
+    await syncApiMutation('PATCH', `/api/admin/subcategories/${id}`, updates);
     addToast('Sous-catégorie mise à jour', 'success');
   };
 
@@ -1118,7 +1118,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setSubCategories(prev => prev.filter(s => s.id !== id && s.slug !== id));
     setProducts(prev => prev.filter(product => !removedIds.has(product.subCategoryId)));
     setCart(prev => prev.filter(item => !removedIds.has(item.product.subCategoryId)));
-    syncApiMutation('DELETE', `/api/admin/subcategories/${id}`, undefined);
+    await syncApiMutation('DELETE', `/api/admin/subcategories/${id}`, undefined);
     addToast(`Sous-catégorie "${(target && target.name) || ''}" supprimée`, 'info');
   };
 
