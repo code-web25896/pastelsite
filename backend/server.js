@@ -148,6 +148,7 @@ async function consolidateArtsBrand() {
       const [rows] = await pool.query(`SELECT id, name, logo_url AS logoUrl, banner_url AS bannerUrl, display_order AS displayOrder FROM brands WHERE LOWER(name) LIKE '%arts%' AND LOWER(name) LIKE '%peinture%' ORDER BY (logo_url IS NULL OR logo_url = '') ASC, display_order ASC, id ASC`);
       if (rows.length > 1) {
         const keeper = rows[0];
+        await pool.execute("UPDATE brands SET name = ?, slug = ?, logo_url = ?, status = ? WHERE id = ?", ['ARTS & PEINTURE', 'brand-arts', '/brands/ARTS PEINTURE.png', 'active', keeper.id]);
         for (const duplicate of rows.slice(1)) {
           await pool.execute('UPDATE subcategories SET brand_id = ? WHERE brand_id = ?', [keeper.id, duplicate.id]);
           await pool.execute('UPDATE products SET brand_id = ? WHERE brand_id = ?', [keeper.id, duplicate.id]);

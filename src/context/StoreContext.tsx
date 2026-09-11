@@ -153,7 +153,7 @@ const normalizeBrandKey = (brand: Brand) => {
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/^brand\s+/, '')
+    .replace(/^brand[\\s-]+/, '')
     .replace(/[^a-z0-9]+/g, '');
   const slug = String(brand.slug || '').trim().toLowerCase().replace(/^brand-+/, '');
   return name || slug;
