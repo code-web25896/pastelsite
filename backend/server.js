@@ -652,9 +652,23 @@ function publicProduct(product) {
 
 app.get('/api/products/:id/image/:index', route(async (req, res) => {
   const index = Number(req.params.index);
-  if (!Number.isInteger(index) || index < 0 || !pool) return res.status(404).end();
-  const [rows] = await pool.execute('SELECT images FROM products WHERE id = ? LIMIT 1', [req.params.id]);
-  const image = asImageList(rows[0]?.images)[index];
+  if (!Number.isInteger(index) || index < 0) return res.status(404).end();
+
+  // MySQL est prioritaire, puis le catalogue JSON persistant sert de fallback.
+  let image = null;
+  if (pool) {
+    try {
+      const [rows] = await pool.execute('SELECT images FROM products WHERE id = ? LIMIT 1', [req.params.id]);
+      image = asImageList(rows[0]?.images)[index] || null;
+    } catch (error) {
+      console.warn('Lecture image MySQL impossible, fallback JSON:', error.message);
+    }
+  }
+  if (!image) {
+    const fallbackProduct = jsonDbState.products.find((product) => String(product.id) === String(req.params.id));
+    image = asImageList(fallbackProduct?.images)[index] || null;
+  }
+
   const match = typeof image === 'string' ? image.match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i) : null;
   if (!match) return res.status(404).end();
   res.set('Cache-Control', 'public, max-age=31536000, immutable');
