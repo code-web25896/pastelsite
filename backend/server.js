@@ -42,6 +42,24 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
 }
 
 const app = express();
+const PUBLIC_APP_URL = String(process.env.PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+const sendPasswordResetEmail = async ({ email, resetUrl }) => {
+  const apiKey = String(process.env.RESEND_API_KEY || '').trim();
+  const from = String(process.env.MAIL_FROM || '').trim();
+  if (!apiKey || !from) return false;
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from,
+      to: [email],
+      subject: 'Réinitialisation de votre mot de passe — Espace Pastel',
+      html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#0B1833"><h2>Espace Pastel</h2><p>Vous avez demandé la réinitialisation de votre mot de passe.</p><p><a href="${resetUrl}" style="display:inline-block;background:#0B1833;color:#fff;padding:13px 20px;border-radius:8px;text-decoration:none">Choisir un nouveau mot de passe</a></p><p>Ce lien est valable 15 minutes. Si vous n’êtes pas à l’origine de cette demande, ignorez cet e-mail.</p></div>`
+    })
+  });
+  if (!response.ok) throw new Error(`Resend error ${response.status}: ${await response.text()}`);
+  return true;
+};
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
 
@@ -512,16 +530,23 @@ app.post(['/api/auth/forgot-password', '/api/api/auth/forgot-password'], route(a
   const normalized = email.toLowerCase();
   const existsMysql = pool ? await pool.execute('SELECT id FROM users WHERE email = ? LIMIT 1').then(([rows]) => Boolean(rows[0])).catch(() => false) : false;
   const existsJson = jsonDbState.users.some((u) => u.email.toLowerCase() === normalized);
-  if (!existsMysql && !existsJson) return res.status(404).json({ error: 'Aucun compte ne correspond ÃƒÂ  cet e-mail.' });
+  if (!existsMysql && !existsJson) return res.status(404).json({ error: 'Aucun compte ne correspond à cet e-mail.' });
   const resetToken = crypto.randomBytes(32).toString('hex');
   jsonDbState.passwordResets = (jsonDbState.passwordResets || []).filter((r) => new Date(r.expiresAt) > new Date());
   jsonDbState.passwordResets.push({ token: resetToken, email: normalized, expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString() });
   persistJsonDb();
-  const response = { success: true, message: 'Demande reÃƒÂ§ue. Utilisez le lien envoyÃƒÂ© par e-mail pour choisir un nouveau mot de passe.' };
+  const resetUrl = `${PUBLIC_APP_URL}/mot-de-passe-oublie?token=${encodeURIComponent(resetToken)}`;
+  let emailSent = false;
+  try {
+    emailSent = await sendPasswordResetEmail({ email: normalized, resetUrl });
+  } catch (error) {
+    console.error('Password reset email failed:', error.message);
+    if (process.env.NODE_ENV === 'production') return res.status(502).json({ error: 'Le service e-mail est momentanément indisponible. Réessayez dans quelques minutes.' });
+  }
+  const response = { success: true, message: emailSent ? 'Un lien de réinitialisation vient d’être envoyé à votre adresse e-mail.' : 'Demande reçue. Configurez RESEND_API_KEY et MAIL_FROM pour activer l’envoi réel.' };
   if (process.env.NODE_ENV !== 'production') response.resetToken = resetToken;
   return res.json(response);
 }));
-
 app.post(['/api/auth/reset-password', '/api/api/auth/reset-password'], route(async (req, res) => {
   const { token: resetToken, newPassword } = z.object({ token: z.string().min(20), newPassword: passwordSchema }).parse(req.body);
   const entry = (jsonDbState.passwordResets || []).find((r) => r.token === resetToken && new Date(r.expiresAt) > new Date());
