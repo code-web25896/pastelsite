@@ -542,12 +542,22 @@ app.get('/api/brands', route(async (_q, res) => {
   if (pool) {
     try {
       const [rows] = await pool.execute('SELECT id, name, slug, description, logo_url AS logoUrl, banner_url AS bannerUrl, accent_color AS accentColor, status, display_order AS displayOrder FROM brands WHERE status = ? ORDER BY display_order, name', ['active']);
-      return res.json(rows.map((x) => ({ ...x, order: x.displayOrder })));
+      const uniqueBrands = new Map();
+      for (const row of rows) {
+        const key = String(row.name || row.slug).trim().toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');
+        if (!uniqueBrands.has(key)) uniqueBrands.set(key, row);
+      }
+      return res.json(Array.from(uniqueBrands.values()).map((x) => ({ ...x, order: x.displayOrder })));
     } catch (err) {
       console.warn('MySQL brands failed:', err.message);
     }
   }
-  res.json(jsonDbState.brands.filter((b) => b.status === 'active'));
+  const uniqueBrands = new Map();
+  for (const brand of jsonDbState.brands.filter((b) => b.status === 'active')) {
+    const key = String(brand.name || brand.slug).trim().toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');
+    if (!uniqueBrands.has(key)) uniqueBrands.set(key, brand);
+  }
+  res.json(Array.from(uniqueBrands.values()));
 }));
 
 app.get('/api/subcategories', route(async (req, res) => {
@@ -1097,6 +1107,8 @@ app.post('/api/admin/brands', auth, admin, route(async (req, res) => {
 
   if (pool) {
     try {
+      const [existing] = await pool.execute('SELECT id FROM brands WHERE LOWER(TRIM(name)) = LOWER(TRIM(?)) OR slug = ? LIMIT 1', [brand.name, brand.slug]);
+      if (existing[0]) return res.status(409).json({ error: 'Cette marque existe deja.', brandId: existing[0].id });
       await pool.execute(
         'INSERT INTO brands (id, name, slug, description, logo_url, banner_url, accent_color, status, display_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [brand.id, brand.name, brand.slug, brand.description || '', brand.logoUrl || null, brand.bannerUrl || null, brand.accentColor || null, brand.status, brand.order]
@@ -1144,7 +1156,8 @@ app.delete('/api/admin/brands/:id', auth, admin, route(async (req, res) => {
     try {
       await pool.execute('DELETE FROM brands WHERE id = ?', [targetId]);
     } catch (err) {
-      console.warn('MySQL delete brand failed:', err.message);
+      console.error('MySQL delete brand failed:', err.message);
+      throw err;
     }
   }
   jsonDbState.brands = jsonDbState.brands.filter((b) => b.id !== targetId);

@@ -70,9 +70,9 @@ interface StoreContextType {
   deleteProduct: (id: string) => Promise<void>;
 
   // Admin CRUD for Brands
-  addBrand: (brand: Omit<Brand, 'id' | 'slug'>) => Brand;
-  updateBrand: (id: string, updates: Partial<Brand>) => void;
-  deleteBrand: (id: string) => void;
+  addBrand: (brand: Omit<Brand, 'id' | 'slug'>) => Promise<Brand>;
+  updateBrand: (id: string, updates: Partial<Brand>) => Promise<void>;
+  deleteBrand: (id: string) => Promise<void>;
 
   // Admin CRUD for SubCategories
   addSubCategory: (subCategory: Omit<SubCategory, 'id' | 'slug'>) => Promise<SubCategory>;
@@ -1044,7 +1044,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   // Brand CRUD
-  const addBrand = (brandData: Omit<Brand, 'id' | 'slug'>): Brand => {
+  const addBrand = async (brandData: Omit<Brand, 'id' | 'slug'>): Promise<Brand> => {
     const slug = brandData.name
       .toLowerCase()
       .normalize('NFD')
@@ -1059,12 +1059,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     setBrands(prev => [...prev, newBrand]);
-    syncApiMutation('POST', '/api/admin/brands', newBrand);
+    await syncApiMutation('POST', '/api/admin/brands', newBrand);
     addToast(`Marque "${newBrand.name}" ajoutee`, 'success');
     return newBrand;
   };
 
-  const updateBrand = (id: string, updates: Partial<Brand>) => {
+  const updateBrand = async (id: string, updates: Partial<Brand>): Promise<void> => {
     setBrands(prev =>
       prev.map(b => {
         if (b.id === id) return { ...b, ...updates };
@@ -1075,7 +1075,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     addToast('Marque mise a jour', 'success');
   };
 
-  const deleteBrand = (id: string) => {
+  const deleteBrand = async (id: string): Promise<void> => {
     const target = brands.find(b => b.id === id);
     setBrands(prev => prev.filter(b => b.id !== id));
     syncApiMutation('DELETE', `/api/admin/brands/${id}`);
