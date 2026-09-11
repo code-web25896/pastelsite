@@ -140,6 +140,34 @@ async function removeDemoProductsFromMysql() {
   const [result] = await pool.query(`DELETE FROM products WHERE id IN (${placeholders})`, ids);
   if (result.affectedRows) console.log(`Catalogue MySQL nettoyÃƒÂ©: ${result.affectedRows} produits de dÃƒÂ©monstration supprimÃƒÂ©s.`);
 }
+async function consolidateArtsBrand() {
+  const normalizeBrandName = (value) => String(value || '').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+  const isArtsBrand = (value) => { const key = normalizeBrandName(value); return key.includes('arts') && key.includes('peinture'); };
+  if (pool) {
+    try {
+      const [rows] = await pool.query(`SELECT id, name, logo_url AS logoUrl, banner_url AS bannerUrl, display_order AS displayOrder FROM brands WHERE LOWER(name) LIKE '%arts%' AND LOWER(name) LIKE '%peinture%' ORDER BY (logo_url IS NULL OR logo_url = '') ASC, display_order ASC, id ASC`);
+      if (rows.length > 1) {
+        const keeper = rows[0];
+        for (const duplicate of rows.slice(1)) {
+          await pool.execute('UPDATE subcategories SET brand_id = ? WHERE brand_id = ?', [keeper.id, duplicate.id]);
+          await pool.execute('UPDATE products SET brand_id = ? WHERE brand_id = ?', [keeper.id, duplicate.id]);
+          await pool.execute('DELETE FROM brands WHERE id = ?', [duplicate.id]);
+        }
+      }
+    } catch (error) {
+      console.warn('Consolidation Arts & Peinture non executee:', error.message);
+    }
+  }
+  const arts = jsonDbState.brands.filter((brand) => isArtsBrand(brand.name));
+  if (arts.length > 1) {
+    const keeper = arts.find((brand) => brand.logoUrl || brand.bannerUrl) || arts[0];
+    const removedIds = new Set(arts.filter((brand) => brand.id !== keeper.id).map((brand) => brand.id));
+    jsonDbState.brands = jsonDbState.brands.filter((brand) => !removedIds.has(brand.id));
+    jsonDbState.subcategories = jsonDbState.subcategories.map((sub) => removedIds.has(sub.brandId) ? { ...sub, brandId: keeper.id } : sub);
+    jsonDbState.products = jsonDbState.products.map((product) => removedIds.has(product.brandId) ? { ...product, brandId: keeper.id } : product);
+    persistJsonDb();
+  }
+}
 async function migrateProductImagesToFiles() {
   if (!pool) return;
   try {
@@ -1507,6 +1535,7 @@ async function bootstrap() {
     try {
       await initializeDatabase(pool);
       await removeDemoProductsFromMysql();
+      await consolidateArtsBrand();
       await migrateProductImagesToFiles();
     } catch (error) {
       console.warn('Initialisation MySQL non executee:', error.message || error);
