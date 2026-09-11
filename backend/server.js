@@ -146,6 +146,9 @@ async function consolidateArtsBrand() {
   if (pool) {
     try {
       const [rows] = await pool.query(`SELECT id, name, logo_url AS logoUrl, banner_url AS bannerUrl, display_order AS displayOrder FROM brands WHERE LOWER(name) LIKE '%arts%' AND LOWER(name) LIKE '%peinture%' ORDER BY (logo_url IS NULL OR logo_url = '') ASC, display_order ASC, id ASC`);
+      if (rows.length === 0) {
+        await pool.execute("INSERT INTO brands (id, name, slug, description, logo_url, banner_url, accent_color, status, display_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name), logo_url = VALUES(logo_url), status = VALUES(status)", ['brand-arts', 'ARTS & PEINTURE', 'arts-peinture', 'Materiel artistique pour les clients Espace Pastel', '/brands/ARTS PEINTURE.png', null, '#B58BC5', 'active', 3]);
+      }
       if (rows.length > 1) {
         const keeper = rows[0];
         await pool.execute("UPDATE brands SET name = ?, slug = ?, logo_url = ?, status = ? WHERE id = ?", ['ARTS & PEINTURE', 'brand-arts', '/brands/ARTS PEINTURE.png', 'active', keeper.id]);
