@@ -171,7 +171,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </div>
 
         {/* Pricing & Action Button Footer */}
-        <div className="pt-3 border-t border-gray-100 flex items-center justify-between gap-2 mt-auto">
+        <div className={`pt-3 border-t border-gray-100 flex gap-3 mt-auto ${isRare ? 'flex-col items-stretch' : 'flex-row items-center justify-between'}`}>
           <div>
             <div className="font-sans font-extrabold text-base text-[#0B1833]">
               {formatPrice(currentPrice)}
@@ -185,15 +185,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
           {/* Action Button: Appeler for Rare Pieces or Ajouter au panier */}
           {isRare ? (
-            <div className="flex items-center gap-1.5">
+            <div className="grid grid-cols-2 gap-2 w-full min-w-0">
               {showRareChat && (
-                <a href={facebookChatUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="px-2.5 py-2 rounded-xl flex items-center gap-1.5 bg-[#1877F2] hover:bg-[#166fe5] text-white font-bold text-xs transition-all shadow-sm active:scale-95 cursor-pointer" title="Discuter sur Facebook Messenger">
+                <a href={facebookChatUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="w-full min-w-0 px-2 py-2.5 rounded-xl flex items-center justify-center gap-1 bg-[#1877F2] hover:bg-[#166fe5] text-white font-bold text-[10px] sm:text-xs leading-none transition-all shadow-sm active:scale-95 cursor-pointer" title="Discuter sur Facebook Messenger">
                   <MessageCircle className="w-3.5 h-3.5" />
                   <span>Discuter</span>
                 </a>
               )}
               {showRareCall && (
-                <a href={`tel:${customPhone.replace(/\s+/g, '')}`} onClick={(e) => e.stopPropagation()} className="px-2.5 py-2 rounded-xl flex items-center gap-1.5 bg-[#0B1833] hover:bg-[#1a2d54] text-white font-bold text-xs transition-all shadow-sm active:scale-95 cursor-pointer" title={`Appeler pour commander : ${customPhone}`}>
+                <a href={`tel:${customPhone.replace(/\s+/g, '')}`} onClick={(e) => e.stopPropagation()} className="w-full min-w-0 px-2 py-2.5 rounded-xl flex items-center justify-center gap-1 bg-[#0B1833] hover:bg-[#1a2d54] text-white font-bold text-[10px] sm:text-xs leading-none transition-all shadow-sm active:scale-95 cursor-pointer" title={`Appeler pour commander : ${customPhone}`}>
                   <Phone className="w-3.5 h-3.5 text-[#8FD8C3]" />
                   <span>Appeler</span>
                 </a>
