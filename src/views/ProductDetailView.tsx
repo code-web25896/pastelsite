@@ -315,18 +315,18 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 sm:gap-3 w-full min-w-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full min-w-0">
                 {showRareCall && (
-                  <a href={`tel:${customPhone.replace(/\s+/g, '')}`} className="w-full min-w-0 min-h-[76px] sm:min-h-0 py-3 px-2 sm:px-4 rounded-2xl font-bold text-[10px] sm:text-xs leading-tight uppercase tracking-wide flex flex-col sm:flex-row items-center justify-center gap-2 text-center break-words bg-[#0B1833] hover:bg-[#1a2d54] text-white transition-all shadow-md active:scale-98 cursor-pointer">
+                  <a href={`tel:${customPhone.replace(/\s+/g, '')}`} className="w-full min-w-0 min-h-[58px] sm:min-h-0 py-3 px-4 rounded-2xl font-bold text-[11px] sm:text-xs leading-tight uppercase tracking-wide flex flex-row items-center justify-center gap-2 text-center break-words bg-[#0B1833] hover:bg-[#1a2d54] text-white transition-all shadow-md active:scale-98 cursor-pointer">
                     <Phone className="w-4 h-4 text-[#8FD8C3]" />
-                    <span className="min-w-0">Appeler<br className="sm:hidden" /> le {customPhone}</span>
+                    <span className="min-w-0">Appeler la boutique<br className="sm:hidden" /><span className="hidden sm:inline"> · </span>{customPhone}</span>
                   </a>
                 )}
 
                 {showRareChat && (
-                  <a href="https://www.facebook.com/share/19Fu6v8H9D/?mibextid=wwXIfr" target="_blank" rel="noreferrer" className="w-full min-w-0 min-h-[76px] sm:min-h-0 py-3 px-2 sm:px-4 rounded-2xl font-bold text-[10px] sm:text-xs leading-tight uppercase tracking-wide flex flex-col sm:flex-row items-center justify-center gap-2 text-center break-words bg-[#1877F2] hover:bg-[#166fe5] text-white transition-all shadow-md active:scale-98 cursor-pointer">
+                  <a href="https://www.facebook.com/share/19Fu6v8H9D/?mibextid=wwXIfr" target="_blank" rel="noreferrer" className="w-full min-w-0 min-h-[58px] sm:min-h-0 py-3 px-4 rounded-2xl font-bold text-[11px] sm:text-xs leading-tight uppercase tracking-wide flex flex-row items-center justify-center gap-2 text-center break-words bg-[#1877F2] hover:bg-[#166fe5] text-white transition-all shadow-md active:scale-98 cursor-pointer">
                     <MessageCircle className="w-4 h-4" />
-                    <span className="min-w-0">Discuter<br className="sm:hidden" /> sur Facebook</span>
+                    <span className="min-w-0">Discuter sur Facebook</span>
                   </a>
                 )}
               </div>
