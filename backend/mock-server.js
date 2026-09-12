@@ -153,7 +153,7 @@ app.get('/api/health', route(async (_req, res) => res.json({ ok: true, mode: 'mo
 
 // ================= AUTH =================
 app.post('/api/auth/register', rateLimit({ windowMs: 3600000, limit: 15, standardHeaders: 'draft-8', legacyHeaders: false }), route(async (req, res) => {
-  const body = z.object({ email: z.string().email(), password: z.string().min(6).max(128), firstName: z.string().trim().min(1).max(80), lastName: z.string().trim().min(1).max(80), phone: z.string().trim().min(4).max(30).nullable().optional() }).parse(req.body);
+  const body = z.object({ email: z.string().email().refine((value) => value.toLowerCase().endsWith('@gmail.com'), 'Une adresse Gmail en @gmail.com est requise.'), password: z.string().min(6).max(128), firstName: z.string().trim().min(1).max(80), lastName: z.string().trim().min(1).max(80), phone: z.string().trim().min(4).max(30).nullable().optional() }).parse(req.body);
   if (state.users.some((user) => user.email.toLowerCase() === body.email.toLowerCase())) return res.status(409).json({ error: 'Email deja utilise.' });
   const user = { id: 'usr-' + crypto.randomUUID(), email: body.email.toLowerCase(), passwordHash: await bcrypt.hash(body.password, 10), role: 'customer', firstName: body.firstName, lastName: body.lastName, phone: body.phone ?? null, createdAt: new Date().toISOString() };
   state.users.push(user);

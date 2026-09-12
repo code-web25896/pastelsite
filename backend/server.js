@@ -282,7 +282,7 @@ const passwordSchema = z.string().min(6).max(128);
 const imageOrUrl = z.string().max(15000000).nullable().optional();
 
 const userInput = z.object({
-  email: z.string().email().max(254),
+  email: z.string().email().max(254).refine((value) => value.toLowerCase().endsWith('@gmail.com'), 'Une adresse Gmail en @gmail.com est requise.'),
   password: passwordSchema,
   firstName: z.string().trim().min(1).max(80),
   lastName: z.string().trim().max(80).optional().default(''),

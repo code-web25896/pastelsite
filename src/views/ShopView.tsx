@@ -549,19 +549,9 @@ export const ShopView: React.FC<ShopViewProps> = ({
                   <ChevronLeft className="h-4 w-4" />
                   <span>Précédent</span>
                 </button>
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
-                    <button
-                      key={page}
-                      type="button"
-                      onClick={() => { setCurrentPage(page); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-                      aria-current={currentPage === page ? 'page' : undefined}
-                      className={`h-9 min-w-9 rounded-xl px-2 text-xs font-bold transition-colors ${currentPage === page ? 'bg-[#0B1833] text-white' : 'border border-gray-200 bg-white text-[#0B1833] hover:border-[#0B1833]'}`}
-                    >
-                      {page}
-                    </button>
-                  ))}
-                </div>
+                <span className="min-w-[90px] text-center text-xs font-bold text-[#0B1833]">
+                  Page {currentPage} sur {totalPages}
+                </span>
                 <button
                   type="button"
                   onClick={() => { setCurrentPage((page) => Math.min(totalPages, page + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}

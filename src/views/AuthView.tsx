@@ -18,9 +18,11 @@ export const AuthView: React.FC<{ initialMode?: Mode }> = ({ initialMode = 'logi
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const isGmailAddress = (value: string) => /^[^\s@]+@gmail\.com$/i.test(value.trim());
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (mode === 'register' && !isGmailAddress(email)) { addToast('Adresse Gmail invalide. Utilisez une adresse terminée par @gmail.com.', 'error'); return; }
     setLoading(true);
     try {
       if (mode === 'forgot') {
