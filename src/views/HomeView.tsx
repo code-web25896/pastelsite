@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { BrandCard } from '../components/BrandCard';
 import { ProductCard } from '../components/ProductCard';
 import { Logo } from '../components/Logo';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  ArrowRight, 
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight, 
   Truck, 
   ShieldCheck, 
   Headphones, 
@@ -39,6 +41,11 @@ export const HomeView: React.FC = () => {
   // Newsletter state
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterSubscribed, setNewsletterSubscribed] = useState(false);
+  const newProductsCarouselRef = useRef<HTMLDivElement>(null);
+  const promoProductsCarouselRef = useRef<HTMLDivElement>(null);
+  const scrollCarousel = (ref: React.RefObject<HTMLDivElement | null>, direction: -1 | 1) => {
+    ref.current?.scrollBy({ left: direction * Math.max(ref.current.clientWidth * 0.82, 280), behavior: 'smooth' });
+  };
 
   // FAQ open index state
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
@@ -53,7 +60,7 @@ export const HomeView: React.FC = () => {
       const dateB = new Date(b.createdAt || 0).getTime();
       return dateB - dateA;
     })
-    .slice(0, 4);
+    .slice(0, 8);
 
   const promoProducts = [...products]
     .filter(p => p?.id && p?.name && (!p.status || p.status === 'published') && (p.promoPrice != null || p.isPromo || p.badge === 'PROMOTION'))
@@ -62,9 +69,9 @@ export const HomeView: React.FC = () => {
       const dateB = new Date(b.createdAt || 0).getTime();
       return dateB - dateA;
     })
-    .slice(0, 4);
+    .slice(0, 8);
 
-  const approvedReviews = reviews.filter(r => r.status === 'approved').slice(0, 4);
+  const approvedReviews = reviews.filter(r => r.status === 'approved').slice(0, 8);
 
   const handleNewsletterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -411,11 +418,15 @@ export const HomeView: React.FC = () => {
           </button>
         </div>
 
-        {/* 4-Columns Product Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          {newProducts.map(product => (
-            <ProductCard key={product.id} product={product} />
-          ))}
+        {/* Premium product carousel */}
+        <div className="relative group/carousel">
+          <button type="button" onClick={() => scrollCarousel(newProductsCarouselRef, -1)} aria-label="Nouveautés précédentes" className="absolute left-2 top-1/2 z-10 hidden -translate-y-1/2 rounded-full border border-gray-100 bg-white/95 p-2 text-[#0B1833] shadow-lg transition hover:scale-105 sm:flex"><ChevronLeft className="h-5 w-5" /></button>
+          <div ref={newProductsCarouselRef} className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-6">
+            {newProducts.map(product => (
+              <div key={product.id} className="w-[calc(50%-8px)] min-w-[calc(50%-8px)] snap-start sm:w-[calc(33.333%-16px)] sm:min-w-[calc(33.333%-16px)] lg:w-[calc(25%-18px)] lg:min-w-[calc(25%-18px)]"><ProductCard product={product} /></div>
+            ))}
+          </div>
+          <button type="button" onClick={() => scrollCarousel(newProductsCarouselRef, 1)} aria-label="Nouveautés suivantes" className="absolute right-2 top-1/2 z-10 hidden -translate-y-1/2 rounded-full border border-gray-100 bg-white/95 p-2 text-[#0B1833] shadow-lg transition hover:scale-105 sm:flex"><ChevronRight className="h-5 w-5" /></button>
         </div>
       </section>
 
@@ -561,11 +572,15 @@ export const HomeView: React.FC = () => {
           </button>
         </div>
 
-        {/* 4-Columns Promo Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          {promoProducts.map(product => (
-            <ProductCard key={product.id} product={product} />
-          ))}
+        {/* Premium offers carousel */}
+        <div className="relative group/carousel">
+          <button type="button" onClick={() => scrollCarousel(promoProductsCarouselRef, -1)} aria-label="Offres précédentes" className="absolute left-2 top-1/2 z-10 hidden -translate-y-1/2 rounded-full border border-gray-100 bg-white/95 p-2 text-[#0B1833] shadow-lg transition hover:scale-105 sm:flex"><ChevronLeft className="h-5 w-5" /></button>
+          <div ref={promoProductsCarouselRef} className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-6">
+            {promoProducts.map(product => (
+              <div key={product.id} className="w-[calc(50%-8px)] min-w-[calc(50%-8px)] snap-start sm:w-[calc(33.333%-16px)] sm:min-w-[calc(33.333%-16px)] lg:w-[calc(25%-18px)] lg:min-w-[calc(25%-18px)]"><ProductCard product={product} /></div>
+            ))}
+          </div>
+          <button type="button" onClick={() => scrollCarousel(promoProductsCarouselRef, 1)} aria-label="Offres suivantes" className="absolute right-2 top-1/2 z-10 hidden -translate-y-1/2 rounded-full border border-gray-100 bg-white/95 p-2 text-[#0B1833] shadow-lg transition hover:scale-105 sm:flex"><ChevronRight className="h-5 w-5" /></button>
         </div>
       </section>
 
