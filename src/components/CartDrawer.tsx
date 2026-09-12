@@ -23,47 +23,37 @@ export const CartDrawer: React.FC = () => {
     removeFromCart, 
     formatPrice, 
     navigateTo,
-    addToast
+    addToast,
+    appliedPromoCode,
+    applyPromoCode,
+    removePromoCode,
+    getCartItemUnitPrice,
+    promoDiscountAmount,
+    discountedSubtotal
   } = useStore();
 
   const [promoCode, setPromoCode] = useState('');
-  const [appliedPromo, setAppliedPromo] = useState<string | null>(() => typeof window !== 'undefined' ? window.localStorage.getItem('espace_pastel_promo_code') : null);
 
   if (!isCartDrawerOpen) return null;
 
   const FREE_SHIPPING_THRESHOLD = 500.0;
-  const remainingForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - cartSubtotal);
-  const freeShippingProgress = Math.min(100, (cartSubtotal / FREE_SHIPPING_THRESHOLD) * 100);
+  const remainingForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - discountedSubtotal);
+  const freeShippingProgress = Math.min(100, (discountedSubtotal / FREE_SHIPPING_THRESHOLD) * 100);
 
-  const shippingFee = cartSubtotal >= FREE_SHIPPING_THRESHOLD || cartSubtotal === 0 ? 0 : 7.2;
-  const activeCode = (appliedPromo || '').trim().toUpperCase();
-  const getUnitPrice = (item: typeof cart[number]) => {
-    const basePrice = Number(item.product.promoPrice ?? item.product.price);
-    const productCode = String(item.product.promoCode || '').trim().toUpperCase();
-    const percent = Number(item.product.promoDiscountPercent || 0);
-    return activeCode && productCode === activeCode && percent > 0
-      ? basePrice * (1 - Math.min(100, percent) / 100)
-      : basePrice;
-  };
-  const discountAmount = cart.reduce((sum, item) => {
-    const basePrice = Number(item.product.promoPrice ?? item.product.price);
-    return sum + Math.max(0, basePrice - getUnitPrice(item)) * item.quantity;
-  }, 0);
-  const discountedSubtotal = Math.max(0, cartSubtotal - discountAmount);
+  const shippingFee = discountedSubtotal >= FREE_SHIPPING_THRESHOLD || cart.length === 0 ? 0 : 7.2;
+  const getUnitPrice = (item: typeof cart[number]) => getCartItemUnitPrice(item);
+  const discountAmount = promoDiscountAmount;
   const finalTotal = discountedSubtotal + shippingFee;
 
   const handleApplyPromo = (e: React.FormEvent) => {
     e.preventDefault();
-    const code = promoCode.trim().toUpperCase();
-    const matches = cart.filter(item => String(item.product.promoCode || '').trim().toUpperCase() === code && Number(item.product.promoDiscountPercent || 0) > 0);
-    if (!code || matches.length === 0) {
-      addToast('Code promo invalide pour les produits de votre panier.', 'warning');
+    const res = applyPromoCode(promoCode);
+    if (!res.success) {
+      addToast(res.message, 'warning');
       return;
     }
-    setAppliedPromo(code);
-    window.localStorage.setItem('espace_pastel_promo_code', code);
     setPromoCode('');
-    addToast(`Code ${code} appliqué sur ${matches.length} produit(s).`, 'success');
+    addToast(res.message, 'success');
   };
 
   return (
@@ -149,6 +139,7 @@ export const CartDrawer: React.FC = () => {
             ) : (
               cart.map(item => {
                 const unitPrice = getUnitPrice(item);
+                const basePrice = Number(item.product.promoPrice ?? item.product.price);
                 const lineTotal = unitPrice * item.quantity;
 
                 return (
@@ -183,8 +174,16 @@ export const CartDrawer: React.FC = () => {
                             Couleur : {item.selectedColor.name}
                           </div>
                         )}
-                        <div className="text-[11px] font-semibold text-[#0B1833] mt-0.5">
-                          {formatPrice(unitPrice)}
+                        <div className="text-[11px] font-semibold text-[#0B1833] mt-0.5 flex items-center gap-1.5">
+                          {unitPrice < basePrice ? (
+                            <>
+                              <span className="text-emerald-700 font-bold">{formatPrice(unitPrice)}</span>
+                              <span className="text-gray-400 line-through text-[10px]">{formatPrice(basePrice)}</span>
+                              <span className="text-[9px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold">-{item.product.promoDiscountPercent}%</span>
+                            </>
+                          ) : (
+                            formatPrice(unitPrice)
+                          )}
                         </div>
                       </div>
 
@@ -252,13 +251,13 @@ export const CartDrawer: React.FC = () => {
                 </button>
               </form>
 
-              {appliedPromo && (
+              {appliedPromoCode && (
                 <div className="flex items-center justify-between text-xs text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg">
                   <span className="flex items-center gap-1">
-                    <Tag className="w-3.5 h-3.5" /> {appliedPromo}
+                    <Tag className="w-3.5 h-3.5" /> {appliedPromoCode}
                   </span>
                   <button 
-                    onClick={() => { setAppliedPromo(null); window.localStorage.removeItem('espace_pastel_promo_code'); setPromoCode(''); }}
+                    onClick={() => { removePromoCode(); setPromoCode(''); }}
                     className="text-xs text-red-500 hover:underline"
                   >
                     Retirer

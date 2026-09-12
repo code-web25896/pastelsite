@@ -928,7 +928,7 @@ app.post('/api/orders', optionalAuth, route(async (req, res) => {
       : basePrice;
     const quantity = item.quantity;
     discountAmount += Math.max(0, basePrice - price) * quantity;
-    subtotal += price * quantity;
+    subtotal += basePrice * quantity;
     items.push({
       productId: item.productId,
       productName: product?.name || item.productName || 'Produit Espace Pastel',
@@ -946,8 +946,9 @@ app.post('/api/orders', optionalAuth, route(async (req, res) => {
   }
 
   const isPickup = x.paymentMethod === 'pickup' || x.customer.address.toLowerCase().includes('retrait');
-  const shippingFee = (isPickup || subtotal >= 500) ? 0 : 7.2;
-  const total = subtotal + shippingFee;
+  const discountedSubtotal = Math.max(0, subtotal - discountAmount);
+  const shippingFee = (isPickup || discountedSubtotal >= 500) ? 0 : 7.2;
+  const total = discountedSubtotal + shippingFee;
   const userId = req.user?.sub || 'usr-guest-' + crypto.randomUUID().slice(0, 8);
 
   const orderRecord = {

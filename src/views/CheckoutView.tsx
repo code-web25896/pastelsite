@@ -11,7 +11,8 @@ import {
   CheckCircle2, 
   ArrowLeft, 
   ShieldCheck, 
-  ArrowRight
+  ArrowRight,
+  Tag
 } from 'lucide-react';
 import { Order } from '../types';
 
@@ -26,6 +27,12 @@ export const CheckoutView: React.FC = () => {
     currentUser,
     clearCart,
     addToast,
+    appliedPromoCode,
+    applyPromoCode,
+    removePromoCode,
+    getCartItemUnitPrice,
+    promoDiscountAmount,
+    discountedSubtotal
   } = useStore();
 
   // Form states
@@ -37,7 +44,7 @@ export const CheckoutView: React.FC = () => {
   const [address, setAddress] = useState('');
   const [postalCode, setPostalCode] = useState('');
   const [notes, setNotes] = useState('');
-  const [appliedPromo] = useState(() => typeof window !== 'undefined' ? window.localStorage.getItem('espace_pastel_promo_code') || '' : '');
+  const [checkoutPromoInput, setCheckoutPromoInput] = useState('');
 
   useEffect(() => {
     if (!currentUser) return;
@@ -78,22 +85,21 @@ export const CheckoutView: React.FC = () => {
   const FREE_SHIPPING_THRESHOLD = 500.0;
   let shippingFee = 7.2;
   if (deliveryType === 'pickup') shippingFee = 0;
-  const activePromoCode = appliedPromo.trim().toUpperCase();
-  const getUnitPrice = (item: typeof cart[number]) => {
-    const basePrice = Number(item.product.promoPrice ?? item.product.price);
-    const productCode = String(item.product.promoCode || '').trim().toUpperCase();
-    const percent = Number(item.product.promoDiscountPercent || 0);
-    return activePromoCode && productCode === activePromoCode && percent > 0
-      ? basePrice * (1 - Math.min(100, percent) / 100)
-      : basePrice;
-  };
-  const promoDiscountAmount = cart.reduce((sum, item) => {
-    const basePrice = Number(item.product.promoPrice ?? item.product.price);
-    return sum + Math.max(0, basePrice - getUnitPrice(item)) * item.quantity;
-  }, 0);
-  const discountedSubtotal = Math.max(0, cartSubtotal - promoDiscountAmount);
   if (deliveryType !== 'pickup' && discountedSubtotal >= FREE_SHIPPING_THRESHOLD) shippingFee = 0;
   const total = discountedSubtotal + shippingFee;
+  const activePromoCode = (appliedPromoCode || '').trim().toUpperCase();
+  const getUnitPrice = (item: typeof cart[number]) => getCartItemUnitPrice(item);
+
+  const handleApplyPromoCheckout = (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = applyPromoCode(checkoutPromoInput);
+    if (!res.success) {
+      addToast(res.message, 'warning');
+      return;
+    }
+    setCheckoutPromoInput('');
+    addToast(res.message, 'success');
+  };
 
   const deliveryOptionClass = (kind: 'delivery' | 'pickup') => {
     let className = 'p-4 rounded-2xl border-2 cursor-pointer transition-all border-gray-100 hover:border-gray-200';
@@ -156,7 +162,7 @@ export const CheckoutView: React.FC = () => {
           notes
         },
         items: orderItems,
-        subtotal: discountedSubtotal,
+        subtotal: cartSubtotal,
         promoCode: activePromoCode || undefined,
         discountAmount: promoDiscountAmount,
         shippingFee,
@@ -523,6 +529,45 @@ export const CheckoutView: React.FC = () => {
             Récapitulatif de votre commande ({cartCount})
           </h2>
 
+          {/* Promo code field in Checkout */}
+          <div className="p-3 bg-[#F7F7F8] rounded-2xl border border-gray-100 space-y-2">
+            <label className="block text-[11px] font-bold text-[#0B1833]">Code promo ou réduction</label>
+            {appliedPromoCode ? (
+              <div className="flex items-center justify-between text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-xl">
+                <div className="flex items-center gap-1.5 font-bold">
+                  <Tag className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Code {appliedPromoCode} appliqué</span>
+                  {promoDiscountAmount > 0 && (
+                    <span className="text-emerald-600 font-normal">(-{formatPrice(promoDiscountAmount)})</span>
+                  )}
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => removePromoCode()}
+                  className="text-xs text-red-500 hover:text-red-700 font-semibold cursor-pointer hover:underline"
+                >
+                  Retirer
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleApplyPromoCheckout} className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Code promo (ex: OMAR)"
+                  value={checkoutPromoInput}
+                  onChange={(e) => setCheckoutPromoInput(e.target.value)}
+                  className="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs uppercase font-medium focus:outline-none focus:border-[#0B1833]"
+                />
+                <button
+                  type="submit"
+                  className="bg-[#0B1833] text-white hover:bg-[#8FD8C3] hover:text-[#0B1833] px-3.5 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Appliquer
+                </button>
+              </form>
+            )}
+          </div>
+
           {/* Cart items list */}
           <div className="divide-y divide-gray-100 max-h-72 overflow-y-auto pr-1">
             {cart.map(item => {
@@ -568,7 +613,7 @@ export const CheckoutView: React.FC = () => {
 
             {promoDiscountAmount > 0 && (
               <div className="flex justify-between text-emerald-600">
-                <span>Remise promo ({activePromoCode})</span>
+                <span>Remise promo ({activePromoCode || appliedPromoCode})</span>
                 <span className="font-bold">-{formatPrice(promoDiscountAmount)}</span>
               </div>
             )}

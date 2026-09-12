@@ -52,6 +52,14 @@ interface StoreContextType {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
 
+  // Promo Code
+  appliedPromoCode: string | null;
+  applyPromoCode: (code: string) => { success: boolean; message: string; matchesCount: number };
+  removePromoCode: () => void;
+  getCartItemUnitPrice: (item: CartItem) => number;
+  promoDiscountAmount: number;
+  discountedSubtotal: number;
+
   // Checkout
   createOrder: (orderData: Omit<Order, 'id' | 'orderNumber' | 'createdAt'>) => Promise<Order>;
   refreshOrders: () => Promise<void>;
@@ -742,11 +750,31 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const removeFromCart = (productId: string, selectedSize?: string, selectedColor?: { name: string; hex: string }) => {
-    setCart(prev => prev.filter(item => !(item.productId === productId && item.selectedSize === selectedSize && colorKey(item.selectedColor) === colorKey(selectedColor))));
+    setCart(prev => {
+      const next = prev.filter(item => !(item.productId === productId && item.selectedSize === selectedSize && colorKey(item.selectedColor) === colorKey(selectedColor)));
+      if (next.length === 0) {
+        setAppliedPromoCodeState(null);
+        if (typeof window !== 'undefined') {
+          window.localStorage.removeItem('espace_pastel_promo_code');
+        }
+      }
+      return next;
+    });
   };
 
-  const clearCart = () => {
-    setCart([]);
+  const [appliedPromoCode, setAppliedPromoCodeState] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return window.localStorage.getItem('espace_pastel_promo_code') || null;
+  });
+
+  const getCartItemUnitPrice = (item: CartItem) => {
+    const basePrice = Number(item.product.promoPrice ?? item.product.price);
+    const productCode = String(item.product.promoCode || '').trim().toUpperCase();
+    const percent = Number(item.product.promoDiscountPercent || 0);
+    const activeCode = (appliedPromoCode || '').trim().toUpperCase();
+    return activeCode && productCode === activeCode && percent > 0
+      ? basePrice * (1 - Math.min(100, percent) / 100)
+      : basePrice;
   };
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -755,6 +783,49 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const unitPrice = item.product.promoPrice || item.product.price;
     return sum + unitPrice * item.quantity;
   }, 0);
+
+  const promoDiscountAmount = cart.reduce((sum, item) => {
+    const basePrice = Number(item.product.promoPrice ?? item.product.price);
+    return sum + Math.max(0, basePrice - getCartItemUnitPrice(item)) * item.quantity;
+  }, 0);
+
+  const discountedSubtotal = Math.max(0, cartSubtotal - promoDiscountAmount);
+
+  const applyPromoCode = (rawCode: string) => {
+    const code = rawCode.trim().toUpperCase();
+    if (!code) {
+      return { success: false, message: 'Veuillez saisir un code promo.', matchesCount: 0 };
+    }
+    const catalogMatches = products.filter(
+      p => String(p.promoCode || '').trim().toUpperCase() === code && Number(p.promoDiscountPercent || 0) > 0
+    );
+    if (catalogMatches.length === 0) {
+      return { success: false, message: 'Code promo introuvable ou expiré.', matchesCount: 0 };
+    }
+    setAppliedPromoCodeState(code);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('espace_pastel_promo_code', code);
+    }
+    const cartMatches = cart.filter(
+      item => String(item.product.promoCode || '').trim().toUpperCase() === code && Number(item.product.promoDiscountPercent || 0) > 0
+    );
+    if (cartMatches.length > 0) {
+      return { success: true, message: `Code ${code} appliqué sur ${cartMatches.length} produit(s) éligible(s).`, matchesCount: cartMatches.length };
+    }
+    return { success: true, message: `Code ${code} activé ! La remise s'appliquera dès l'ajout des articles concernés au panier.`, matchesCount: 0 };
+  };
+
+  const removePromoCode = () => {
+    setAppliedPromoCodeState(null);
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem('espace_pastel_promo_code');
+    }
+  };
+
+  const clearCart = () => {
+    setCart([]);
+    removePromoCode();
+  };
 
   // Wishlist
   const toggleWishlist = (productId: string) => {
@@ -1365,6 +1436,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         isInWishlist,
         searchQuery,
         setSearchQuery,
+        appliedPromoCode,
+        applyPromoCode,
+        removePromoCode,
+        getCartItemUnitPrice,
+        promoDiscountAmount,
+        discountedSubtotal,
         createOrder,
         currentUser,
         setCurrentUser,

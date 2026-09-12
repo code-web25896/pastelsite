@@ -1232,6 +1232,12 @@ export const AdminView: React.FC = () => {
                       <td className="py-3 font-bold">
                         {formatPrice(p.promoPrice || p.price)}
                         {p.promoPrice && <span className="block text-[10px] text-red-500 line-through">{formatPrice(p.price)}</span>}
+                        {p.promoCode && Number(p.promoDiscountPercent || 0) > 0 && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded mt-0.5">
+                            <Tag className="w-2.5 h-2.5" />
+                            {p.promoCode} (-{p.promoDiscountPercent}%)
+                          </span>
+                        )}
                       </td>
                       <td className="py-3">
                         <span className={stockBadgeClass(p.stock)}>
@@ -1975,16 +1981,7 @@ export const AdminView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-gray-700 mb-1">Quantité en stock *</label>                <div>
-                  <label className="block font-bold text-gray-700 mb-1">Code promo produit (Optionnel)</label>
-                  <input type="text" value={pPromoCode} onChange={(e) => setPPromoCode(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ''))} placeholder="Ex: RENTREE10" maxLength={80} className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl px-3 py-2 text-xs uppercase focus:outline-none" />
-                  <p className="text-[10px] text-gray-500 mt-1">Laissez vide si ce produit n'a pas de code promo.</p>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1">Remise du code (%)</label>
-                  <input type="number" min="0" max="100" step="0.01" value={pPromoDiscountPercent} onChange={(e) => setPPromoDiscountPercent(e.target.value)} placeholder="Ex: 10" disabled={!pPromoCode} className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none disabled:opacity-50" />
-                </div>
+                  <label className="block font-bold text-gray-700 mb-1">Quantité en stock *</label>
                   <input
                     type="number"
                     required
@@ -1992,6 +1989,43 @@ export const AdminView: React.FC = () => {
                     onChange={(e) => setPStock(e.target.value)}
                     className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none"
                   />
+                </div>
+              </div>
+
+              {/* Code Promo dédié */}
+              <div className="p-3.5 bg-emerald-50/60 border border-emerald-200 rounded-2xl space-y-2.5">
+                <div className="flex items-center gap-2 text-xs font-bold text-emerald-950">
+                  <Tag className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Code Promo dédié à ce produit (Optionnel)</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-700 mb-1">Code promo (Ex: RENTREE10)</label>
+                    <input
+                      type="text"
+                      value={pPromoCode}
+                      onChange={(e) => setPPromoCode(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ''))}
+                      placeholder="Ex: RENTREE10"
+                      maxLength={80}
+                      className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs uppercase focus:outline-none focus:border-emerald-600"
+                    />
+                    <p className="text-[10px] text-gray-500 mt-1">Laissez vide si ce produit n'a pas de code promo.</p>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-700 mb-1">Remise du code (%)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      value={pPromoDiscountPercent}
+                      onChange={(e) => setPPromoDiscountPercent(e.target.value)}
+                      placeholder="Ex: 10"
+                      disabled={!pPromoCode}
+                      className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-600 disabled:opacity-50"
+                    />
+                    <p className="text-[10px] text-gray-500 mt-1">Pourcentage de remise déduit lors de la commande.</p>
+                  </div>
                 </div>
               </div>
 
@@ -2538,11 +2572,12 @@ export const AdminView: React.FC = () => {
                 </div>
               )}
               {(viewingOrder.discountAmount || 0) > 0 && (
-                <div className="flex justify-between text-emerald-600">
-                  <span>Code promo{viewingOrder.promoCode ? ` (${viewingOrder.promoCode})` : ''} :</span>
-                  <span className="font-bold">-{formatPrice(viewingOrder.discountAmount || 0)}</span>
+                <div className="flex justify-between text-emerald-600 font-semibold">
+                  <span>Remise code promo{viewingOrder.promoCode ? ` (${viewingOrder.promoCode})` : ''} :</span>
+                  <span>-{formatPrice(viewingOrder.discountAmount || 0)}</span>
                 </div>
-              )}              <div className="pt-2 flex justify-between font-sans font-black text-base text-[#0B1833] border-t border-gray-200">
+              )}
+              <div className="pt-2 flex justify-between font-sans font-black text-base text-[#0B1833] border-t border-gray-200">
                 <span>Total Réglé :</span>
                 <span className="text-[#0B1833]">{formatPrice(viewingOrder.total)}</span>
               </div>

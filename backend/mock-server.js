@@ -521,16 +521,26 @@ app.post('/api/orders', auth, route(async (req, res) => {
       selectedSize: z.string().optional(),
       selectedColor: z.object({ name: z.string(), hex: z.string() }).optional().nullable()
     })).min(1),
+    promoCode: z.string().optional().nullable(),
     paymentMethod: z.enum(['cash', 'card', 'transfer', 'pickup', 'cod']).default('cash')
   }).parse(req.body);
 
   const items = [];
   let subtotal = 0;
+  let discountAmount = 0;
+  const appliedPromoCode = String(body.promoCode || '').trim().toUpperCase();
+
   for (const input of body.items) {
     const product = (state.products || []).find((item) => item.id === input.productId);
     if (!product) return res.status(400).json({ error: 'Produit introuvable : ' + input.productId });
-    const price = Number(product.promoPrice ?? product.price);
-    subtotal += price * input.quantity;
+    const basePrice = Number(product.promoPrice ?? product.price);
+    const productCode = String(product.promoCode || '').trim().toUpperCase();
+    const percent = Number(product.promoDiscountPercent || 0);
+    const price = appliedPromoCode && productCode === appliedPromoCode && percent > 0
+      ? basePrice * (1 - Math.min(100, percent) / 100)
+      : basePrice;
+    discountAmount += Math.max(0, basePrice - price) * input.quantity;
+    subtotal += basePrice * input.quantity;
     product.stock = Math.max(0, product.stock - input.quantity);
     items.push({
       productId: product.id,
@@ -542,17 +552,21 @@ app.post('/api/orders', auth, route(async (req, res) => {
       selectedColor: input.selectedColor
     });
   }
-  const shippingFee = subtotal >= 100 ? 0 : 7;
+  const isPickup = body.paymentMethod === 'pickup' || body.customer.address.toLowerCase().includes('retrait');
+  const discountedSubtotal = Math.max(0, subtotal - discountAmount);
+  const shippingFee = (isPickup || discountedSubtotal >= 500) ? 0 : 7.2;
   const number = `EP-${new Date().getFullYear()}-${String(state.orders.length + 1).padStart(4, '0')}`;
   const order = {
     id: 'ord-' + Date.now(),
     orderNumber: number,
-    userId: req.user.sub,
+    userId: req.user?.sub || 'usr-guest-' + Date.now(),
     customer: body.customer,
     items,
     subtotal,
+    promoCode: appliedPromoCode || undefined,
+    discountAmount,
     shippingFee,
-    total: subtotal + shippingFee,
+    total: discountedSubtotal + shippingFee,
     paymentMethod: body.paymentMethod,
     status: 'pending',
     createdAt: new Date().toISOString()
