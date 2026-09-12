@@ -1220,7 +1220,7 @@ export const AdminView: React.FC = () => {
                   return (
                     <tr key={p.id} className="hover:bg-gray-50/50">
                       <td className="py-3">
-                        <img src={p.images[0]} alt={p.name} className="w-10 h-10 object-cover rounded-lg border border-gray-100" />
+                        <img src={p.images[0] || '/logo.webp'} alt={p.name} className="w-10 h-10 object-cover rounded-lg border border-gray-100" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = '/logo.webp'; }} />
                       </td>
                       <td className="py-3 font-mono text-[11px] text-gray-500">{p.sku}</td>
                       <td className="py-3 font-bold text-[#0B1833] max-w-[200px] truncate">{p.name}</td>

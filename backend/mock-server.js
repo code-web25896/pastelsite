@@ -338,6 +338,11 @@ app.get('/api/products/:id/image/:index', route(async (req, res) => {
     }
   }
 
+  const backendLogo = path.join(__dirname, 'logo.webp');
+  if (fs.existsSync(backendLogo)) {
+    res.set('Cache-Control', 'public, max-age=3600');
+    return res.sendFile(backendLogo);
+  }
   const publicLogo = path.resolve(__dirname, '..', 'public', 'logo.webp');
   if (existsSync(publicLogo)) {
     res.set('Cache-Control', 'public, max-age=3600');
