@@ -61,6 +61,7 @@ export const CartDrawer: React.FC = () => {
       return;
     }
     setAppliedPromo(code);
+    window.localStorage.setItem('espace_pastel_promo_code', code);
     setPromoCode('');
     addToast(`Code ${code} appliqué sur ${matches.length} produit(s).`, 'success');
   };

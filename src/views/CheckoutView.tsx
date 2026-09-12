@@ -77,7 +77,7 @@ export const CheckoutView: React.FC = () => {
 
   const FREE_SHIPPING_THRESHOLD = 500.0;
   let shippingFee = 7.2;
-  if (deliveryType === 'pickup' || cartSubtotal >= FREE_SHIPPING_THRESHOLD) shippingFee = 0;
+  if (deliveryType === 'pickup') shippingFee = 0;
   const activePromoCode = appliedPromo.trim().toUpperCase();
   const getUnitPrice = (item: typeof cart[number]) => {
     const basePrice = Number(item.product.promoPrice ?? item.product.price);
@@ -92,6 +92,7 @@ export const CheckoutView: React.FC = () => {
     return sum + Math.max(0, basePrice - getUnitPrice(item)) * item.quantity;
   }, 0);
   const discountedSubtotal = Math.max(0, cartSubtotal - promoDiscountAmount);
+  if (deliveryType !== 'pickup' && discountedSubtotal >= FREE_SHIPPING_THRESHOLD) shippingFee = 0;
   const total = discountedSubtotal + shippingFee;
 
   const deliveryOptionClass = (kind: 'delivery' | 'pickup') => {
@@ -155,7 +156,7 @@ export const CheckoutView: React.FC = () => {
           notes
         },
         items: orderItems,
-        subtotal: cartSubtotal,
+        subtotal: discountedSubtotal,
         shippingFee,
         total,
         paymentMethod: orderPaymentMethod,
