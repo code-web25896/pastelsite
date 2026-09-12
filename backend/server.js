@@ -389,9 +389,29 @@ function asImageList(value) {
 }
 
 
-function materializeImages(images, _productId) {
-  // Les data URLs restent dans MySQL : le disque d'un déploiement n'est pas durable.
-  return (images || []).filter((img) => typeof img === 'string' && img.length <= 15000000);
+function materializeImages(images, productId, existingImages = []) {
+  const safeId = String(productId || 'product').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const existingList = asImageList(existingImages);
+  return (images || []).filter((img) => typeof img === 'string').map((img, index) => {
+    if (img.includes('/api/products/') && img.includes('/image/')) {
+      const matchIdx = img.match(/\/image\/(\d+)/);
+      const targetIdx = matchIdx ? Number(matchIdx[1]) : index;
+      if (existingList[targetIdx]) return existingList[targetIdx];
+    }
+    if (img.startsWith('data:image/')) {
+      try {
+        const match = img.match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i);
+        if (match) {
+          const ext = match[1].split('/')[1].replace('jpeg', 'jpg').replace(/[^a-z0-9]/gi, '') || 'jpg';
+          const fileName = safeId + '-' + Date.now() + '-' + index + '.' + ext;
+          fs.writeFileSync(path.join(productUploadsDir, fileName), Buffer.from(match[2], 'base64'));
+        }
+      } catch (err) {
+        console.warn('Ecriture fichier image optionnelle ignoree:', err.message);
+      }
+    }
+    return img;
+  });
 }
 
 // Les images de sous-catÃƒÂ©gories sont stockÃƒÂ©es directement en base64 dans la DB
@@ -704,10 +724,10 @@ function publicProduct(product) {
   return {
     ...product,
     images: (product.images || []).map((image, index) => {
-      const value = String(image || '');
-      return (value.startsWith('data:image/') || value.startsWith('/uploads/products/'))
-        ? `/api/products/${encodeURIComponent(product.id)}/image/${index}?v=${encodeURIComponent(product.updatedAt || product.createdAt || '1')}`
-        : image;
+      const value = String(image || '').trim();
+      if (!value) return '/logo.webp';
+      if (value.startsWith('http://') || value.startsWith('https://')) return value;
+      return `/api/products/${encodeURIComponent(product.id)}/image/${index}?v=${encodeURIComponent(product.updatedAt || product.createdAt || '1')}`;
     }),
   };
 }
@@ -720,29 +740,61 @@ app.get('/api/products/:id/image/:index', route(async (req, res) => {
   let image = null;
   if (pool) {
     try {
-      const [rows] = await pool.execute('SELECT images FROM products WHERE id = ? LIMIT 1', [req.params.id]);
+      const [rows] = await pool.execute('SELECT images FROM products WHERE id = ? OR slug = ? LIMIT 1', [req.params.id, req.params.id]);
       image = asImageList(rows[0]?.images)[index] || null;
     } catch (error) {
       console.warn('Lecture image MySQL impossible, fallback JSON:', error.message);
     }
   }
   if (!image) {
-    const fallbackProduct = jsonDbState.products.find((product) => String(product.id) === String(req.params.id));
+    const fallbackProduct = jsonDbState.products.find((product) => String(product.id) === String(req.params.id) || String(product.slug) === String(req.params.id));
     image = asImageList(fallbackProduct?.images)[index] || null;
   }
 
-  if (typeof image === 'string' && image.startsWith('/uploads/products/')) {
+  // 1. Si le fichier existe sur le disque dans uploads/products
+  if (typeof image === 'string' && (image.startsWith('/uploads/products/') || image.startsWith('uploads/products/') || image.includes('/products/'))) {
     const file = path.join(productUploadsDir, path.basename(image));
     if (fs.existsSync(file)) {
-      res.set('Cache-Control', 'public, max-age=3600, must-revalidate');
+      res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
       return res.sendFile(file);
     }
   }
+
+  // 2. Si c'est une image base64 data URL
   const match = typeof image === 'string' ? image.match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i) : null;
-  if (!match) return res.status(404).end();
-  res.set('Cache-Control', 'public, max-age=3600, must-revalidate');
-  res.type(match[1]);
-  return res.send(Buffer.from(match[2], 'base64'));
+  if (match) {
+    res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+    res.type(match[1]);
+    return res.send(Buffer.from(match[2], 'base64'));
+  }
+
+  // 3. Si c'est une URL externe
+  if (typeof image === 'string' && (image.startsWith('http://') || image.startsWith('https://'))) {
+    return res.redirect(image);
+  }
+
+  // 4. Si le nom de fichier existe directement dans productUploadsDir
+  if (typeof image === 'string' && image) {
+    const directFile = path.join(productUploadsDir, path.basename(image));
+    if (fs.existsSync(directFile)) {
+      res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+      return res.sendFile(directFile);
+    }
+  }
+
+  // 5. Fallback élégant sur logo.webp (évite les erreurs 404 sur mobile)
+  const publicLogo = path.resolve(__dirname, '..', 'public', 'logo.webp');
+  if (fs.existsSync(publicLogo)) {
+    res.set('Cache-Control', 'public, max-age=3600');
+    return res.sendFile(publicLogo);
+  }
+  const distLogo = path.resolve(clientDist, 'logo.webp');
+  if (fs.existsSync(distLogo)) {
+    res.set('Cache-Control', 'public, max-age=3600');
+    return res.sendFile(distLogo);
+  }
+
+  return res.status(404).end();
 }));
 app.get('/api/products/:idOrSlug', route(async (req, res) => {
   const target = req.params.idOrSlug;
@@ -1384,7 +1436,7 @@ app.get('/api/admin/products', auth, admin, route(async (_q, res) => {
       console.warn('MySQL admin products failed:', err.message);
     }
   }
-  return res.json(mergeById(mysqlProducts, jsonDbState.products).map(outputProduct));
+  return res.json(mergeById(mysqlProducts, jsonDbState.products).map(outputProduct).map(publicProduct));
 }));
 
 app.post('/api/admin/products', auth, admin, route(async (req, res) => {
@@ -1443,7 +1495,20 @@ app.post('/api/admin/products', auth, admin, route(async (req, res) => {
 app.patch('/api/admin/products/:id', auth, admin, route(async (req, res) => {
   const targetId = req.params.id;
   const updates = productPatch.parse(req.body);
-  if (updates.images) updates.images = materializeImages(updates.images, targetId);
+  if (updates.images) {
+    let existingImages = [];
+    if (pool) {
+      try {
+        const [rows] = await pool.execute('SELECT images FROM products WHERE id = ? LIMIT 1', [targetId]);
+        if (rows[0]) existingImages = asImageList(rows[0].images);
+      } catch {}
+    }
+    if (!existingImages.length) {
+      const fb = jsonDbState.products.find((p) => p.id === targetId);
+      if (fb) existingImages = asImageList(fb.images);
+    }
+    updates.images = materializeImages(updates.images, targetId, existingImages);
+  }
 
   if (pool) {
     try {

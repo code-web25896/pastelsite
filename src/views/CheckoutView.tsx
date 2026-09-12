@@ -131,7 +131,7 @@ export const CheckoutView: React.FC = () => {
         productName: item.product.name,
         price: getUnitPrice(item),
         quantity: item.quantity,
-        image: item.product.images[0] || '',
+        image: item.product?.images?.[0] || '/logo.webp',
         brandName: item.product.brandId,
         selectedSize: item.selectedSize,
         selectedColor: item.selectedColor
@@ -243,7 +243,7 @@ export const CheckoutView: React.FC = () => {
               {completedOrder.items.map((item, idx) => (
                 <div key={idx} className="flex justify-between items-center text-xs">
                   <div className="flex items-center gap-2">
-                    <img src={item.image} alt={item.productName} className="w-8 h-8 rounded-lg object-cover" />
+                    <img src={item.image || '/logo.webp'} alt={item.productName} className="w-8 h-8 rounded-lg object-cover" />
                     <span>{item.productName} <strong>×{item.quantity}</strong></span>
                   </div>
                   <span className="font-bold">{formatPrice(item.price * item.quantity)}</span>
@@ -530,7 +530,7 @@ export const CheckoutView: React.FC = () => {
               return (
                 <div key={item.productId + '-' + (item.selectedSize || 'no-size') + '-' + (item.selectedColor?.hex || 'no-color')} className="py-3 flex items-center gap-3">
                   <img
-                    src={item.product.images[0]}
+                    src={item.product?.images?.[0] || '/logo.webp'}
                     alt={item.product.name}
                     className="w-12 h-12 rounded-xl object-cover border border-gray-100"
                   />

@@ -1,4 +1,5 @@
 import fs from 'fs/promises';
+import { existsSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
@@ -12,6 +13,9 @@ import { z } from 'zod';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DB_FILE = path.join(__dirname, 'mock-db.json');
+const uploadsDir = path.join(__dirname, 'uploads');
+const productUploadsDir = path.join(uploadsDir, 'products');
+const clientDist = path.resolve(__dirname, '..', 'dist');
 const PORT = Number(process.env.PORT || 3001);
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-local-secret-change-before-deploy';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '8h';
@@ -24,6 +28,7 @@ const app = express();
 app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(cors({ origin: (origin, cb) => (!origin || ALLOWED_ORIGINS.includes(origin) || true) ? cb(null, true) : cb(new Error('Origin not allowed')) }));
 app.use(express.json({ limit: '10mb' }));
+app.use('/uploads', express.static(uploadsDir, { maxAge: '1y', immutable: true }));
 
 async function readState() {
   try {
@@ -143,7 +148,13 @@ function publicProduct(product) {
   return {
     ...product,
     rating: product.rating ?? meta.rating,
-    reviewCount: product.reviewCount ?? meta.reviewCount
+    reviewCount: product.reviewCount ?? meta.reviewCount,
+    images: (product.images || []).map((image, index) => {
+      const value = String(image || '').trim();
+      if (!value) return '/logo.webp';
+      if (value.startsWith('http://') || value.startsWith('https://')) return value;
+      return `/api/products/${encodeURIComponent(product.id)}/image/${index}?v=${encodeURIComponent(product.updatedAt || product.createdAt || '1')}`;
+    }),
   };
 }
 
@@ -290,6 +301,50 @@ app.get('/api/products', route(async (req, res) => {
     return true;
   });
   res.json(filtered.map(publicProduct));
+}));
+
+// ================= PRODUCT IMAGES =================
+app.get('/api/products/:id/image/:index', route(async (req, res) => {
+  const index = Number(req.params.index);
+  if (!Number.isInteger(index) || index < 0) return res.status(404).end();
+  const product = (state.products || []).find((p) => String(p.id) === String(req.params.id) || String(p.slug) === String(req.params.id));
+  const images = Array.isArray(product?.images) ? product.images : [];
+  const image = images[index];
+
+  if (typeof image === 'string' && (image.startsWith('/uploads/products/') || image.startsWith('uploads/products/') || image.includes('/products/'))) {
+    const file = path.join(productUploadsDir, path.basename(image));
+    if (existsSync(file)) {
+      res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+      return res.sendFile(file);
+    }
+  }
+
+  const match = typeof image === 'string' ? image.match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i) : null;
+  if (match) {
+    res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+    res.type(match[1]);
+    return res.send(Buffer.from(match[2], 'base64'));
+  }
+
+  if (typeof image === 'string' && (image.startsWith('http://') || image.startsWith('https://'))) {
+    return res.redirect(image);
+  }
+
+  if (typeof image === 'string' && image) {
+    const directFile = path.join(productUploadsDir, path.basename(image));
+    if (existsSync(directFile)) {
+      res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+      return res.sendFile(directFile);
+    }
+  }
+
+  const publicLogo = path.resolve(__dirname, '..', 'public', 'logo.webp');
+  if (existsSync(publicLogo)) {
+    res.set('Cache-Control', 'public, max-age=3600');
+    return res.sendFile(publicLogo);
+  }
+
+  return res.status(404).end();
 }));
 
 app.get('/api/products/:idOrSlug', route(async (req, res) => {

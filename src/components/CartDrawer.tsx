@@ -154,7 +154,7 @@ export const CartDrawer: React.FC = () => {
                 return (
                   <div key={item.productId + '-' + (item.selectedSize || 'no-size') + '-' + (item.selectedColor?.hex || 'no-color')} className="py-4 flex gap-3 first:pt-0 last:pb-0">
                     <img
-                      src={item.product.images[0] || '/logo.webp'}
+                      src={item.product?.images?.[0] || '/logo.webp'}
                       alt={item.product.name}
                       className="w-16 h-16 object-cover rounded-xl border border-gray-100 flex-shrink-0 cursor-pointer"
                       onClick={() => {

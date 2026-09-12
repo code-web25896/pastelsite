@@ -161,7 +161,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
           {/* Main Large Image */}
           <div className="relative aspect-[4/3] sm:aspect-square bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm group">
             <img
-              src={product.images[selectedImageIndex] || product.images[0]}
+              src={(Array.isArray(product.images) && product.images[selectedImageIndex]) || product.images?.[0] || '/logo.webp'}
               alt={product.name}
               className="w-full h-full object-cover object-center transform group-hover:scale-105 transition-transform duration-500"
             />
@@ -202,7 +202,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
           </div>
 
           {/* Thumbnails Gallery */}
-          {product.images.length > 1 && (
+          {Array.isArray(product.images) && product.images.length > 1 && (
             <div className="flex gap-3 overflow-x-auto pb-2">
               {product.images.map((img, idx) => (
                 <button
