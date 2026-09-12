@@ -143,6 +143,27 @@ function productRating(productId) {
   return { rating: parseFloat(rating.toFixed(1)), reviewCount: count };
 }
 
+
+function getProductDiskImages(productId, updatedAt) {
+  try {
+    const safeTargetId = String(productId || '').replace(/[^a-zA-Z0-9_-]/g, '_');
+    if (!safeTargetId) return [];
+    const prefix = safeTargetId + '-';
+    if (!fs.existsSync(productUploadsDir)) return [];
+    const allFiles = fs.readdirSync(productUploadsDir);
+    const matched = allFiles.filter((f) => f.startsWith(prefix));
+    if (!matched.length) return [];
+    const sorted = matched.sort((a, b) => {
+      const idxA = Number((a.split('-').pop() || '').split('.')[0]) || 0;
+      const idxB = Number((b.split('-').pop() || '').split('.')[0]) || 0;
+      return idxA - idxB;
+    });
+    return sorted.map((_, idx) => `/api/products/${encodeURIComponent(productId)}/image/${idx}?v=${encodeURIComponent(updatedAt || '1')}`);
+  } catch {
+    return [];
+  }
+}
+
 function publicProduct(product) {
   const meta = productRating(product.id);
   return {

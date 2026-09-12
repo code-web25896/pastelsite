@@ -720,15 +720,41 @@ app.get('/api/products', route(async (req, res) => {
   return res.json(filtered);
 }));
 
+
+function getProductDiskImages(productId, updatedAt) {
+  try {
+    const safeTargetId = String(productId || '').replace(/[^a-zA-Z0-9_-]/g, '_');
+    if (!safeTargetId) return [];
+    const prefix = safeTargetId + '-';
+    if (!fs.existsSync(productUploadsDir)) return [];
+    const allFiles = fs.readdirSync(productUploadsDir);
+    const matched = allFiles.filter((f) => f.startsWith(prefix));
+    if (!matched.length) return [];
+    const sorted = matched.sort((a, b) => {
+      const idxA = Number((a.split('-').pop() || '').split('.')[0]) || 0;
+      const idxB = Number((b.split('-').pop() || '').split('.')[0]) || 0;
+      return idxA - idxB;
+    });
+    return sorted.map((_, idx) => `/api/products/${encodeURIComponent(productId)}/image/${idx}?v=${encodeURIComponent(updatedAt || '1')}`);
+  } catch {
+    return [];
+  }
+}
+
 function publicProduct(product) {
+  const diskImgs = getProductDiskImages(product.id, product.updatedAt || product.createdAt);
+  let imgs = (product.images || []).map((image, index) => {
+    const value = String(image || '').trim();
+    if (!value) return '/logo.webp';
+    if (value.startsWith('http://') || value.startsWith('https://')) return value;
+    return `/api/products/${encodeURIComponent(product.id)}/image/${index}?v=${encodeURIComponent(product.updatedAt || product.createdAt || '1')}`;
+  });
+  if ((!imgs.length || imgs.every(img => img === '/logo.webp')) && diskImgs.length > 0) {
+    imgs = diskImgs;
+  }
   return {
     ...product,
-    images: (product.images || []).map((image, index) => {
-      const value = String(image || '').trim();
-      if (!value) return '/logo.webp';
-      if (value.startsWith('http://') || value.startsWith('https://')) return value;
-      return `/api/products/${encodeURIComponent(product.id)}/image/${index}?v=${encodeURIComponent(product.updatedAt || product.createdAt || '1')}`;
-    }),
+    images: imgs.length ? imgs : (diskImgs.length ? diskImgs : ['/logo.webp']),
   };
 }
 
@@ -780,6 +806,33 @@ app.get('/api/products/:id/image/:index', route(async (req, res) => {
       res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
       return res.sendFile(directFile);
     }
+  }
+
+    // 4b. Scanner directement productUploadsDir par productId et index
+  try {
+    const safeTargetId = String(req.params.id || '').replace(/[^a-zA-Z0-9_-]/g, '_');
+    if (safeTargetId && fs.existsSync(productUploadsDir)) {
+      const allFiles = fs.readdirSync(productUploadsDir);
+      const prefix = safeTargetId + '-';
+      const matched = allFiles.filter((f) => f.startsWith(prefix));
+      if (matched.length > 0) {
+        const sorted = matched.sort((a, b) => {
+          const idxA = Number((a.split('-').pop() || '').split('.')[0]) || 0;
+          const idxB = Number((b.split('-').pop() || '').split('.')[0]) || 0;
+          return idxA - idxB;
+        });
+        const targetFile = sorted[index] || (index === 0 ? sorted[0] : null);
+        if (targetFile) {
+          const filePath = path.join(productUploadsDir, targetFile);
+          if (fs.existsSync(filePath)) {
+            res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+            return res.sendFile(filePath);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Scan uploads disk failed:', err.message);
   }
 
   // 5. Fallback élégant sur logo.webp (évite les erreurs 404 sur mobile)
