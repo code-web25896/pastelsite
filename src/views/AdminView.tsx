@@ -2537,7 +2537,12 @@ export const AdminView: React.FC = () => {
                   </span>
                 </div>
               )}
-              <div className="pt-2 flex justify-between font-sans font-black text-base text-[#0B1833] border-t border-gray-200">
+              {(viewingOrder.discountAmount || 0) > 0 && (
+                <div className="flex justify-between text-emerald-600">
+                  <span>Code promo{viewingOrder.promoCode ? ` (${viewingOrder.promoCode})` : ''} :</span>
+                  <span className="font-bold">-{formatPrice(viewingOrder.discountAmount || 0)}</span>
+                </div>
+              )}              <div className="pt-2 flex justify-between font-sans font-black text-base text-[#0B1833] border-t border-gray-200">
                 <span>Total Réglé :</span>
                 <span className="text-[#0B1833]">{formatPrice(viewingOrder.total)}</span>
               </div>

@@ -157,6 +157,8 @@ export const CheckoutView: React.FC = () => {
         },
         items: orderItems,
         subtotal: discountedSubtotal,
+        promoCode: activePromoCode || undefined,
+        discountAmount: promoDiscountAmount,
         shippingFee,
         total,
         paymentMethod: orderPaymentMethod,
@@ -249,7 +251,12 @@ export const CheckoutView: React.FC = () => {
               ))}
             </div>
 
-            <div className="pt-3 border-t border-gray-300 flex justify-between font-sans font-black text-sm text-[#0B1833]">
+            {(completedOrder.discountAmount || 0) > 0 && (
+              <div className="flex justify-between text-emerald-600">
+                <span>Code promo{completedOrder.promoCode ? ` (${completedOrder.promoCode})` : ''} :</span>
+                <span className="font-bold">-{formatPrice(completedOrder.discountAmount || 0)}</span>
+              </div>
+            )}            <div className="pt-3 border-t border-gray-300 flex justify-between font-sans font-black text-sm text-[#0B1833]">
               <span>Total Réglé :</span>
               <span>{formatPrice(completedOrder.total)}</span>
             </div>

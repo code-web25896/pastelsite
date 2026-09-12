@@ -367,7 +367,8 @@ const orderInput = z.object({
     selectedSize: z.string().nullable().optional(),
     selectedColor: z.any().nullable().optional()
   })).min(1),
-  paymentMethod: z.enum(['cod', 'card', 'pickup', 'cash', 'transfer']).default('cod')
+  paymentMethod: z.enum(['cod', 'card', 'pickup', 'cash', 'transfer']).default('cod'),
+  promoCode: z.string().trim().max(80).optional()
 });
 
 const json = (x) => {
@@ -760,21 +761,29 @@ app.post('/api/orders', optionalAuth, route(async (req, res) => {
   const now = new Date().toISOString();
 
   let subtotal = 0;
+  let discountAmount = 0;
+  const appliedPromoCode = String(x.promoCode || '').trim().toUpperCase();
   const items = [];
 
   for (const item of x.items) {
     let product = jsonDbState.products.find((p) => p.id === item.productId);
     if (!product && pool) {
       try {
-        const [rows] = await pool.execute('SELECT id, name, price, promo_price AS promoPrice, stock, images FROM products WHERE id = ? LIMIT 1', [item.productId]);
+        const [rows] = await pool.execute('SELECT id, name, price, promo_price AS promoPrice, promo_code AS promoCode, promo_discount_percent AS promoDiscountPercent, stock, images FROM products WHERE id = ? LIMIT 1', [item.productId]);
         if (rows[0]) product = rows[0];
       } catch {
         // ignore
       }
     }
 
-    const price = product ? Number(product.promoPrice ?? product.price) : Number(item.price || 0);
+    const basePrice = product ? Number(product.promoPrice ?? product.price) : Number(item.price || 0);
+    const productCode = String(product?.promoCode || '').trim().toUpperCase();
+    const discountPercent = Number(product?.promoDiscountPercent || 0);
+    const price = appliedPromoCode && productCode === appliedPromoCode && discountPercent > 0
+      ? basePrice * (1 - Math.min(100, discountPercent) / 100)
+      : basePrice;
     const quantity = item.quantity;
+    discountAmount += Math.max(0, basePrice - price) * quantity;
     subtotal += price * quantity;
     items.push({
       productId: item.productId,
@@ -806,6 +815,8 @@ app.post('/api/orders', optionalAuth, route(async (req, res) => {
     subtotal,
     shippingFee,
     total,
+    promoCode: appliedPromoCode || undefined,
+    discountAmount,
     paymentMethod: x.paymentMethod,
     status: 'pending',
     createdAt: now
@@ -819,8 +830,8 @@ app.post('/api/orders', optionalAuth, route(async (req, res) => {
         [userId, x.customer.email.toLowerCase(), '$2a$10$none', 'customer', x.customer.firstName, x.customer.lastName || '', x.customer.phone]
       );
       await pool.execute(
-        'INSERT INTO orders (id, order_number, user_id, customer_json, items_json, subtotal, shipping_fee, total, payment_method, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [orderId, orderNumber, userId, JSON.stringify(x.customer), JSON.stringify(items), subtotal, shippingFee, total, x.paymentMethod, 'pending', now]
+        'INSERT INTO orders (id, order_number, user_id, customer_json, items_json, subtotal, promo_code, discount_amount, shipping_fee, total, payment_method, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [orderId, orderNumber, userId, JSON.stringify(x.customer), JSON.stringify(items), subtotal, appliedPromoCode || null, discountAmount, shippingFee, total, x.paymentMethod, 'pending', now]
       );
     } catch (err) {
       console.warn('MySQL order insert failed, saved to JSON DB:', err.message);
@@ -845,8 +856,8 @@ const mergeOrders = (primary, fallback) => {
 app.get('/api/orders', auth, route(async (req, res) => {
   if (pool) {
     try {
-      const [rows] = await pool.execute('SELECT id, order_number AS orderNumber, user_id AS userId, customer_json AS customer, items_json AS items, subtotal, shipping_fee AS shippingFee, total, payment_method AS paymentMethod, status, created_at AS createdAt FROM orders WHERE user_id = ? ORDER BY created_at DESC', [req.user.sub]);
-      const mysqlOrders = rows.map((x) => ({ ...x, subtotal: Number(x.subtotal), shippingFee: Number(x.shippingFee), total: Number(x.total), customer: json(x.customer), items: json(x.items) }));
+      const [rows] = await pool.execute('SELECT id, order_number AS orderNumber, user_id AS userId, customer_json AS customer, items_json AS items, subtotal, promo_code AS promoCode, discount_amount AS discountAmount, shipping_fee AS shippingFee, total, payment_method AS paymentMethod, status, created_at AS createdAt FROM orders WHERE user_id = ? ORDER BY created_at DESC', [req.user.sub]);
+      const mysqlOrders = rows.map((x) => ({ ...x, subtotal: Number(x.subtotal), promoCode: x.promoCode || undefined, discountAmount: Number(x.discountAmount || 0), shippingFee: Number(x.shippingFee), total: Number(x.total), customer: json(x.customer), items: json(x.items) }));
       return res.json(mergeOrders(mysqlOrders, userOrders));
     } catch (err) {
       console.warn('MySQL get orders failed:', err.message);
@@ -862,8 +873,8 @@ app.get('/api/admin/orders', auth, admin, route(async (_q, res) => {
   const jsonOrders = jsonDbState.orders || [];
   if (pool) {
     try {
-      const [rows] = await pool.execute('SELECT id, order_number AS orderNumber, user_id AS userId, customer_json AS customer, items_json AS items, subtotal, shipping_fee AS shippingFee, total, payment_method AS paymentMethod, status, created_at AS createdAt FROM orders ORDER BY created_at DESC');
-      const mysqlOrders = rows.map((x) => ({ ...x, subtotal: Number(x.subtotal), shippingFee: Number(x.shippingFee), total: Number(x.total), customer: json(x.customer), items: json(x.items) }));
+      const [rows] = await pool.execute('SELECT id, order_number AS orderNumber, user_id AS userId, customer_json AS customer, items_json AS items, subtotal, promo_code AS promoCode, discount_amount AS discountAmount, shipping_fee AS shippingFee, total, payment_method AS paymentMethod, status, created_at AS createdAt FROM orders ORDER BY created_at DESC');
+      const mysqlOrders = rows.map((x) => ({ ...x, subtotal: Number(x.subtotal), promoCode: x.promoCode || undefined, discountAmount: Number(x.discountAmount || 0), shippingFee: Number(x.shippingFee), total: Number(x.total), customer: json(x.customer), items: json(x.items) }));
       return res.json(mergeOrders(mysqlOrders, jsonOrders));
     } catch (err) {
       console.warn('MySQL admin get orders failed:', err.message);

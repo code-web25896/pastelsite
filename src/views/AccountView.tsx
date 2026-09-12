@@ -413,7 +413,12 @@ export const AccountView: React.FC<AccountViewProps> = ({ initialTab = 'orders' 
             </div>
 
             {/* Total */}
-            <div className="pt-3 border-t border-gray-100 flex justify-between font-sans font-black text-base text-[#0B1833]">
+            {(selectedOrder.discountAmount || 0) > 0 && (
+              <div className="flex justify-between text-emerald-600">
+                <span>Code promo{selectedOrder.promoCode ? ` (${selectedOrder.promoCode})` : ''} :</span>
+                <span className="font-bold">-{formatPrice(selectedOrder.discountAmount || 0)}</span>
+              </div>
+            )}            <div className="pt-3 border-t border-gray-100 flex justify-between font-sans font-black text-base text-[#0B1833]">
               <span>Total Réglé :</span>
               <span>{formatPrice(selectedOrder.total)}</span>
             </div>

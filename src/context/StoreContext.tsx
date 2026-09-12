@@ -869,6 +869,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         selectedColor: item.selectedColor
       })), 
       paymentMethod: orderData.paymentMethod,
+      promoCode: orderData.promoCode,
     };
 
     let serverOrder: any = null;
@@ -890,7 +891,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       id: serverOrder?.id || ('ord-' + Date.now()),
       orderNumber: serverOrder?.orderNumber || ('EP-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000)),
       createdAt: serverOrder?.createdAt || new Date().toISOString(),
-      subtotal: Number(serverOrder?.subtotal || orderData.subtotal),
+      subtotal: Number(serverOrder?.subtotal ?? orderData.subtotal),
+      promoCode: serverOrder?.promoCode || orderData.promoCode,
+      discountAmount: Number(serverOrder?.discountAmount ?? orderData.discountAmount ?? 0),
       shippingFee: Number(serverOrder?.shippingFee ?? orderData.shippingFee),
       total: Number(serverOrder?.total || orderData.total),
       status: serverOrder?.status || orderData.status,

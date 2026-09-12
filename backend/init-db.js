@@ -35,6 +35,8 @@ async function migrateCatalogColumns(pool) {
       'ALTER TABLE reviews MODIFY user_id VARCHAR(128) NULL',
       'ALTER TABLE orders MODIFY id VARCHAR(128) NOT NULL',
       'ALTER TABLE orders MODIFY user_id VARCHAR(128) NOT NULL',
+      'ALTER TABLE orders ADD COLUMN promo_code VARCHAR(80) NULL AFTER subtotal',
+      'ALTER TABLE orders ADD COLUMN discount_amount DECIMAL(10,3) NOT NULL DEFAULT 0 AFTER promo_code',
     ];
     for (const statement of statements) {
       try {

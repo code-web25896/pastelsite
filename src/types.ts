@@ -132,6 +132,8 @@ export interface Order {
   };
   items: OrderItem[];
   subtotal: number;
+  promoCode?: string;
+  discountAmount?: number;
   shippingFee: number;
   total: number;
   paymentMethod: 'cod' | 'card' | 'pickup'; // Paiement à la livraison | Carte bancaire | Retrait en boutique
