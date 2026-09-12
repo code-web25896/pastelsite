@@ -328,46 +328,87 @@ app.get('/api/products', route(async (req, res) => {
 app.get('/api/products/:id/image/:index', route(async (req, res) => {
   const index = Number(req.params.index);
   if (!Number.isInteger(index) || index < 0) return res.status(404).end();
-  const product = (state.products || []).find((p) => String(p.id) === String(req.params.id) || String(p.slug) === String(req.params.id));
-  const images = Array.isArray(product?.images) ? product.images : [];
-  const image = images[index];
 
+  const safeTargetId = String(req.params.id || '').replace(/[^a-zA-Z0-9_-]/g, '_');
+
+  // 1. PRIORITÉ ABSOLUE : Si le fichier existe sur disque dans uploads/products
+  if (safeTargetId && fs.existsSync(productUploadsDir)) {
+    try {
+      const allFiles = fs.readdirSync(productUploadsDir);
+      const prefix = safeTargetId + '-';
+      const matched = allFiles.filter((f) => f.startsWith(prefix));
+      if (matched.length > 0) {
+        const sorted = matched.sort((a, b) => {
+          const idxA = Number((a.split('-').pop() || '').split('.')[0]) || 0;
+          const idxB = Number((b.split('-').pop() || '').split('.')[0]) || 0;
+          return idxA - idxB;
+        });
+        const targetFile = sorted[index] || (index === 0 ? sorted[0] : null);
+        if (targetFile) {
+          const filePath = path.join(productUploadsDir, targetFile);
+          if (fs.existsSync(filePath)) {
+            res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+            return res.sendFile(filePath);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Scan uploads disk failed:', err.message);
+    }
+  }
+
+  // 2. Récupérer l'image depuis MySQL ou JSON persistant
+  let image = null;
+  if (!image) {
+    const fallbackProduct = jsonDbState.products.find((product) => String(product.id) === String(req.params.id) || String(product.slug) === String(req.params.id));
+    image = asImageList(fallbackProduct?.images)[index] || null;
+  }
+
+  // 3. Si l'image en base est un chemin de fichier uploads
   if (typeof image === 'string' && (image.startsWith('/uploads/products/') || image.startsWith('uploads/products/') || image.includes('/products/'))) {
     const file = path.join(productUploadsDir, path.basename(image));
-    if (existsSync(file)) {
+    if (fs.existsSync(file)) {
       res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
       return res.sendFile(file);
     }
   }
 
+  // 4. Si c'est une image base64 data URL dans MySQL : la sauvegarder immédiatement sur disque ET la servir
   const match = typeof image === 'string' ? image.match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i) : null;
   if (match) {
+    try {
+      const ext = match[1].split('/')[1].replace('jpeg', 'jpg').replace(/[^a-z0-9]/gi, '') || 'jpg';
+      const fileName = safeTargetId + '-' + Date.now() + '-' + index + '.' + ext;
+      const filePath = path.join(productUploadsDir, fileName);
+      fs.writeFileSync(filePath, Buffer.from(match[2], 'base64'));
+    } catch (e) {
+      console.warn('Auto-save base64 to disk error:', e.message);
+    }
     res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
     res.type(match[1]);
     return res.send(Buffer.from(match[2], 'base64'));
   }
 
+  // 5. Si c'est une URL externe
   if (typeof image === 'string' && (image.startsWith('http://') || image.startsWith('https://'))) {
     return res.redirect(image);
   }
 
-  if (typeof image === 'string' && image) {
-    const directFile = path.join(productUploadsDir, path.basename(image));
-    if (existsSync(directFile)) {
-      res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
-      return res.sendFile(directFile);
-    }
-  }
-
+  // 6. Fallback élégant sur logo.webp
   const backendLogo = path.join(__dirname, 'logo.webp');
   if (fs.existsSync(backendLogo)) {
     res.set('Cache-Control', 'public, max-age=3600');
     return res.sendFile(backendLogo);
   }
   const publicLogo = path.resolve(__dirname, '..', 'public', 'logo.webp');
-  if (existsSync(publicLogo)) {
+  if (fs.existsSync(publicLogo)) {
     res.set('Cache-Control', 'public, max-age=3600');
     return res.sendFile(publicLogo);
+  }
+  const distLogo = path.resolve(clientDist, 'logo.webp');
+  if (fs.existsSync(distLogo)) {
+    res.set('Cache-Control', 'public, max-age=3600');
+    return res.sendFile(distLogo);
   }
 
   return res.status(404).end();

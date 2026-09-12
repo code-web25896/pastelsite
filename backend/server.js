@@ -786,56 +786,11 @@ app.get('/api/products/:id/image/:index', route(async (req, res) => {
   const index = Number(req.params.index);
   if (!Number.isInteger(index) || index < 0) return res.status(404).end();
 
-  // MySQL est prioritaire, puis le catalogue JSON persistant sert de fallback.
-  let image = null;
-  if (pool) {
+  const safeTargetId = String(req.params.id || '').replace(/[^a-zA-Z0-9_-]/g, '_');
+
+  // 1. PRIORITÉ ABSOLUE : Si le fichier existe sur disque dans uploads/products
+  if (safeTargetId && fs.existsSync(productUploadsDir)) {
     try {
-      const [rows] = await pool.execute('SELECT images FROM products WHERE id = ? OR slug = ? LIMIT 1', [req.params.id, req.params.id]);
-      image = asImageList(rows[0]?.images)[index] || null;
-    } catch (error) {
-      console.warn('Lecture image MySQL impossible, fallback JSON:', error.message);
-    }
-  }
-  if (!image) {
-    const fallbackProduct = jsonDbState.products.find((product) => String(product.id) === String(req.params.id) || String(product.slug) === String(req.params.id));
-    image = asImageList(fallbackProduct?.images)[index] || null;
-  }
-
-  // 1. Si le fichier existe sur le disque dans uploads/products
-  if (typeof image === 'string' && (image.startsWith('/uploads/products/') || image.startsWith('uploads/products/') || image.includes('/products/'))) {
-    const file = path.join(productUploadsDir, path.basename(image));
-    if (fs.existsSync(file)) {
-      res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
-      return res.sendFile(file);
-    }
-  }
-
-  // 2. Si c'est une image base64 data URL
-  const match = typeof image === 'string' ? image.match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i) : null;
-  if (match) {
-    res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
-    res.type(match[1]);
-    return res.send(Buffer.from(match[2], 'base64'));
-  }
-
-  // 3. Si c'est une URL externe
-  if (typeof image === 'string' && (image.startsWith('http://') || image.startsWith('https://'))) {
-    return res.redirect(image);
-  }
-
-  // 4. Si le nom de fichier existe directement dans productUploadsDir
-  if (typeof image === 'string' && image) {
-    const directFile = path.join(productUploadsDir, path.basename(image));
-    if (fs.existsSync(directFile)) {
-      res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
-      return res.sendFile(directFile);
-    }
-  }
-
-    // 4b. Scanner directement productUploadsDir par productId et index
-  try {
-    const safeTargetId = String(req.params.id || '').replace(/[^a-zA-Z0-9_-]/g, '_');
-    if (safeTargetId && fs.existsSync(productUploadsDir)) {
       const allFiles = fs.readdirSync(productUploadsDir);
       const prefix = safeTargetId + '-';
       const matched = allFiles.filter((f) => f.startsWith(prefix));
@@ -854,12 +809,57 @@ app.get('/api/products/:id/image/:index', route(async (req, res) => {
           }
         }
       }
+    } catch (err) {
+      console.warn('Scan uploads disk failed:', err.message);
     }
-  } catch (err) {
-    console.warn('Scan uploads disk failed:', err.message);
   }
 
-  // 5. Fallback élégant sur logo.webp (évite les erreurs 404 sur mobile)
+  // 2. Récupérer l'image depuis MySQL ou JSON persistant
+  let image = null;
+  if (pool) {
+    try {
+      const [rows] = await pool.execute('SELECT images FROM products WHERE id = ? OR slug = ? LIMIT 1', [req.params.id, req.params.id]);
+      image = asImageList(rows[0]?.images)[index] || null;
+    } catch (error) {
+      console.warn('Lecture image MySQL impossible, fallback JSON:', error.message);
+    }
+  }
+  if (!image) {
+    const fallbackProduct = jsonDbState.products.find((product) => String(product.id) === String(req.params.id) || String(product.slug) === String(req.params.id));
+    image = asImageList(fallbackProduct?.images)[index] || null;
+  }
+
+  // 3. Si l'image en base est un chemin de fichier uploads
+  if (typeof image === 'string' && (image.startsWith('/uploads/products/') || image.startsWith('uploads/products/') || image.includes('/products/'))) {
+    const file = path.join(productUploadsDir, path.basename(image));
+    if (fs.existsSync(file)) {
+      res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+      return res.sendFile(file);
+    }
+  }
+
+  // 4. Si c'est une image base64 data URL dans MySQL : la sauvegarder immédiatement sur disque ET la servir
+  const match = typeof image === 'string' ? image.match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i) : null;
+  if (match) {
+    try {
+      const ext = match[1].split('/')[1].replace('jpeg', 'jpg').replace(/[^a-z0-9]/gi, '') || 'jpg';
+      const fileName = safeTargetId + '-' + Date.now() + '-' + index + '.' + ext;
+      const filePath = path.join(productUploadsDir, fileName);
+      fs.writeFileSync(filePath, Buffer.from(match[2], 'base64'));
+    } catch (e) {
+      console.warn('Auto-save base64 to disk error:', e.message);
+    }
+    res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+    res.type(match[1]);
+    return res.send(Buffer.from(match[2], 'base64'));
+  }
+
+  // 5. Si c'est une URL externe
+  if (typeof image === 'string' && (image.startsWith('http://') || image.startsWith('https://'))) {
+    return res.redirect(image);
+  }
+
+  // 6. Fallback élégant sur logo.webp
   const backendLogo = path.join(__dirname, 'logo.webp');
   if (fs.existsSync(backendLogo)) {
     res.set('Cache-Control', 'public, max-age=3600');
