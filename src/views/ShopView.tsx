@@ -10,7 +10,9 @@ import {
   ArrowUpDown, 
   Tag, 
   Layers,
-  Star
+  Star,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { SubCategoryIcon } from '../components/SubCategoryIcon';
 
@@ -160,6 +162,21 @@ export const ShopView: React.FC<ShopViewProps> = ({
         return list;
     }
   }, [filteredProducts, sortBy]);
+  const PRODUCTS_PER_PAGE = 6;
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(sortedProducts.length / PRODUCTS_PER_PAGE));
+  const paginatedProducts = useMemo(() => {
+    const start = (currentPage - 1) * PRODUCTS_PER_PAGE;
+    return sortedProducts.slice(start, start + PRODUCTS_PER_PAGE);
+  }, [sortedProducts, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedBrand, selectedSubCategory, selectedCategory, promoOnly, isNewOnly, inStockOnly, minRating, maxPrice, sortBy]);
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
 
   // Reset Filters
   const resetFilters = () => {
@@ -515,11 +532,48 @@ export const ShopView: React.FC<ShopViewProps> = ({
 
           {/* 12. CARTES PRODUITS (RESPONSIVE GRID) */}
           {sortedProducts.length > 0 ? (
+            <>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-              {sortedProducts.map(product => (
+              {paginatedProducts.map(product => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
+            {totalPages > 1 && (
+              <nav className="mt-8 flex flex-wrap items-center justify-center gap-2" aria-label="Pagination des produits">
+                <button
+                  type="button"
+                  onClick={() => { setCurrentPage((page) => Math.max(1, page - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  disabled={currentPage === 1}
+                  className="inline-flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-[#0B1833] transition-colors hover:border-[#0B1833] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  <span>Précédent</span>
+                </button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                    <button
+                      key={page}
+                      type="button"
+                      onClick={() => { setCurrentPage(page); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                      aria-current={currentPage === page ? 'page' : undefined}
+                      className={`h-9 min-w-9 rounded-xl px-2 text-xs font-bold transition-colors ${currentPage === page ? 'bg-[#0B1833] text-white' : 'border border-gray-200 bg-white text-[#0B1833] hover:border-[#0B1833]'}`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setCurrentPage((page) => Math.min(totalPages, page + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  disabled={currentPage === totalPages}
+                  className="inline-flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-[#0B1833] transition-colors hover:border-[#0B1833] disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <span>Suivant</span>
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </nav>
+            )}
+            </>
           ) : (
             <div className="bg-white rounded-3xl p-12 text-center border border-gray-100 shadow-sm space-y-4">
               <div className="w-16 h-16 rounded-full bg-[#F7F7F8] flex items-center justify-center mx-auto text-gray-400">
