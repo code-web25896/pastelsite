@@ -347,7 +347,7 @@ export const AdminView: React.FC = () => {
   const [pDesc, setPDesc] = useState('');
   const [pBadge, setPBadge] = useState<Product['badge']>('AUCUN');
     const [pActionType, setPActionType] = useState<ProductActionType>("buy_online");
-  const [pCustomPhone, setPCustomPhone] = useState("98 137 585");
+  const [pCustomPhone, setPCustomPhone] = useState("+216 58 260 515");
   const [pIsNew, setPIsNew] = useState(true);
   const [pSizes, setPSizes] = useState("");
   const [pColors, setPColors] = useState("");
@@ -577,7 +577,7 @@ export const AdminView: React.FC = () => {
       rareNote: '',
       badge: pBadge === 'AUCUN' ? null : pBadge,
       actionType: pActionType,
-      customPhone: pCustomPhone || '98 137 585',
+      customPhone: pCustomPhone || '+216 58 260 515',
       isNew: pIsNew,
       isBestSeller: pBadge === 'BEST-SELLER',
       isPromo: Boolean(pPromoPrice),
@@ -607,7 +607,7 @@ export const AdminView: React.FC = () => {
     setPDesc('');
     setPBadge('AUCUN');
     setPActionType('buy_online');
-    setPCustomPhone('98 137 585');
+    setPCustomPhone('+216 58 260 515');
     setPIsNew(true);
     setPSizes("");
     setPColors("");
@@ -636,7 +636,7 @@ export const AdminView: React.FC = () => {
     setPDesc(prod.description);
     setPBadge(prod.badge || 'AUCUN');
     setPActionType(prod.actionType || (prod.badge === 'PIÈCE RARE' ? 'rare_call' : 'buy_online'));
-    setPCustomPhone(prod.customPhone || '98 137 585');
+    setPCustomPhone(prod.customPhone || '+216 58 260 515');
     setPIsNew(prod.isNew || false);
     setPSizes(prod.sizes?.join(", ") || "");
     setPColors(prod.colors?.map(c => c.name + ':' + c.hex).join(", ") || "");
@@ -2170,7 +2170,7 @@ export const AdminView: React.FC = () => {
                       type="text"
                       value={pCustomPhone}
                       onChange={(e) => setPCustomPhone(e.target.value)}
-                      placeholder="98 137 585"
+                      placeholder="+216 58 260 515"
                       className="w-full bg-white border border-amber-300 rounded-xl px-3 py-1.5 text-xs text-[#0B1833] font-bold focus:outline-none"
                     />
                   </div>

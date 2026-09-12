@@ -833,7 +833,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       firstName: email.split('@')[0],
       lastName: '',
       email,
-      phone: '98 137 585',
+      phone: '+216 58 260 515',
       role: 'customer',
       addresses: [{ label: 'Adresse principale', address: '23 Rue de la Liberté', city: 'Menzah 5' }],
       createdAt: new Date().toISOString()

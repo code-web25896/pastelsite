@@ -87,7 +87,7 @@ export const HomeView: React.FC = () => {
     },
     {
       q: "Puis-je commander des listes scolaires ou packs pour entreprises ?",
-      a: "Oui ! Nous préparons les listes scolaires complètes de la maternelle au lycée ainsi que les fournitures de bureau pour professionnels. Vous pouvez nous joindre directement au 98 137 585 ou par WhatsApp."
+      a: "Oui ! Nous préparons les listes scolaires complètes de la maternelle au lycée ainsi que les fournitures de bureau pour professionnels. Vous pouvez nous joindre directement au +216 58 260 515 ou par WhatsApp."
     },
     {
       q: "Quels sont les modes de paiement acceptés ?",
@@ -288,7 +288,7 @@ export const HomeView: React.FC = () => {
             <span>✦ BOUTIQUE MENZAH 5 OUVERTE 7/7 DE 09H00 À 23H30</span>
             <span className="text-[#F4A9C8]">✦ BAGAGERIE SCOLAIRE, LIVRES & BEAUX-ARTS</span>
             <span>✦ RETRAIT GRATUIT EN BOUTIQUE SOUS 2H</span>
-            <span className="text-[#F5E7A6]">✦ SERVICE CLIENT DÉDIÉ : 98 137 585</span>
+            <span className="text-[#F5E7A6]">✦ SERVICE CLIENT DÉDIÉ : +216 58 260 515</span>
             {/* Duplication for seamless loop */}
             <span>✦ LIVRAISON EXPRESS EN TUNISIE (OFFERTE DÈS 500 DT)</span>
             <span className="text-[#8FD8C3]">✦ 100% PRODUITS CERTIFIÉS & GRANDES MARQUES</span>
@@ -336,7 +336,7 @@ export const HomeView: React.FC = () => {
             </div>
             <div>
               <h3 className="font-sans font-bold text-sm sm:text-base text-[#0B1833]">Conseil & Écoute</h3>
-              <p className="text-xs text-[#0B1833]/60 mt-0.5">Assistance directe au 98 137 585</p>
+              <p className="text-xs text-[#0B1833]/60 mt-0.5">Assistance directe au +216 58 260 515</p>
             </div>
           </motion.div>
 
@@ -622,7 +622,7 @@ export const HomeView: React.FC = () => {
 
             <div className="space-y-2.5">
               <a
-                href="https://wa.me/21698137585?text=Bonjour%20Espace%20Pastel,%20je%20souhaite%20un%20devis%20pour%20une%20liste%20scolaire%20ou%20fournitures."
+                href="https://wa.me/21658260515?text=Bonjour%20Espace%20Pastel,%20je%20souhaite%20un%20devis%20pour%20une%20liste%20scolaire%20ou%20fournitures."
                 target="_blank"
                 rel="noreferrer"
                 className="w-full py-3 px-4 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer"
@@ -631,11 +631,11 @@ export const HomeView: React.FC = () => {
               </a>
 
               <a
-                href="tel:98137585"
+                href="tel:21658260515"
                 className="w-full py-3 px-4 rounded-xl bg-[#0B1833] hover:bg-[#8FD8C3] hover:text-[#0B1833] text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
                 <Phone className="w-4 h-4" />
-                <span>Appeler le 98 137 585</span>
+                <span>Appeler le +216 58 260 515</span>
               </a>
             </div>
           </div>
@@ -841,11 +841,11 @@ export const HomeView: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-4">
             <a
-              href="tel:98137585"
+              href="tel:21658260515"
               className="bg-[#0B1833] hover:bg-[#8FD8C3] hover:text-[#0B1833] text-white text-xs font-bold px-6 py-3.5 rounded-xl transition-all inline-flex items-center gap-2 shadow-sm cursor-pointer"
             >
               <Phone className="w-4 h-4" />
-              <span>Appeler le 98 137 585</span>
+              <span>Appeler le +216 58 260 515</span>
             </a>
 
             <button

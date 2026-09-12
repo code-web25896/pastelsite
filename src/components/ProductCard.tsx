@@ -33,10 +33,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const isOutOfStock = product.stock <= 0;
   const isLowStock = product.stock > 0 && product.stock <= 5;
   const isRare = product.actionType === 'rare_call' || product.actionType === 'rare_chat' || product.actionType === 'rare_both' || product.badge === 'PIÈCE RARE';
-  const customPhone = product.customPhone || '98 137 585';
+  const customPhone = '+216 58 260 515';
   const showRareChat = isRare;
   const showRareCall = isRare;
-  const facebookChatUrl = 'https://www.facebook.com/share/19Fu6v8H9D/?mibextid=wwXIfr';
+  const messengerChatUrl = 'https://m.me/espacepasteltunisie';
 
   const currentPrice = product.promoPrice ?? product.price;
 
@@ -187,9 +187,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           {isRare ? (
             <div className="grid grid-cols-2 gap-2 w-full min-w-0">
               {showRareChat && (
-                <a href={facebookChatUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="w-full min-w-0 px-2 py-2.5 rounded-xl flex items-center justify-center gap-1 bg-[#1877F2] hover:bg-[#166fe5] text-white font-bold text-[10px] sm:text-xs leading-none transition-all shadow-sm active:scale-95 cursor-pointer" title="Discuter sur Facebook Messenger">
+                <a href={messengerChatUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="w-full min-w-0 px-2 py-2.5 rounded-xl flex items-center justify-center gap-1 bg-[#1877F2] hover:bg-[#166fe5] text-white font-bold text-[10px] sm:text-xs leading-none transition-all shadow-sm active:scale-95 cursor-pointer" title="Discuter sur Messenger">
                   <MessageCircle className="w-3.5 h-3.5" />
-                  <span>Discuter</span>
+                  <span>Messenger</span>
                 </a>
               )}
               {showRareCall && (

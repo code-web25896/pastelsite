@@ -74,7 +74,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
   const isFavorited = isInWishlist(product.id);
   const approvedReviews = getProductReviews(product.id, true);
   const isRare = product.actionType === 'rare_call' || product.actionType === 'rare_chat' || product.actionType === 'rare_both' || product.badge === 'PIÈCE RARE';
-  const customPhone = product.customPhone || '98 137 585';
+  const customPhone = '+216 58 260 515';
   const showRareChat = isRare;
   const showRareCall = isRare;
   const hasSizes = product.sizes.length > 0;
@@ -324,9 +324,9 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
                 )}
 
                 {showRareChat && (
-                  <a href="https://www.facebook.com/share/19Fu6v8H9D/?mibextid=wwXIfr" target="_blank" rel="noreferrer" className="w-full min-w-0 min-h-[58px] sm:min-h-0 py-3 px-4 rounded-2xl font-bold text-[11px] sm:text-xs leading-tight uppercase tracking-wide flex flex-row items-center justify-center gap-2 text-center break-words bg-[#1877F2] hover:bg-[#166fe5] text-white transition-all shadow-md active:scale-98 cursor-pointer">
+                  <a href="https://m.me/espacepasteltunisie" target="_blank" rel="noreferrer" className="w-full min-w-0 min-h-[58px] sm:min-h-0 py-3 px-4 rounded-2xl font-bold text-[11px] sm:text-xs leading-tight uppercase tracking-wide flex flex-row items-center justify-center gap-2 text-center break-words bg-[#1877F2] hover:bg-[#166fe5] text-white transition-all shadow-md active:scale-98 cursor-pointer">
                     <MessageCircle className="w-4 h-4" />
-                    <span className="min-w-0">Discuter sur Facebook</span>
+                    <span className="min-w-0">Discuter sur Messenger</span>
                   </a>
                 )}
               </div>

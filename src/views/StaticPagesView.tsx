@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
+import { Logo } from '../components/Logo';
 import { 
   MapPin, 
   Phone, 
@@ -30,9 +31,13 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
   const [contactSubject, setContactSubject] = useState('Renseignements généraux');
   const [contactMessage, setContactMessage] = useState('');
   const [contactSent, setContactSent] = useState(false);
+  const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value.trim());
+  const isValidPhone = (value: string) => /^\d{8}$/.test(value);
 
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isValidEmail(contactEmail)) { addToast('Veuillez saisir une adresse e-mail valide, par exemple nom@gmail.com.', 'error'); return; }
+    if (contactPhone && !isValidPhone(contactPhone)) { addToast('Le numéro doit contenir exactement 8 chiffres.', 'error'); return; }
     setContactSent(true);
     addToast('Votre message a bien été envoyé ! Nous vous répondrons sous 24h.', 'success');
   };
@@ -57,11 +62,9 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div className="rounded-3xl overflow-hidden shadow-xl aspect-[4/3] bg-gray-100">
-              <img
-                src="https://images.unsplash.com/photo-1516962215378-7fa2e137ae93?auto=format&fit=crop&w=1000&q=80"
-                alt="Boutique Espace Pastel"
-                className="w-full h-full object-cover"
-              />
+              <div className="w-full h-full flex items-center justify-center bg-white/80">
+                <Logo size="hero" variant="image-only" className="scale-110" />
+              </div>
             </div>
 
             <div className="space-y-4 text-xs sm:text-sm text-[#0B1833]/80 leading-relaxed">
@@ -130,7 +133,7 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
                   <div>
                     <strong className="block text-sm">Téléphone & WhatsApp</strong>
                     <div className="mt-1 space-y-1 text-[#0B1833] font-bold">
-                      <a href="tel:98137585" className="block hover:underline">Pastel - 98 137 585</a>
+                      <a href="tel:21658260515" className="block hover:underline">Pastel - +216 58 260 515</a>
                       <a href="tel:58260515" className="block hover:underline">Ines Pastel - 58 260 515</a>
                       <a href="tel:29299185" className="block hover:underline">29 299 185</a>
                       <a href="tel:5554200" className="block hover:underline">5554200</a>
@@ -195,6 +198,7 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
                       <input
                         type="email"
                         required
+                        pattern="[^\s@]+@[^\s@]+\.[^\s@]{2,}"
                         value={contactEmail}
                         onChange={(e) => setContactEmail(e.target.value)}
                         placeholder="Ex: yassine@gmail.com"
@@ -208,9 +212,12 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
                       <label className="block font-semibold text-gray-700 mb-1">Téléphone tunisien</label>
                       <input
                         type="tel"
+                        inputMode="numeric"
+                        pattern="[0-9]{8}"
+                        maxLength={8}
                         value={contactPhone}
-                        onChange={(e) => setContactPhone(e.target.value)}
-                        placeholder="98 137 585"
+                        onChange={(e) => setContactPhone(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                        placeholder="Ex: 58260515"
                         className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-[#0B1833]"
                       />
                     </div>
@@ -319,7 +326,7 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
           <div className="space-y-4 text-xs text-[#0B1833]/80 leading-relaxed">
             <p><strong>Éditeur du site :</strong> Librairie & Bagagerie ESPACE PASTEL</p>
             <p><strong>Siège social :</strong> 23 Rue de la Liberté, Menzah 5, Tunis, Tunisie</p>
-            <p><strong>Téléphone :</strong> +216 98 137 585</p>
+            <p><strong>Téléphone :</strong> +216 58 260 515</p>
             <p><strong>Directeur de la publication :</strong> Direction Espace Pastel</p>
             <p>
               Les données personnelles collectées lors de la commande ou de l'inscription sont strictement réservées au traitement de vos commandes et ne sont en aucun cas transmises à des tiers sans votre accord explicite.

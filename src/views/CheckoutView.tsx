@@ -55,6 +55,8 @@ export const CheckoutView: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'pickup'>('cod');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
+  const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value.trim());
+  const isValidPhone = (value: string) => /^\d{8}$/.test(value);
 
   // Governorates in Tunisia
   const tunisianGovernorates = [
@@ -102,6 +104,8 @@ export const CheckoutView: React.FC = () => {
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (cart.length === 0) return;
+    if (!isValidEmail(email)) { addToast('Veuillez saisir une adresse e-mail valide, par exemple nom@gmail.com.', 'error'); return; }
+    if (!isValidPhone(phone)) { addToast('Le numéro doit contenir exactement 8 chiffres.', 'error'); return; }
 
     setIsSubmitting(true);
 
@@ -335,6 +339,7 @@ export const CheckoutView: React.FC = () => {
                 <input
                   type="email"
                   required
+                  pattern="[^\s@]+@[^\s@]+\.[^\s@]{2,}"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-[#0B1833]"
@@ -345,9 +350,13 @@ export const CheckoutView: React.FC = () => {
                 <input
                   type="tel"
                   required
+                  inputMode="numeric"
+                  pattern="[0-9]{8}"
+                  minLength={8}
+                  maxLength={8}
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="Ex: 5554200"
+                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                  placeholder="Ex: 58260515"
                   className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-[#0B1833]"
                 />
               </div>
