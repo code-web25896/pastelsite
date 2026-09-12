@@ -420,20 +420,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const [catalogLoading, setCatalogLoading] = useState(true);
 
-  const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.PRODUCTS);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved) as Product[];
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return withoutDemoProducts(parsed).filter(isUsableProduct);
-        }
-      } catch {
-        return withoutDemoProducts(INITIAL_PRODUCTS);
-      }
-    }
-    return withoutDemoProducts(INITIAL_PRODUCTS);
-  });
+  // Le catalogue produit vient toujours de l’API serveur : aucune image ne dépend du navigateur.
+  const [products, setProducts] = useState<Product[]>(() => withoutDemoProducts(INITIAL_PRODUCTS));
 
   const [reviews, setReviews] = useState<Review[]>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.REVIEWS);
@@ -507,17 +495,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     safeStorageSet(LOCAL_STORAGE_KEYS.SUBCATEGORIES, subCategories);
   }, [subCategories]);
 
-  useEffect(() => {
-    // Cache léger : conserver le catalogue complet sans saturer localStorage avec les images.
-    const lightweightProducts = products.map((product) => ({
-      ...product,
-      // Conserver les images originales (URLs/uploads) ; retirer seulement les base64 lourdes.
-      images: Array.isArray(product.images)
-        ? product.images.filter((src) => !String(src).startsWith('data:image/')).slice(0, 4)
-        : [],
-    }));
-    safeStorageSet(LOCAL_STORAGE_KEYS.PRODUCTS, lightweightProducts);
-  }, [products]);
 
   useEffect(() => {
     safeStorageSet(LOCAL_STORAGE_KEYS.REVIEWS, reviews);
@@ -675,19 +652,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     const load = async () => {
       try {
-        if ('caches' in window) {
-          const cache = await caches.open('espace-pastel-catalog-v1');
-          const cached = await cache.match(url);
-          if (cached) apply(await cached.json());
-        }
         const response = await fetch(url);
         if (!response.ok) return;
-        const copy = response.clone();
         apply(await response.json());
-        if ('caches' in window) {
-          const cache = await caches.open('espace-pastel-catalog-v1');
-          await cache.put(url, copy);
-        }
       } catch { /* le chargement complet conserve le cache local */ }
     };
     void load();    return () => { cancelled = true; };

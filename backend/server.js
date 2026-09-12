@@ -703,9 +703,12 @@ app.get('/api/products', route(async (req, res) => {
 function publicProduct(product) {
   return {
     ...product,
-    images: (product.images || []).map((image, index) => String(image).startsWith('data:image/')
-      ? `/api/products/${encodeURIComponent(product.id)}/image/${index}?v=${encodeURIComponent(product.updatedAt || product.createdAt || '1')}`
-      : image),
+    images: (product.images || []).map((image, index) => {
+      const value = String(image || '');
+      return (value.startsWith('data:image/') || value.startsWith('/uploads/products/'))
+        ? `/api/products/${encodeURIComponent(product.id)}/image/${index}?v=${encodeURIComponent(product.updatedAt || product.createdAt || '1')}`
+        : image;
+    }),
   };
 }
 
@@ -728,6 +731,13 @@ app.get('/api/products/:id/image/:index', route(async (req, res) => {
     image = asImageList(fallbackProduct?.images)[index] || null;
   }
 
+  if (typeof image === 'string' && image.startsWith('/uploads/products/')) {
+    const file = path.join(productUploadsDir, path.basename(image));
+    if (fs.existsSync(file)) {
+      res.set('Cache-Control', 'public, max-age=3600, must-revalidate');
+      return res.sendFile(file);
+    }
+  }
   const match = typeof image === 'string' ? image.match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i) : null;
   if (!match) return res.status(404).end();
   res.set('Cache-Control', 'public, max-age=3600, must-revalidate');
