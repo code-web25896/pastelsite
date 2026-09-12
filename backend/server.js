@@ -392,26 +392,50 @@ function asImageList(value) {
 function materializeImages(images, productId, existingImages = []) {
   const safeId = String(productId || 'product').replace(/[^a-zA-Z0-9_-]/g, '_');
   const existingList = asImageList(existingImages);
-  return (images || []).filter((img) => typeof img === 'string').map((img, index) => {
-    if (img.includes('/api/products/') && img.includes('/image/')) {
-      const matchIdx = img.match(/\/image\/(\d+)/);
-      const targetIdx = matchIdx ? Number(matchIdx[1]) : index;
-      if (existingList[targetIdx]) return existingList[targetIdx];
-    }
-    if (img.startsWith('data:image/')) {
-      try {
-        const match = img.match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i);
-        if (match) {
-          const ext = match[1].split('/')[1].replace('jpeg', 'jpg').replace(/[^a-z0-9]/gi, '') || 'jpg';
-          const fileName = safeId + '-' + Date.now() + '-' + index + '.' + ext;
-          fs.writeFileSync(path.join(productUploadsDir, fileName), Buffer.from(match[2], 'base64'));
+  return (images || [])
+    .filter((img) => typeof img === 'string' && img.trim())
+    .map((img, index) => {
+      // Si le front renvoie l'URL proxy de l'API (/api/products/:id/image/:index)
+      if (img.includes('/api/products/') && img.includes('/image/')) {
+        const matchIdx = img.match(/\/image\/(\d+)/);
+        const targetIdx = matchIdx ? Number(matchIdx[1]) : index;
+        // 1. Restaurer la vraie image d'origine si elle n'est pas elle-même un lien API
+        if (existingList[targetIdx] && !existingList[targetIdx].includes('/api/products/')) {
+          return existingList[targetIdx];
         }
-      } catch (err) {
-        console.warn('Ecriture fichier image optionnelle ignoree:', err.message);
+        // 2. Si l'image existait sous forme de fichier disque dans uploads/products
+        try {
+          if (fs.existsSync(productUploadsDir)) {
+            const files = fs.readdirSync(productUploadsDir).filter((f) => f.startsWith(safeId + '-'));
+            if (files.length) {
+              const sorted = files.sort((a, b) => {
+                const idxA = Number((a.split('-').pop() || '').split('.')[0]) || 0;
+                const idxB = Number((b.split('-').pop() || '').split('.')[0]) || 0;
+                return idxA - idxB;
+              });
+              const found = sorted[targetIdx] || (targetIdx === 0 ? sorted[0] : null);
+              if (found) return '/uploads/products/' + found;
+            }
+          }
+        } catch {}
+        return null;
       }
-    }
-    return img;
-  });
+      // Si le client upload une nouvelle photo en base64
+      if (img.startsWith('data:image/')) {
+        try {
+          const match = img.match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i);
+          if (match) {
+            const ext = match[1].split('/')[1].replace('jpeg', 'jpg').replace(/[^a-z0-9]/gi, '') || 'jpg';
+            const fileName = safeId + '-' + Date.now() + '-' + index + '.' + ext;
+            fs.writeFileSync(path.join(productUploadsDir, fileName), Buffer.from(match[2], 'base64'));
+          }
+        } catch (err) {
+          console.warn('Ecriture fichier image optionnelle ignoree:', err.message);
+        }
+      }
+      return img;
+    })
+    .filter(Boolean);
 }
 
 // Les images de sous-catÃƒÂ©gories sont stockÃƒÂ©es directement en base64 dans la DB
