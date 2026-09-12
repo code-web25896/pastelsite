@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useStore } from '../context/StoreContext';
 import { ProductCard } from '../components/ProductCard';
 import { 
@@ -163,20 +163,47 @@ export const ShopView: React.FC<ShopViewProps> = ({
     }
   }, [filteredProducts, sortBy]);
   const PRODUCTS_PER_PAGE = 6;
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(() => {
+    const page = Number(new URLSearchParams(window.location.search).get('page'));
+    return Number.isInteger(page) && page > 0 ? page : 1;
+  });
+  const isFirstPaginationRender = useRef(true);
   const totalPages = Math.max(1, Math.ceil(sortedProducts.length / PRODUCTS_PER_PAGE));
   const paginatedProducts = useMemo(() => {
     const start = (currentPage - 1) * PRODUCTS_PER_PAGE;
     return sortedProducts.slice(start, start + PRODUCTS_PER_PAGE);
   }, [sortedProducts, currentPage]);
 
+  const updatePageUrl = (page: number) => {
+    const params = new URLSearchParams(window.location.search);
+    if (page > 1) params.set('page', String(page));
+    else params.delete('page');
+    const query = params.toString();
+    window.history.replaceState({}, '', window.location.pathname + (query ? `?${query}` : ''));
+  };
+
+  const goToPage = (page: number) => {
+    const nextPage = Math.max(1, Math.min(totalPages, page));
+    setCurrentPage(nextPage);
+    updatePageUrl(nextPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   useEffect(() => {
+    if (isFirstPaginationRender.current) {
+      isFirstPaginationRender.current = false;
+      return;
+    }
     setCurrentPage(1);
+    updatePageUrl(1);
   }, [search, selectedBrand, selectedSubCategory, selectedCategory, promoOnly, isNewOnly, inStockOnly, minRating, maxPrice, sortBy]);
 
   useEffect(() => {
-    setCurrentPage((page) => Math.min(page, totalPages));
-  }, [totalPages]);
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+      updatePageUrl(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   // Reset Filters
   const resetFilters = () => {
@@ -542,7 +569,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
               <nav className="mt-8 flex flex-wrap items-center justify-center gap-2" aria-label="Pagination des produits">
                 <button
                   type="button"
-                  onClick={() => { setCurrentPage((page) => Math.max(1, page - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  onClick={() => goToPage(currentPage - 1)}
                   disabled={currentPage === 1}
                   className="inline-flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-[#0B1833] transition-colors hover:border-[#0B1833] disabled:cursor-not-allowed disabled:opacity-40"
                 >
@@ -554,7 +581,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
                 </span>
                 <button
                   type="button"
-                  onClick={() => { setCurrentPage((page) => Math.min(totalPages, page + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                  onClick={() => goToPage(currentPage + 1)}
                   disabled={currentPage === totalPages}
                   className="inline-flex items-center gap-1 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-[#0B1833] transition-colors hover:border-[#0B1833] disabled:cursor-not-allowed disabled:opacity-40"
                 >

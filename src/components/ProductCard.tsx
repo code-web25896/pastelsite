@@ -189,7 +189,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               {showRareChat && (
                 <a href={messengerChatUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="w-full min-w-0 px-2 py-2.5 rounded-xl flex items-center justify-center gap-1 bg-[#1877F2] hover:bg-[#166fe5] text-white font-bold text-[10px] sm:text-xs leading-none transition-all shadow-sm active:scale-95 cursor-pointer" title="Discuter sur Messenger">
                   <MessageCircle className="w-3.5 h-3.5" />
-                  <span>Messenger</span>
+                  <span>Discuter</span>
                 </a>
               )}
               {showRareCall && (

@@ -337,6 +337,8 @@ export const AdminView: React.FC = () => {
   const [pCategory, setPCategory] = useState('Papeterie');
   const [pPrice, setPPrice] = useState('12.500');
   const [pPromoPrice, setPPromoPrice] = useState('');
+  const [pPromoCode, setPPromoCode] = useState('');
+  const [pPromoDiscountPercent, setPPromoDiscountPercent] = useState('');
   const [pStock, setPStock] = useState('20');
   const defaultProductImage = '/logo.webp';
   const [pImage, setPImage] = useState(defaultProductImage);
@@ -557,6 +559,8 @@ export const AdminView: React.FC = () => {
       category: pCategory as Product['category'],
       price: parseFloat(pPrice) || 0,
       promoPrice: (pPromoPrice && parseFloat(pPromoPrice)) || undefined,
+      promoCode: pPromoCode.trim().toUpperCase() || undefined,
+      promoDiscountPercent: pPromoCode.trim() && pPromoDiscountPercent ? Math.min(100, Math.max(0, parseFloat(pPromoDiscountPercent))) : undefined,
       stock: parseInt(pStock, 10) || 0,
       images: productImages,
       shortDescription: pShortDesc || pName,
@@ -602,6 +606,8 @@ export const AdminView: React.FC = () => {
     setPSku('');
     setPPrice('12.500');
     setPPromoPrice('');
+    setPPromoCode('');
+    setPPromoDiscountPercent('');
     setPStock('20');
     setPShortDesc('');
     setPDesc('');
@@ -629,6 +635,8 @@ export const AdminView: React.FC = () => {
     setPPrice(prod.price.toString());
     if (prod.promoPrice) setPPromoPrice(prod.promoPrice.toString());
     else setPPromoPrice('');
+    setPPromoCode(prod.promoCode || '');
+    setPPromoDiscountPercent(prod.promoDiscountPercent?.toString() || '');
     setPStock(prod.stock.toString());
     setPImage(prod.images[0] || '');
     setPGallery(prod.images?.length ? prod.images : []);
@@ -1967,7 +1975,16 @@ export const AdminView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-gray-700 mb-1">Quantité en stock *</label>
+                  <label className="block font-bold text-gray-700 mb-1">Quantité en stock *</label>                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Code promo produit (Optionnel)</label>
+                  <input type="text" value={pPromoCode} onChange={(e) => setPPromoCode(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ''))} placeholder="Ex: RENTREE10" maxLength={80} className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl px-3 py-2 text-xs uppercase focus:outline-none" />
+                  <p className="text-[10px] text-gray-500 mt-1">Laissez vide si ce produit n'a pas de code promo.</p>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Remise du code (%)</label>
+                  <input type="number" min="0" max="100" step="0.01" value={pPromoDiscountPercent} onChange={(e) => setPPromoDiscountPercent(e.target.value)} placeholder="Ex: 10" disabled={!pPromoCode} className="w-full bg-[#F7F7F8] border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none disabled:opacity-50" />
+                </div>
                   <input
                     type="number"
                     required

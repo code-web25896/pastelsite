@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { BrandCard } from '../components/BrandCard';
 import { ProductCard } from '../components/ProductCard';
@@ -46,6 +46,21 @@ export const HomeView: React.FC = () => {
   const scrollCarousel = (ref: React.RefObject<HTMLDivElement | null>, direction: -1 | 1) => {
     ref.current?.scrollBy({ left: direction * Math.max(ref.current.clientWidth * 0.82, 280), behavior: 'smooth' });
   };
+  const autoScrollCarousel = (ref: React.RefObject<HTMLDivElement | null>) => {
+    const element = ref.current;
+    if (!element || element.scrollWidth <= element.clientWidth) return;
+    const step = Math.max(element.clientWidth * 0.82, 280);
+    const atEnd = element.scrollLeft + element.clientWidth >= element.scrollWidth - 12;
+    element.scrollTo({ left: atEnd ? 0 : element.scrollLeft + step, behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      autoScrollCarousel(newProductsCarouselRef);
+      autoScrollCarousel(promoProductsCarouselRef);
+    }, 4500);
+    return () => window.clearInterval(timer);
+  }, []);
 
   // FAQ open index state
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);

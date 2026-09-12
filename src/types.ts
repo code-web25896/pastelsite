@@ -54,6 +54,8 @@ export interface Product {
   category: 'Papeterie' | 'Scolaire' | 'Arts & Peinture' | 'Librairie' | 'Bureau & Organisation';
   price: number; // In TND, e.g., 24.900
   promoPrice: number; // In TND, e.g., 19.900
+  promoCode?: string;
+  promoDiscountPercent?: number;
   sku: string;
   stock: number;
   isNew: boolean;

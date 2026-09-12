@@ -63,6 +63,8 @@ CREATE TABLE products (
   category VARCHAR(80) NOT NULL,
   price DECIMAL(10,3) NOT NULL,
   promo_price DECIMAL(10,3) NULL,
+  promo_code VARCHAR(80) NULL,
+  promo_discount_percent DECIMAL(5,2) NULL,
   sku VARCHAR(100) NOT NULL UNIQUE,
   stock INT UNSIGNED NOT NULL DEFAULT 0,
   is_new BOOLEAN NOT NULL DEFAULT FALSE,

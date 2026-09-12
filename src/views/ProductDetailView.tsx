@@ -326,7 +326,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
                 {showRareChat && (
                   <a href="https://m.me/espacepasteltunisie" target="_blank" rel="noreferrer" className="w-full min-w-0 min-h-[58px] sm:min-h-0 py-3 px-4 rounded-2xl font-bold text-[11px] sm:text-xs leading-tight uppercase tracking-wide flex flex-row items-center justify-center gap-2 text-center break-words bg-[#1877F2] hover:bg-[#166fe5] text-white transition-all shadow-md active:scale-98 cursor-pointer">
                     <MessageCircle className="w-4 h-4" />
-                    <span className="min-w-0">Discuter sur Messenger</span>
+                    <span className="min-w-0">Discuter</span>
                   </a>
                 )}
               </div>

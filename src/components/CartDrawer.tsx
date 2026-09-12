@@ -27,8 +27,7 @@ export const CartDrawer: React.FC = () => {
   } = useStore();
 
   const [promoCode, setPromoCode] = useState('');
-  const [discountPercent, setDiscountPercent] = useState(0);
-  const [appliedPromo, setAppliedPromo] = useState<string | null>(null);
+  const [appliedPromo, setAppliedPromo] = useState<string | null>(() => typeof window !== 'undefined' ? window.localStorage.getItem('espace_pastel_promo_code') : null);
 
   if (!isCartDrawerOpen) return null;
 
@@ -37,23 +36,33 @@ export const CartDrawer: React.FC = () => {
   const freeShippingProgress = Math.min(100, (cartSubtotal / FREE_SHIPPING_THRESHOLD) * 100);
 
   const shippingFee = cartSubtotal >= FREE_SHIPPING_THRESHOLD || cartSubtotal === 0 ? 0 : 7.2;
-  const discountAmount = (cartSubtotal * discountPercent) / 100;
-  const finalTotal = Math.max(0, cartSubtotal - discountAmount + shippingFee);
+  const activeCode = (appliedPromo || '').trim().toUpperCase();
+  const getUnitPrice = (item: typeof cart[number]) => {
+    const basePrice = Number(item.product.promoPrice ?? item.product.price);
+    const productCode = String(item.product.promoCode || '').trim().toUpperCase();
+    const percent = Number(item.product.promoDiscountPercent || 0);
+    return activeCode && productCode === activeCode && percent > 0
+      ? basePrice * (1 - Math.min(100, percent) / 100)
+      : basePrice;
+  };
+  const discountAmount = cart.reduce((sum, item) => {
+    const basePrice = Number(item.product.promoPrice ?? item.product.price);
+    return sum + Math.max(0, basePrice - getUnitPrice(item)) * item.quantity;
+  }, 0);
+  const discountedSubtotal = Math.max(0, cartSubtotal - discountAmount);
+  const finalTotal = discountedSubtotal + shippingFee;
 
   const handleApplyPromo = (e: React.FormEvent) => {
     e.preventDefault();
-    if (promoCode.trim().toUpperCase() === 'PASTEL10') {
-      setDiscountPercent(10);
-      setAppliedPromo('PASTEL10 (-10%)');
-      addToast('Code promo PASTEL10 appliqué (-10%) !', 'success');
-    } else if (promoCode.trim().toUpperCase() === 'BIENVENUE') {
-      setDiscountPercent(15);
-      setAppliedPromo('BIENVENUE (-15%)');
-      addToast('Code promo BIENVENUE appliqué (-15%) !', 'success');
-    } else {
-      addToast('Code promo invalide. Essayez "PASTEL10" ou "BIENVENUE"', 'warning');
+    const code = promoCode.trim().toUpperCase();
+    const matches = cart.filter(item => String(item.product.promoCode || '').trim().toUpperCase() === code && Number(item.product.promoDiscountPercent || 0) > 0);
+    if (!code || matches.length === 0) {
+      addToast('Code promo invalide pour les produits de votre panier.', 'warning');
+      return;
     }
+    setAppliedPromo(code);
     setPromoCode('');
+    addToast(`Code ${code} appliqué sur ${matches.length} produit(s).`, 'success');
   };
 
   return (
@@ -138,7 +147,7 @@ export const CartDrawer: React.FC = () => {
               </div>
             ) : (
               cart.map(item => {
-                const unitPrice = item.product.promoPrice ?? item.product.price;
+                const unitPrice = getUnitPrice(item);
                 const lineTotal = unitPrice * item.quantity;
 
                 return (
@@ -229,7 +238,7 @@ export const CartDrawer: React.FC = () => {
               <form onSubmit={handleApplyPromo} className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="Code promo (ex: PASTEL10)"
+                  placeholder="Code promo de votre produit"
                   value={promoCode}
                   onChange={(e) => setPromoCode(e.target.value)}
                   className="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs uppercase font-medium focus:outline-none focus:border-[#0B1833]"
@@ -248,7 +257,7 @@ export const CartDrawer: React.FC = () => {
                     <Tag className="w-3.5 h-3.5" /> {appliedPromo}
                   </span>
                   <button 
-                    onClick={() => { setDiscountPercent(0); setAppliedPromo(null); }}
+                    onClick={() => { setAppliedPromo(null); window.localStorage.removeItem('espace_pastel_promo_code'); setPromoCode(''); }}
                     className="text-xs text-red-500 hover:underline"
                   >
                     Retirer

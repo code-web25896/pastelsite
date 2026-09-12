@@ -77,6 +77,8 @@ const productInput = z.object({
   category: z.string().min(1).max(100).default('Papeterie'),
   price: z.number().nonnegative().max(9999999),
   promoPrice: z.number().nonnegative().max(9999999).nullable().optional(),
+  promoCode: z.string().trim().max(80).nullable().optional(),
+  promoDiscountPercent: z.number().min(0).max(100).nullable().optional(),
   sku: z.string().trim().min(1).max(100),
   stock: z.number().int().min(0).max(100000).default(0),
   isNew: z.boolean().optional().default(false),

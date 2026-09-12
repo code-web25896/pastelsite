@@ -321,6 +321,8 @@ const productBase = z.object({
   category: z.string().min(1).max(100).default('Papeterie'),
   price: z.number().nonnegative().max(9999999),
   promoPrice: z.number().nonnegative().max(9999999).nullable().optional(),
+  promoCode: z.string().trim().max(80).nullable().optional(),
+  promoDiscountPercent: z.number().min(0).max(100).nullable().optional(),
   sku: z.string().trim().min(1).max(100),
   stock: z.number().int().min(0).max(100000).default(0),
   isNew: z.boolean().optional().default(false),
@@ -641,13 +643,15 @@ app.get('/api/subcategories', route(async (req, res) => {
 }));
 
 // ================= PRODUCTS =================
-const productSelect = 'p.id, p.brand_id AS brandId, p.subcategory_id AS subCategoryId, p.name, p.slug, p.category, p.price, p.promo_price AS promoPrice, p.sku, p.stock, p.is_new AS isNew, p.is_promo AS isPromo, p.is_best_seller AS isBestSeller, p.badge, p.images, p.short_description AS shortDescription, p.description, p.features, p.sizes, p.colors, p.dimensions, p.weight, p.material, p.action_type AS actionType, p.custom_phone AS customPhone, p.custom_whatsapp AS customWhatsapp, p.rare_note AS rareNote, p.status, p.created_at AS createdAt, COALESCE((SELECT AVG(r.rating) FROM reviews r WHERE r.product_id = p.id AND r.status = \'approved\'), 0) AS rating, (SELECT COUNT(*) FROM reviews r WHERE r.product_id = p.id AND r.status = \'approved\') AS reviewCount';
+const productSelect = 'p.id, p.brand_id AS brandId, p.subcategory_id AS subCategoryId, p.name, p.slug, p.category, p.price, p.promo_price AS promoPrice, p.promo_code AS promoCode, p.promo_discount_percent AS promoDiscountPercent, p.sku, p.stock, p.is_new AS isNew, p.is_promo AS isPromo, p.is_best_seller AS isBestSeller, p.badge, p.images, p.short_description AS shortDescription, p.description, p.features, p.sizes, p.colors, p.dimensions, p.weight, p.material, p.action_type AS actionType, p.custom_phone AS customPhone, p.custom_whatsapp AS customWhatsapp, p.rare_note AS rareNote, p.status, p.created_at AS createdAt, COALESCE((SELECT AVG(r.rating) FROM reviews r WHERE r.product_id = p.id AND r.status = \'approved\'), 0) AS rating, (SELECT COUNT(*) FROM reviews r WHERE r.product_id = p.id AND r.status = \'approved\') AS reviewCount';
 
 function outputProduct(row) {
   return {
     ...row,
     price: Number(row.price),
     promoPrice: row.promoPrice == null ? null : Number(row.promoPrice),
+    promoCode: row.promoCode || null,
+    promoDiscountPercent: row.promoDiscountPercent == null ? null : Number(row.promoDiscountPercent),
     rating: Number(row.rating || 0),
     reviewCount: Number(row.reviewCount || 0),
     isNew: Boolean(row.isNew),
@@ -1387,10 +1391,10 @@ app.post('/api/admin/products', auth, admin, route(async (req, res) => {
       const canonicalProduct = await ensureProductRelations(product);
       Object.assign(product, canonicalProduct);
       await pool.execute(
-        'INSERT INTO products (id, brand_id, subcategory_id, name, slug, category, price, promo_price, sku, stock, is_new, is_promo, is_best_seller, badge, images, short_description, description, features, sizes, colors, dimensions, weight, material, action_type, custom_phone, custom_whatsapp, rare_note, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO products (id, brand_id, subcategory_id, name, slug, category, price, promo_price, promo_code, promo_discount_percent, sku, stock, is_new, is_promo, is_best_seller, badge, images, short_description, description, features, sizes, colors, dimensions, weight, material, action_type, custom_phone, custom_whatsapp, rare_note, status) VALUES (' + Array(30).fill('?').join(', ') + ')',
         [
           product.id, product.brandId, product.subCategoryId, product.name, product.slug, product.category,
-          product.price, product.promoPrice || null, product.sku, product.stock,
+          product.price, product.promoPrice || null, product.promoCode || null, product.promoDiscountPercent ?? null, product.sku, product.stock,
           Boolean(product.isNew), Boolean(product.isPromo), Boolean(product.isBestSeller), product.badge || null,
           JSON.stringify(product.images || []), product.shortDescription || '', product.description || '',
           JSON.stringify(product.features || []), JSON.stringify(product.sizes || []), JSON.stringify(product.colors || []),
@@ -1425,7 +1429,7 @@ app.patch('/api/admin/products/:id', auth, admin, route(async (req, res) => {
       const keys = Object.keys(updates);
       if (keys.length) {
         const productMap = {
-          brandId: 'brand_id', subCategoryId: 'subcategory_id', name: 'name', slug: 'slug', category: 'category', price: 'price', promoPrice: 'promo_price', sku: 'sku', stock: 'stock', isNew: 'is_new', isPromo: 'is_promo', isBestSeller: 'is_best_seller', badge: 'badge', images: 'images', shortDescription: 'short_description', description: 'description', features: 'features', sizes: 'sizes', colors: 'colors', dimensions: 'dimensions', weight: 'weight', material: 'material', actionType: 'action_type', customPhone: 'custom_phone', customWhatsapp: 'custom_whatsapp', rareNote: 'rare_note', status: 'status'
+          brandId: 'brand_id', subCategoryId: 'subcategory_id', name: 'name', slug: 'slug', category: 'category', price: 'price', promoPrice: 'promo_price', promoCode: 'promo_code', promoDiscountPercent: 'promo_discount_percent', sku: 'sku', stock: 'stock', isNew: 'is_new', isPromo: 'is_promo', isBestSeller: 'is_best_seller', badge: 'badge', images: 'images', shortDescription: 'short_description', description: 'description', features: 'features', sizes: 'sizes', colors: 'colors', dimensions: 'dimensions', weight: 'weight', material: 'material', actionType: 'action_type', customPhone: 'custom_phone', customWhatsapp: 'custom_whatsapp', rareNote: 'rare_note', status: 'status'
         };
         const serializeVal = (k, v) => (['images', 'features', 'sizes', 'colors'].includes(k) && v != null ? JSON.stringify(v) : v);
         const validKeys = keys.filter((k) => productMap[k]);

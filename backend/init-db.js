@@ -1,4 +1,4 @@
-﻿import fs from 'node:fs/promises';
+import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -28,6 +28,8 @@ async function migrateCatalogColumns(pool) {
       'ALTER TABLE products MODIFY brand_id VARCHAR(128) NOT NULL',
       'ALTER TABLE products MODIFY subcategory_id VARCHAR(128) NOT NULL',
       'ALTER TABLE products MODIFY images LONGTEXT NOT NULL',
+      'ALTER TABLE products ADD COLUMN promo_code VARCHAR(80) NULL AFTER promo_price',
+      'ALTER TABLE products ADD COLUMN promo_discount_percent DECIMAL(5,2) NULL AFTER promo_code',
       'ALTER TABLE reviews MODIFY id VARCHAR(128) NOT NULL',
       'ALTER TABLE reviews MODIFY product_id VARCHAR(128) NOT NULL',
       'ALTER TABLE reviews MODIFY user_id VARCHAR(128) NULL',

@@ -37,6 +37,7 @@ export const CheckoutView: React.FC = () => {
   const [address, setAddress] = useState('');
   const [postalCode, setPostalCode] = useState('');
   const [notes, setNotes] = useState('');
+  const [appliedPromo] = useState(() => typeof window !== 'undefined' ? window.localStorage.getItem('espace_pastel_promo_code') || '' : '');
 
   useEffect(() => {
     if (!currentUser) return;
@@ -77,7 +78,21 @@ export const CheckoutView: React.FC = () => {
   const FREE_SHIPPING_THRESHOLD = 500.0;
   let shippingFee = 7.2;
   if (deliveryType === 'pickup' || cartSubtotal >= FREE_SHIPPING_THRESHOLD) shippingFee = 0;
-  const total = cartSubtotal + shippingFee;
+  const activePromoCode = appliedPromo.trim().toUpperCase();
+  const getUnitPrice = (item: typeof cart[number]) => {
+    const basePrice = Number(item.product.promoPrice ?? item.product.price);
+    const productCode = String(item.product.promoCode || '').trim().toUpperCase();
+    const percent = Number(item.product.promoDiscountPercent || 0);
+    return activePromoCode && productCode === activePromoCode && percent > 0
+      ? basePrice * (1 - Math.min(100, percent) / 100)
+      : basePrice;
+  };
+  const promoDiscountAmount = cart.reduce((sum, item) => {
+    const basePrice = Number(item.product.promoPrice ?? item.product.price);
+    return sum + Math.max(0, basePrice - getUnitPrice(item)) * item.quantity;
+  }, 0);
+  const discountedSubtotal = Math.max(0, cartSubtotal - promoDiscountAmount);
+  const total = discountedSubtotal + shippingFee;
 
   const deliveryOptionClass = (kind: 'delivery' | 'pickup') => {
     let className = 'p-4 rounded-2xl border-2 cursor-pointer transition-all border-gray-100 hover:border-gray-200';
@@ -113,7 +128,7 @@ export const CheckoutView: React.FC = () => {
       const orderItems = cart.map(item => ({
         productId: item.productId,
         productName: item.product.name,
-        price: item.product.promoPrice || item.product.price,
+        price: getUnitPrice(item),
         quantity: item.quantity,
         image: item.product.images[0] || '',
         brandName: item.product.brandId,
@@ -503,7 +518,7 @@ export const CheckoutView: React.FC = () => {
           {/* Cart items list */}
           <div className="divide-y divide-gray-100 max-h-72 overflow-y-auto pr-1">
             {cart.map(item => {
-              const unitPrice = item.product.promoPrice || item.product.price;
+              const unitPrice = getUnitPrice(item);
               return (
                 <div key={item.productId + '-' + (item.selectedSize || 'no-size') + '-' + (item.selectedColor?.hex || 'no-color')} className="py-3 flex items-center gap-3">
                   <img
@@ -542,6 +557,13 @@ export const CheckoutView: React.FC = () => {
               <span>Sous-total articles</span>
               <span className="font-bold text-[#0B1833]">{formatPrice(cartSubtotal)}</span>
             </div>
+
+            {promoDiscountAmount > 0 && (
+              <div className="flex justify-between text-emerald-600">
+                <span>Remise promo ({activePromoCode})</span>
+                <span className="font-bold">-{formatPrice(promoDiscountAmount)}</span>
+              </div>
+            )}
 
             <div className="flex justify-between text-gray-600">
               <span>Frais de livraison</span>
