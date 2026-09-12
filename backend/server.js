@@ -644,7 +644,7 @@ app.get('/api/subcategories', route(async (req, res) => {
 }));
 
 // ================= PRODUCTS =================
-const productSelect = 'p.id, p.brand_id AS brandId, p.subcategory_id AS subCategoryId, p.name, p.slug, p.category, p.price, p.promo_price AS promoPrice, p.promo_code AS promoCode, p.promo_discount_percent AS promoDiscountPercent, p.sku, p.stock, p.is_new AS isNew, p.is_promo AS isPromo, p.is_best_seller AS isBestSeller, p.badge, p.images, p.short_description AS shortDescription, p.description, p.features, p.sizes, p.colors, p.dimensions, p.weight, p.material, p.action_type AS actionType, p.custom_phone AS customPhone, p.custom_whatsapp AS customWhatsapp, p.rare_note AS rareNote, p.status, p.created_at AS createdAt, COALESCE((SELECT AVG(r.rating) FROM reviews r WHERE r.product_id = p.id AND r.status = \'approved\'), 0) AS rating, (SELECT COUNT(*) FROM reviews r WHERE r.product_id = p.id AND r.status = \'approved\') AS reviewCount';
+const productSelect = 'p.id, p.brand_id AS brandId, p.subcategory_id AS subCategoryId, p.name, p.slug, p.category, p.price, p.promo_price AS promoPrice, p.promo_code AS promoCode, p.promo_discount_percent AS promoDiscountPercent, p.sku, p.stock, p.is_new AS isNew, p.is_promo AS isPromo, p.is_best_seller AS isBestSeller, p.badge, p.images, p.short_description AS shortDescription, p.description, p.features, p.sizes, p.colors, p.dimensions, p.weight, p.material, p.action_type AS actionType, p.custom_phone AS customPhone, p.custom_whatsapp AS customWhatsapp, p.rare_note AS rareNote, p.status, p.created_at AS createdAt, p.updated_at AS updatedAt, COALESCE((SELECT AVG(r.rating) FROM reviews r WHERE r.product_id = p.id AND r.status = \'approved\'), 0) AS rating, (SELECT COUNT(*) FROM reviews r WHERE r.product_id = p.id AND r.status = \'approved\') AS reviewCount';
 
 function outputProduct(row) {
   return {
@@ -704,7 +704,7 @@ function publicProduct(product) {
   return {
     ...product,
     images: (product.images || []).map((image, index) => String(image).startsWith('data:image/')
-      ? `/api/products/${encodeURIComponent(product.id)}/image/${index}`
+      ? `/api/products/${encodeURIComponent(product.id)}/image/${index}?v=${encodeURIComponent(product.updatedAt || product.createdAt || '1')}`
       : image),
   };
 }
@@ -730,7 +730,7 @@ app.get('/api/products/:id/image/:index', route(async (req, res) => {
 
   const match = typeof image === 'string' ? image.match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i) : null;
   if (!match) return res.status(404).end();
-  res.set('Cache-Control', 'public, max-age=31536000, immutable');
+  res.set('Cache-Control', 'public, max-age=3600, must-revalidate');
   res.type(match[1]);
   return res.send(Buffer.from(match[2], 'base64'));
 }));

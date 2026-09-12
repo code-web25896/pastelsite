@@ -56,6 +56,7 @@ export interface Product {
   promoPrice: number; // In TND, e.g., 19.900
   promoCode?: string;
   promoDiscountPercent?: number;
+  updatedAt?: string;
   sku: string;
   stock: number;
   isNew: boolean;

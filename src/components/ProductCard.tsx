@@ -54,8 +54,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <img
           src={product.images[0] || '/logo.webp'}
           alt={product.name}
-          className="w-full h-full object-cover object-center transform transition-transform duration-500 group-hover:scale-105"
-          loading="lazy"
+          className="w-full h-full object-cover object-center transform transition-transform duration-500 group-hover:scale-105"`r`n          loading="lazy"
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = '/logo.webp';
+          }}
         />
 
         {/* Badges on Top-Left */}
