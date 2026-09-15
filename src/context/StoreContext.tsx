@@ -796,19 +796,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!code) {
       return { success: false, message: 'Veuillez saisir un code promo.', matchesCount: 0 };
     }
+    const cartMatches = cart.filter(
+      item => String(item.product.promoCode || '').trim().toUpperCase() === code && Number(item.product.promoDiscountPercent || 0) > 0
+    );
     const catalogMatches = products.filter(
       p => String(p.promoCode || '').trim().toUpperCase() === code && Number(p.promoDiscountPercent || 0) > 0
     );
-    if (catalogMatches.length === 0) {
+    if (cartMatches.length === 0 && catalogMatches.length === 0) {
       return { success: false, message: 'Code promo introuvable ou expiré.', matchesCount: 0 };
     }
     setAppliedPromoCodeState(code);
     if (typeof window !== 'undefined') {
       window.localStorage.setItem('espace_pastel_promo_code', code);
     }
-    const cartMatches = cart.filter(
-      item => String(item.product.promoCode || '').trim().toUpperCase() === code && Number(item.product.promoDiscountPercent || 0) > 0
-    );
     if (cartMatches.length > 0) {
       return { success: true, message: `Code ${code} appliqué sur ${cartMatches.length} produit(s) éligible(s).`, matchesCount: cartMatches.length };
     }

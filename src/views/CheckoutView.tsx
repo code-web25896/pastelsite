@@ -90,8 +90,12 @@ export const CheckoutView: React.FC = () => {
   const activePromoCode = (appliedPromoCode || '').trim().toUpperCase();
   const getUnitPrice = (item: typeof cart[number]) => getCartItemUnitPrice(item);
 
-  const handleApplyPromoCheckout = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleApplyPromoCheckout = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!checkoutPromoInput.trim()) {
+      addToast('Veuillez saisir un code promo.', 'warning');
+      return;
+    }
     const res = applyPromoCode(checkoutPromoInput);
     if (!res.success) {
       addToast(res.message, 'warning');
@@ -550,21 +554,28 @@ export const CheckoutView: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <form onSubmit={handleApplyPromoCheckout} className="flex gap-2">
+              <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="Code promo (ex: OMAR)"
+                  placeholder="Code promo"
                   value={checkoutPromoInput}
                   onChange={(e) => setCheckoutPromoInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleApplyPromoCheckout();
+                    }
+                  }}
                   className="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs uppercase font-medium focus:outline-none focus:border-[#0B1833]"
                 />
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={() => handleApplyPromoCheckout()}
                   className="bg-[#0B1833] text-white hover:bg-[#8FD8C3] hover:text-[#0B1833] px-3.5 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer"
                 >
                   Appliquer
                 </button>
-              </form>
+              </div>
             )}
           </div>
 
