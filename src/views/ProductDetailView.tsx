@@ -37,7 +37,8 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
     isInWishlist, 
     addReview,
     products,
-    currentUser
+    currentUser,
+    catalogLoading
   } = useStore();
 
   const product = getProductById(productId);
@@ -45,7 +46,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState('');
-  const [selectedColor, setSelectedColor] = useState(product?.colors[0] || null);
+  const [selectedColor, setSelectedColor] = useState(product?.colors?.[0] || null);
   const [activeTab, setActiveTab] = useState<'description' | 'features' | 'reviews'>('description');
 
   // Review Form State
@@ -55,7 +56,75 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
   const [newEmail, setNewEmail] = useState(currentUser ? currentUser.email : '');
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
+  const brand = product ? getBrandById(product.brandId) : undefined;
+  const isFavorited = product ? isInWishlist(product.id) : false;
+  const approvedReviews = product ? getProductReviews(product.id, true) : [];
+  const isRare = product ? (product.actionType === 'rare_call' || product.actionType === 'rare_chat' || product.actionType === 'rare_both' || product.badge === 'PIÈCE RARE') : false;
+  const customPhone = '+216 58 260 515';
+  const showRareChat = isRare;
+  const showRareCall = isRare;
+  const hasSizes = Boolean(product && product.sizes && product.sizes.length > 0);
+  const hasColors = Boolean(product && product.colors && product.colors.length > 0);
+
+  const discountPercent = product?.promoPrice && product.price > 0
+    ? Math.round(((product.price - product.promoPrice) / product.price) * 100)
+    : 0;
+
+  const currentPrice = product ? (product.promoPrice ?? product.price) : 0;
+  const isOutOfStock = product ? product.stock <= 0 : false;
+
+  // Similar Products
+  const similarProducts = product
+    ? products
+        .filter(p => p.id !== product.id && (p.brandId === product.brandId || p.category === product.category))
+        .slice(0, 4)
+    : [];
+
+  const handleReviewSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!product || !newName.trim() || !newComment.trim()) return;
+
+    addReview(product.id, newName, newEmail, newRating, newComment);
+    setReviewSubmitted(true);
+    setNewComment('');
+  };
+
+  const handleBuyNow = () => {
+    if (!product) return;
+    addToCart(product, quantity, selectedSize, selectedColor || undefined);
+    navigateTo({ type: 'checkout' });
+  };
+
+  React.useEffect(() => {
+    if (!product || !hasSizes) {
+      setSelectedSize('');
+      return;
+    }
+    if (!selectedSize || !product.sizes.includes(selectedSize)) {
+      setSelectedSize(product.sizes[0]);
+    }
+  }, [hasSizes, product?.id, product?.sizes, selectedSize]);
+
+  React.useEffect(() => {
+    if (!product || !hasColors) {
+      setSelectedColor(null);
+      return;
+    }
+    if (!selectedColor || !product.colors.some(color => color.name === selectedColor.name && color.hex === selectedColor.hex)) {
+      setSelectedColor(product.colors[0]);
+    }
+  }, [hasColors, product?.id, product?.colors, selectedColor]);
+
   if (!product) {
+    if (catalogLoading) {
+      return (
+        <div className="max-w-7xl mx-auto px-4 py-20 text-center space-y-4">
+          <div className="w-10 h-10 border-4 border-[#8FD8C3] border-t-[#0B1833] rounded-full animate-spin mx-auto mb-4" />
+          <h2 className="font-sans font-bold text-xl text-[#0B1833]">Chargement du produit...</h2>
+          <p className="text-xs text-gray-500">Veuillez patienter un instant.</p>
+        </div>
+      );
+    }
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 text-center space-y-4">
         <h2 className="font-sans font-bold text-2xl text-[#0B1833]">Produit introuvable</h2>
@@ -69,62 +138,6 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
       </div>
     );
   }
-
-  const brand = getBrandById(product.brandId);
-  const isFavorited = isInWishlist(product.id);
-  const approvedReviews = getProductReviews(product.id, true);
-  const isRare = product.actionType === 'rare_call' || product.actionType === 'rare_chat' || product.actionType === 'rare_both' || product.badge === 'PIÈCE RARE';
-  const customPhone = '+216 58 260 515';
-  const showRareChat = isRare;
-  const showRareCall = isRare;
-  const hasSizes = product.sizes.length > 0;
-  const hasColors = product.colors.length > 0;
-
-  const discountPercent = product.promoPrice && product.price > 0
-    ? Math.round(((product.price - product.promoPrice) / product.price) * 100)
-    : 0;
-
-  const currentPrice = product.promoPrice ?? product.price;
-  const isOutOfStock = product.stock <= 0;
-
-  // Similar Products
-  const similarProducts = products
-    .filter(p => p.id !== product.id && (p.brandId === product.brandId || p.category === product.category))
-    .slice(0, 4);
-
-  const handleReviewSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newName.trim() || !newComment.trim()) return;
-
-    addReview(product.id, newName, newEmail, newRating, newComment);
-    setReviewSubmitted(true);
-    setNewComment('');
-  };
-
-  const handleBuyNow = () => {
-    addToCart(product, quantity, selectedSize, selectedColor || undefined);
-    navigateTo({ type: 'checkout' });
-  };
-
-  React.useEffect(() => {
-    if (!hasSizes) {
-      setSelectedSize('');
-      return;
-    }
-    if (!selectedSize || !product.sizes.includes(selectedSize)) {
-      setSelectedSize(product.sizes[0]);
-    }
-  }, [hasSizes, product.id, product.sizes, selectedSize]);
-
-  React.useEffect(() => {
-    if (!hasColors) {
-      setSelectedColor(null);
-      return;
-    }
-    if (!selectedColor || !product.colors.some(color => color.name === selectedColor.name && color.hex === selectedColor.hex)) {
-      setSelectedColor(product.colors[0]);
-    }
-  }, [hasColors, product.id, product.colors, selectedColor]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-16">
