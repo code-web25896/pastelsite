@@ -556,6 +556,11 @@ export const AdminView: React.FC = () => {
       return;
     }
 
+    if (pPromoCode.trim() && (!pPromoDiscountPercent || parseFloat(pPromoDiscountPercent) <= 0)) {
+      addToast('Veuillez indiquer un pourcentage de remise pour le code promo (ex: 10%).', 'warning');
+      return;
+    }
+
     const payload = {
       name: pName,
       sku: pSku,
@@ -563,9 +568,11 @@ export const AdminView: React.FC = () => {
       subCategoryId: pSubCatId,
       category: pCategory as Product['category'],
       price: parseFloat(pPrice) || 0,
-      promoPrice: (pPromoPrice && parseFloat(pPromoPrice)) || undefined,
-      promoCode: pPromoCode.trim().toUpperCase() || undefined,
-      promoDiscountPercent: pPromoCode.trim() && pPromoDiscountPercent ? Math.min(100, Math.max(0, parseFloat(pPromoDiscountPercent))) : undefined,
+      promoPrice: pPromoPrice && parseFloat(pPromoPrice) ? parseFloat(pPromoPrice) : null,
+      promoCode: pPromoCode.trim() ? pPromoCode.trim().toUpperCase() : null,
+      promoDiscountPercent: pPromoCode.trim() && pPromoDiscountPercent && !isNaN(parseFloat(pPromoDiscountPercent))
+        ? Math.min(100, Math.max(0, parseFloat(pPromoDiscountPercent)))
+        : null,
       stock: parseInt(pStock, 10) || 0,
       images: productImages,
       shortDescription: pShortDesc || pName,
