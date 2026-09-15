@@ -413,8 +413,6 @@ function materializeImages(images, productId, existingImages = []) {
   if (hasNewBase64) {
     cleanProductDiskImages(productId);
   }
-  const safeId = String(productId || 'product').replace(/[^a-zA-Z0-9_-]/g, '_');
-  const existingList = asImageList(existingImages);
   return (images || [])
     .filter((img) => typeof img === 'string' && img.trim())
     .map((img, index) => {
