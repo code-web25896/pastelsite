@@ -560,7 +560,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
           {/* 12. CARTES PRODUITS (RESPONSIVE GRID) */}
           {sortedProducts.length > 0 ? (
             <>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6">
               {paginatedProducts.map(product => (
                 <ProductCard key={product.id} product={product} />
               ))}

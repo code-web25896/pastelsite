@@ -172,11 +172,11 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
         {/* GAUCHE: Galerie d'images (7 cols) */}
         <div className="lg:col-span-7 space-y-4">
           {/* Main Large Image */}
-          <div className="relative aspect-[4/3] sm:aspect-square bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm group">
+          <div className="relative aspect-square max-h-[500px] bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm group p-4 sm:p-8 flex items-center justify-center">
             <img
               src={(Array.isArray(product.images) && product.images[selectedImageIndex]) || product.images?.[0] || '/logo.webp'}
               alt={product.name}
-              className="w-full h-full object-cover object-center transform group-hover:scale-105 transition-transform duration-500"
+              className="w-full h-full object-contain object-center transform group-hover:scale-105 transition-transform duration-500"
             />
 
             {/* Badges on main image */}
@@ -223,7 +223,7 @@ export const ProductDetailView: React.FC<ProductDetailViewProps> = ({ productId 
                   onClick={() => setSelectedImageIndex(idx)}
                   className={`w-20 h-20 rounded-2xl overflow-hidden border-2 flex-shrink-0 transition-all ${selectedImageIndex === idx ? 'border-[#0B1833] ring-2 ring-[#0B1833]/20' : 'border-transparent opacity-70 hover:opacity-100'}`}
                 >
-                  <img src={img} alt={`Aperçu ${idx + 1}`} className="w-full h-full object-cover" />
+                  <img src={img} alt={`Aperçu ${idx + 1}`} className="w-full h-full object-contain p-1" />
                 </button>
               ))}
             </div>

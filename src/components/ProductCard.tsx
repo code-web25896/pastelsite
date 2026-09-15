@@ -48,13 +48,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       id={`product-card-${product.id}`}
     >
       {/* Top Image Container */}
-      <div className="relative aspect-[4/3] sm:aspect-square bg-[#F7F7F8] overflow-hidden cursor-pointer"
+      <div className="relative aspect-square bg-[#F7F7F8] overflow-hidden cursor-pointer p-2.5 sm:p-4 flex items-center justify-center"
         onClick={() => navigateTo({ type: 'product', productId: product.id })}
       >
         <img
           src={(Array.isArray(product.images) && product.images[0]) ? product.images[0] : '/logo.webp'}
           alt={product.name}
-          className="w-full h-full object-cover object-center transform transition-transform duration-500 group-hover:scale-105"
+          className="w-full h-full object-contain object-center transform transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
           onError={(e) => {
             e.currentTarget.onerror = null;
@@ -118,7 +118,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       </div>
 
       {/* Product Information Body */}
-      <div className="p-4 flex-1 flex flex-col justify-between">
+      <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between">
         <div>
           {/* Brand & Stock Header */}
           <div className="flex items-center justify-between gap-2 mb-1.5">
