@@ -389,7 +389,30 @@ function asImageList(value) {
 }
 
 
+function cleanProductDiskImages(productId) {
+  try {
+    const safeTargetId = String(productId || '').replace(/[^a-zA-Z0-9_-]/g, '_');
+    if (!safeTargetId || !fs.existsSync(productUploadsDir)) return;
+    const prefix = safeTargetId + '-';
+    const files = fs.readdirSync(productUploadsDir).filter((f) => f.startsWith(prefix));
+    for (const f of files) {
+      try {
+        fs.unlinkSync(path.join(productUploadsDir, f));
+      } catch {}
+    }
+  } catch (err) {
+    console.warn('cleanProductDiskImages error:', err.message);
+  }
+}
+
 function materializeImages(images, productId, existingImages = []) {
+  const safeId = String(productId || 'product').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const existingList = asImageList(existingImages);
+
+  const hasNewBase64 = (images || []).some((img) => typeof img === 'string' && img.startsWith('data:image/'));
+  if (hasNewBase64) {
+    cleanProductDiskImages(productId);
+  }
   const safeId = String(productId || 'product').replace(/[^a-zA-Z0-9_-]/g, '_');
   const existingList = asImageList(existingImages);
   return (images || [])
@@ -710,6 +733,7 @@ function outputProduct(row) {
 }
 
 app.get('/api/products', route(async (req, res) => {
+  res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
   const q = String(req.query.q || '').trim().toLowerCase();
   const brandId = req.query.brandId;
   const subCategoryId = req.query.subCategoryId;
@@ -788,57 +812,26 @@ app.get('/api/products/:id/image/:index', route(async (req, res) => {
 
   const safeTargetId = String(req.params.id || '').replace(/[^a-zA-Z0-9_-]/g, '_');
 
-  // 1. PRIORITÉ ABSOLUE : Si le fichier existe sur disque dans uploads/products
-  if (safeTargetId && fs.existsSync(productUploadsDir)) {
-    try {
-      const allFiles = fs.readdirSync(productUploadsDir);
-      const prefix = safeTargetId + '-';
-      const matched = allFiles.filter((f) => f.startsWith(prefix));
-      if (matched.length > 0) {
-        const sorted = matched.sort((a, b) => {
-          const idxA = Number((a.split('-').pop() || '').split('.')[0]) || 0;
-          const idxB = Number((b.split('-').pop() || '').split('.')[0]) || 0;
-          return idxA - idxB;
-        });
-        const targetFile = sorted[index] || (index === 0 ? sorted[0] : null);
-        if (targetFile) {
-          const filePath = path.join(productUploadsDir, targetFile);
-          if (fs.existsSync(filePath)) {
-            res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
-            return res.sendFile(filePath);
-          }
-        }
-      }
-    } catch (err) {
-      console.warn('Scan uploads disk failed:', err.message);
-    }
-  }
-
-  // 2. Récupérer l'image depuis MySQL ou JSON persistant
+  // 1. Priorité absolue : la base de données (MySQL puis JSON fallback)
   let image = null;
   if (pool) {
     try {
       const [rows] = await pool.execute('SELECT images FROM products WHERE id = ? OR slug = ? LIMIT 1', [req.params.id, req.params.id]);
-      image = asImageList(rows[0]?.images)[index] || null;
+      if (rows[0]) {
+        image = asImageList(rows[0].images)[index] || null;
+      }
     } catch (error) {
       console.warn('Lecture image MySQL impossible, fallback JSON:', error.message);
     }
   }
   if (!image) {
     const fallbackProduct = jsonDbState.products.find((product) => String(product.id) === String(req.params.id) || String(product.slug) === String(req.params.id));
-    image = asImageList(fallbackProduct?.images)[index] || null;
-  }
-
-  // 3. Si l'image en base est un chemin de fichier uploads
-  if (typeof image === 'string' && (image.startsWith('/uploads/products/') || image.startsWith('uploads/products/') || image.includes('/products/'))) {
-    const file = path.join(productUploadsDir, path.basename(image));
-    if (fs.existsSync(file)) {
-      res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
-      return res.sendFile(file);
+    if (fallbackProduct) {
+      image = asImageList(fallbackProduct.images)[index] || null;
     }
   }
 
-  // 4. Si c'est une image base64 data URL dans MySQL : la sauvegarder immédiatement sur disque ET la servir
+  // 2. Si c'est une image base64 data URL : la servir immédiatement et synchroniser le fichier disque
   const match = typeof image === 'string' ? image.match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i) : null;
   if (match) {
     try {
@@ -849,14 +842,54 @@ app.get('/api/products/:id/image/:index', route(async (req, res) => {
     } catch (e) {
       console.warn('Auto-save base64 to disk error:', e.message);
     }
-    res.set('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+    res.set('Cache-Control', 'public, max-age=120, stale-while-revalidate=600');
     res.type(match[1]);
     return res.send(Buffer.from(match[2], 'base64'));
   }
 
-  // 5. Si c'est une URL externe
+  // 3. Si l'image en base est un chemin de fichier uploads
+  if (typeof image === 'string' && (image.startsWith('/uploads/products/') || image.startsWith('uploads/products/') || image.includes('/products/'))) {
+    const file = path.join(productUploadsDir, path.basename(image));
+    if (fs.existsSync(file)) {
+      res.set('Cache-Control', 'public, max-age=120, stale-while-revalidate=600');
+      return res.sendFile(file);
+    }
+  }
+
+  // 4. Si c'est une URL externe
   if (typeof image === 'string' && (image.startsWith('http://') || image.startsWith('https://'))) {
     return res.redirect(image);
+  }
+
+  // 5. Fallback disque si la base n'a pas d'image directe mais un fichier récent existe
+  if (safeTargetId && fs.existsSync(productUploadsDir)) {
+    try {
+      const allFiles = fs.readdirSync(productUploadsDir);
+      const prefix = safeTargetId + '-';
+      const matched = allFiles.filter((f) => f.startsWith(prefix));
+      if (matched.length > 0) {
+        const forIndex = matched.filter((f) => {
+          const parts = path.parse(f).name.split('-');
+          return Number(parts[parts.length - 1]) === index;
+        });
+        const candidate = forIndex.length > 0 ? forIndex : (index === 0 ? matched : []);
+        if (candidate.length > 0) {
+          candidate.sort((a, b) => {
+            const timeA = Number(a.split('-')[1]) || 0;
+            const timeB = Number(b.split('-')[1]) || 0;
+            return timeB - timeA;
+          });
+          const targetFile = candidate[0];
+          const filePath = path.join(productUploadsDir, targetFile);
+          if (fs.existsSync(filePath)) {
+            res.set('Cache-Control', 'public, max-age=120, stale-while-revalidate=600');
+            return res.sendFile(filePath);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Scan uploads disk failed:', err.message);
+    }
   }
 
   // 6. Fallback élégant sur logo.webp
@@ -870,12 +903,6 @@ app.get('/api/products/:id/image/:index', route(async (req, res) => {
     res.set('Cache-Control', 'public, max-age=3600');
     return res.sendFile(publicLogo);
   }
-  const distLogo = path.resolve(clientDist, 'logo.webp');
-  if (fs.existsSync(distLogo)) {
-    res.set('Cache-Control', 'public, max-age=3600');
-    return res.sendFile(distLogo);
-  }
-
   return res.status(404).end();
 }));
 app.get('/api/products/:idOrSlug', route(async (req, res) => {
@@ -1604,13 +1631,13 @@ app.patch('/api/admin/products/:id', auth, admin, route(async (req, res) => {
         const validKeys = keys.filter((k) => productMap[k]);
         if (validKeys.length) {
           await pool.execute(
-            'UPDATE products SET ' + validKeys.map((k) => `${productMap[k]} = ?`).join(', ') + ' WHERE id = ?',
+            'UPDATE products SET ' + validKeys.map((k) => `${productMap[k]} = ?`).join(', ') + ', updated_at = NOW() WHERE id = ?',
             [...validKeys.map((k) => serializeVal(k, updates[k])), targetId]
           );
         }
         const [updatedRows] = await pool.execute('SELECT ' + productSelect + ' FROM products p WHERE p.id = ? LIMIT 1', [targetId]);
         if (updatedRows[0]) {
-          const savedProduct = outputProduct(updatedRows[0]);
+          const savedProduct = publicProduct(outputProduct(updatedRows[0]));
           const jsonIndex = jsonDbState.products.findIndex((p) => p.id === targetId);
           if (jsonIndex !== -1) jsonDbState.products[jsonIndex] = savedProduct;
           persistJsonDb();
@@ -1638,6 +1665,7 @@ app.patch('/api/admin/products/:id', auth, admin, route(async (req, res) => {
 
 app.delete('/api/admin/products/:id', auth, admin, route(async (req, res) => {
   const targetId = req.params.id;
+  cleanProductDiskImages(targetId);
   if (pool) {
     try {
       await pool.execute('DELETE FROM products WHERE id = ?', [targetId]);

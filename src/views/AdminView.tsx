@@ -365,7 +365,10 @@ export const AdminView: React.FC = () => {
     try {
       const dataUrl = await readImageFile(file);
       setPImage(dataUrl);
-      setPGallery(prev => [dataUrl, ...prev.filter(image => image !== dataUrl)]);
+      setPGallery(prev => {
+        if (!prev || prev.length <= 1) return [dataUrl];
+        return [dataUrl, ...prev.slice(1)];
+      });
       addToast('Image importée depuis votre appareil !', 'success');
     } catch {
       addToast('Erreur lors de la lecture du fichier image.', 'error');
@@ -545,7 +548,9 @@ export const AdminView: React.FC = () => {
       addToast('Choisissez une marque et une sous-catégorie.', 'error');
       return;
     }
-    const productImages = pGallery.length ? pGallery : (pImage ? [pImage] : []);
+    const productImages = pGallery.length
+      ? (pImage ? [pImage, ...pGallery.slice(1).filter(img => img !== pImage)] : pGallery)
+      : (pImage ? [pImage] : []);
     if (!productImages.length) {
       addToast('Ajoutez au moins une photo du produit.', 'error');
       return;
@@ -2093,7 +2098,10 @@ export const AdminView: React.FC = () => {
                     </div>
                     <button
                       type="button"
-                      onClick={() => setPImage('')}
+                      onClick={() => {
+                        setPImage('');
+                        setPGallery(prev => prev.slice(1));
+                      }}
                       className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
                       title="Supprimer l'image"
                     >

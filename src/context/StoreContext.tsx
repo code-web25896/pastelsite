@@ -651,7 +651,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Chargement prioritaire du catalogue : ne pas attendre les marques ou le back-office.
   useEffect(() => {
     let cancelled = false;
-    const url = apiPath('/api/products?limit=500');
+    const url = apiPath('/api/products?limit=500&_t=' + Date.now());
     const apply = (data: unknown) => {
       if (!cancelled && Array.isArray(data)) {
         setProducts(data.filter(isUsableProduct));
@@ -660,7 +660,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     const load = async () => {
       try {
-        const response = await fetch(url);
+        const response = await fetch(url, { cache: 'no-cache' });
         if (!response.ok) return;
         apply(await response.json());
       } catch { /* le chargement complet conserve le cache local */ }
@@ -1044,7 +1044,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const published = isUsableProduct(saved) ? saved : localProduct;
         setProducts(prev => [published, ...prev.filter(p => p.id !== localProduct.id && p.id !== published.id)]);
         try {
-          const catalogRes = await fetch(apiPath('/api/products'));
+          const catalogRes = await fetch(apiPath('/api/products?limit=500&_t=' + Date.now()), { cache: 'no-cache' });
           if (catalogRes.ok) {
             const apiProducts = await catalogRes.json();
             if (Array.isArray(apiProducts) && apiProducts.length >= 0) {
@@ -1089,7 +1089,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
         // Recharger la liste publique pour propager immédiatement la nouvelle image.
         try {
-          const catalogRes = await fetch(apiPath('/api/products?limit=500'));
+          const catalogRes = await fetch(apiPath('/api/products?limit=500&_t=' + Date.now()), { cache: 'no-cache' });
           if (catalogRes.ok) {
             const catalog = await catalogRes.json();
             if (Array.isArray(catalog)) setProducts(catalog.filter(isUsableProduct));
