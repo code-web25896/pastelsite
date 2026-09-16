@@ -31,15 +31,39 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
   const [contactSubject, setContactSubject] = useState('Renseignements généraux');
   const [contactMessage, setContactMessage] = useState('');
   const [contactSent, setContactSent] = useState(false);
+  const [contactLoading, setContactLoading] = useState(false);
   const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value.trim());
   const isValidPhone = (value: string) => /^\d{8}$/.test(value);
 
-  const handleContactSubmit = (e: React.FormEvent) => {
+  const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValidEmail(contactEmail)) { addToast('Veuillez saisir une adresse e-mail valide, par exemple nom@gmail.com.', 'error'); return; }
     if (contactPhone && !isValidPhone(contactPhone)) { addToast('Le numéro doit contenir exactement 8 chiffres.', 'error'); return; }
-    setContactSent(true);
-    addToast('Votre message a bien été envoyé ! Nous vous répondrons sous 24h.', 'success');
+
+    setContactLoading(true);
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: contactName.trim(),
+          email: contactEmail.trim().toLowerCase(),
+          phone: contactPhone.trim(),
+          subject: contactSubject,
+          message: contactMessage.trim()
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Erreur lors de l\'envoi du message.');
+      }
+      setContactSent(true);
+      addToast(data.message || 'Votre message a bien été transmis à contact@espacepastel.com !', 'success');
+    } catch (err: any) {
+      addToast(err.message || 'Impossible d\'envoyer le message. Réessayez.', 'error');
+    } finally {
+      setContactLoading(false);
+    }
   };
 
   return (
@@ -134,7 +158,6 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
                     <strong className="block text-sm">Téléphone & WhatsApp</strong>
                     <div className="mt-1 space-y-1 text-[#0B1833] font-bold">
                       <a href="tel:21658260515" className="block hover:underline">Pastel - +216 58 260 515</a>
-                      <a href="tel:58260515" className="block hover:underline">Ines Pastel - 58 260 515</a>
                       <a href="tel:29299185" className="block hover:underline">29 299 185</a>
                       <a href="tel:5554200" className="block hover:underline">5554200</a>
                     </div>
@@ -158,7 +181,6 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
                   <div>
                     <strong className="block text-sm">Horaires d'ouverture</strong>
                     <p className="text-gray-600">7/7 (toute la semaine) : 09h00 - 23h30</p>
-                    <p className="text-gray-600">Dimanche : 09h00 - 23h30</p>
                   </div>
                 </div>
               </div>
@@ -251,10 +273,11 @@ export const StaticPagesView: React.FC<StaticPagesViewProps> = ({ page }) => {
 
                   <button
                     type="submit"
-                    className="bg-[#0B1833] hover:bg-[#8FD8C3] hover:text-[#0B1833] text-white font-bold text-xs uppercase tracking-wider px-6 py-3 rounded-xl transition-all flex items-center gap-2"
+                    disabled={contactLoading}
+                    className="bg-[#0B1833] hover:bg-[#8FD8C3] hover:text-[#0B1833] text-white font-bold text-xs uppercase tracking-wider px-6 py-3 rounded-xl transition-all flex items-center gap-2 disabled:opacity-60 cursor-pointer shadow-xs"
                   >
                     <Send className="w-3.5 h-3.5" />
-                    <span>Envoyer le message</span>
+                    <span>{contactLoading ? 'Envoi en cours...' : 'Envoyer le message'}</span>
                   </button>
                 </form>
               )}

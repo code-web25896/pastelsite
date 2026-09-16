@@ -266,6 +266,19 @@ app.post('/api/auth/reset-password', route(async (req, res) => {
   await persist();
   res.json({ success: true, message: 'Mot de passe réinitialisé avec succès.' });
 }));
+app.post('/api/contact', route(async (req, res) => {
+  const schema = z.object({
+    name: z.string().min(2),
+    email: z.string().email(),
+    phone: z.string().optional().default(''),
+    subject: z.string().optional().default('Renseignements généraux'),
+    message: z.string().min(5)
+  });
+  const data = schema.parse(req.body);
+  console.log('[MOCK CONTACT] Nouveau message reçu de:', data.email);
+  return res.json({ success: true, message: 'Votre message a bien été envoyé !' });
+}));
+
 // ================= BRANDS =================
 app.get('/api/brands', route(async (_req, res) => res.json((state.brands || []).filter((brand) => brand.status === 'active'))));
 

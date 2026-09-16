@@ -44,6 +44,64 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
 
 const app = express();
 const PUBLIC_APP_URL = String(process.env.PUBLIC_APP_URL || process.env.APP_URL || 'https://espacepastel.com').replace(/\/$/, '');
+const sendContactFormEmail = async ({ name, email, phone, subject, message }) => {
+  const smtpHost = String(process.env.SMTP_HOST || 'smtp.hostinger.com').trim();
+  const smtpPort = parseInt(process.env.SMTP_PORT || '465', 10);
+  const smtpUser = String(process.env.SMTP_USER || 'contact@espacepastel.com').trim();
+  const smtpPass = String(process.env.SMTP_PASS || '').trim();
+  const mailFrom = String(process.env.MAIL_FROM || smtpUser || 'contact@espacepastel.com').trim();
+
+  if (!smtpPass) {
+    console.warn('[CONTACT] Variable SMTP_PASS manquante. Email de contact non envoyé.');
+    return false;
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpPort === 465,
+    auth: { user: smtpUser, pass: smtpPass },
+    tls: { rejectUnauthorized: false }
+  });
+
+  await transporter.sendMail({
+    from: `Espace Pastel Contact <${mailFrom}>`,
+    to: 'contact@espacepastel.com',
+    replyTo: email,
+    subject: `[Contact Espace Pastel] ${subject || 'Nouveau message'} - ${name}`,
+    html: `<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#F7F7F8;font-family:Arial,sans-serif">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F7F7F8;padding:40px 16px">
+    <tr><td align="center">
+      <table role="presentation" width="100%" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb">
+        <tr><td style="background:#0B1833;padding:24px 32px;text-align:center">
+          <h1 style="margin:0;color:#ffffff;font-size:20px;font-weight:900">Espace Pastel</h1>
+          <p style="margin:4px 0 0;color:#8FD8C3;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase">Nouveau message depuis le site web</p>
+        </td></tr>
+        <tr><td style="padding:32px">
+          <div style="margin-bottom:20px;padding:16px;background:#F7F7F8;border-radius:12px;border:1px solid #e5e7eb">
+            <p style="margin:0 0 8px;color:#0B1833;font-size:13px"><strong>👤 Expéditeur :</strong> ${name}</p>
+            <p style="margin:0 0 8px;color:#0B1833;font-size:13px"><strong>✉️ E-mail :</strong> <a href="mailto:${email}" style="color:#0B1833;font-weight:bold">${email}</a></p>
+            <p style="margin:0 0 8px;color:#0B1833;font-size:13px"><strong>📞 Téléphone :</strong> ${phone ? `<a href="tel:${phone}" style="color:#0B1833;font-weight:bold">${phone}</a>` : 'Non renseigné'}</p>
+            <p style="margin:0;color:#0B1833;font-size:13px"><strong>📋 Sujet :</strong> ${subject}</p>
+          </div>
+          <h3 style="margin:0 0 10px;color:#0B1833;font-size:15px;font-weight:800">Message :</h3>
+          <div style="padding:16px;background:#ffffff;border-radius:12px;border:1px solid #e5e7eb;color:#374151;font-size:14px;line-height:1.7;white-space:pre-wrap">${message}</div>
+        </td></tr>
+        <tr><td style="background:#F7F7F8;padding:16px 32px;text-align:center;border-top:1px solid #e5e7eb">
+          <p style="margin:0;color:#9ca3af;font-size:11px">Vous pouvez répondre directement à cet e-mail pour contacter ${name} (${email}).</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+  });
+  return true;
+};
+
 const sendPasswordResetEmail = async ({ email, resetUrl }) => {
   const smtpHost = String(process.env.SMTP_HOST || 'smtp.hostinger.com').trim();
   const smtpPort = parseInt(process.env.SMTP_PORT || '465', 10);
@@ -570,6 +628,32 @@ app.get('/api/health', route(async (_q, res) => {
     }
   }
   return res.json({ status: 'ok', database: 'json_file', mode: 'json_db' });
+}));
+
+app.post(['/api/contact', '/api/api/contact'], route(async (req, res) => {
+  const contactSchema = z.object({
+    name: z.string().min(2, 'Veuillez saisir votre nom.').max(100),
+    email: z.string().email('Adresse e-mail invalide.'),
+    phone: z.string().max(30).optional().default(''),
+    subject: z.string().max(150).optional().default('Renseignements généraux'),
+    message: z.string().min(5, 'Votre message doit contenir au moins 5 caractères.').max(3000)
+  });
+
+  const parsed = contactSchema.parse(req.body);
+  let emailSent = false;
+  try {
+    emailSent = await sendContactFormEmail(parsed);
+  } catch (err) {
+    console.error('Erreur envoi email contact:', err.message);
+    return res.status(502).json({ error: "Impossible d'envoyer le message pour le moment (" + err.message + ")." });
+  }
+
+  return res.json({
+    success: true,
+    message: emailSent
+      ? 'Votre message a bien été envoyé ! Nous vous répondrons dans les plus brefs délais.'
+      : 'Message bien reçu et enregistré.'
+  });
 }));
 
 // ================= AUTH ROUTES =================
