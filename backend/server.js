@@ -9,6 +9,7 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer';
 import mysql from 'mysql2/promise';
 import { z } from 'zod';
 import { initializeDatabase } from './init-db.js';
@@ -44,20 +45,72 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
 const app = express();
 const PUBLIC_APP_URL = String(process.env.PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
 const sendPasswordResetEmail = async ({ email, resetUrl }) => {
-  const apiKey = String(process.env.RESEND_API_KEY || '').trim();
-  const from = String(process.env.MAIL_FROM || '').trim();
-  if (!apiKey || !from) return false;
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      from,
-      to: [email],
-      subject: 'Réinitialisation de votre mot de passe — Espace Pastel',
-      html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#0B1833"><h2>Espace Pastel</h2><p>Vous avez demandé la réinitialisation de votre mot de passe.</p><p><a href="${resetUrl}" style="display:inline-block;background:#0B1833;color:#fff;padding:13px 20px;border-radius:8px;text-decoration:none">Choisir un nouveau mot de passe</a></p><p>Ce lien est valable 15 minutes. Si vous n’êtes pas à l’origine de cette demande, ignorez cet e-mail.</p></div>`
-    })
+  const smtpHost = String(process.env.SMTP_HOST || '').trim();
+  const smtpPort = parseInt(process.env.SMTP_PORT || '465', 10);
+  const smtpUser = String(process.env.SMTP_USER || '').trim();
+  const smtpPass = String(process.env.SMTP_PASS || '').trim();
+  const mailFrom = String(process.env.MAIL_FROM || smtpUser).trim();
+
+  if (!smtpHost || !smtpUser || !smtpPass) {
+    console.warn('[EMAIL] Variables SMTP manquantes (SMTP_HOST, SMTP_USER, SMTP_PASS). Email non envoyé.');
+    return false;
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpPort === 465,
+    auth: { user: smtpUser, pass: smtpPass },
+    tls: { rejectUnauthorized: false }
   });
-  if (!response.ok) throw new Error(`Resend error ${response.status}: ${await response.text()}`);
+
+  await transporter.sendMail({
+    from: `Espace Pastel <${mailFrom}>`,
+    to: email,
+    subject: 'Réinitialisation de votre mot de passe — Espace Pastel',
+    html: `<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#F7F7F8;font-family:Arial,sans-serif">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F7F7F8;padding:40px 16px">
+    <tr><td align="center">
+      <table role="presentation" width="100%" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb">
+        <tr><td style="background:#0B1833;padding:28px 32px;text-align:center">
+          <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:900;letter-spacing:-0.5px">Espace Pastel</h1>
+          <p style="margin:6px 0 0;color:#8FD8C3;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase">Librairie &amp; Papeterie — Tunis</p>
+        </td></tr>
+        <tr><td style="padding:36px 32px">
+          <h2 style="margin:0 0 12px;color:#0B1833;font-size:18px;font-weight:800">Réinitialisation de votre mot de passe</h2>
+          <p style="margin:0 0 24px;color:#374151;font-size:14px;line-height:1.6">
+            Nous avons reçu une demande de réinitialisation du mot de passe associé à votre compte <strong>Espace Pastel</strong>.<br>
+            Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe.
+          </p>
+          <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 28px">
+            <tr><td style="border-radius:10px;background:#0B1833">
+              <a href="${resetUrl}" target="_blank"
+                 style="display:inline-block;padding:14px 28px;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px">
+                Choisir un nouveau mot de passe
+              </a>
+            </td></tr>
+          </table>
+          <p style="margin:0 0 8px;color:#6b7280;font-size:12px;line-height:1.6">
+            ⏱ Ce lien est valable <strong>15 minutes</strong> à compter de la réception de cet e-mail.
+          </p>
+          <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6">
+            Si vous n'avez pas effectué cette demande, ignorez cet e-mail — votre mot de passe restera inchangé.
+          </p>
+        </td></tr>
+        <tr><td style="background:#F7F7F8;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb">
+          <p style="margin:0;color:#9ca3af;font-size:11px">
+            © Espace Pastel — <a href="https://espacepastel.com" style="color:#8FD8C3;text-decoration:none">espacepastel.com</a> | contact@espacepastel.com
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+  });
   return true;
 };
 app.disable('x-powered-by');
