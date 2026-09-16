@@ -30,6 +30,7 @@ export const AuthView: React.FC<{ initialMode?: Mode }> = ({ initialMode = 'logi
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Impossible d’envoyer la demande.');
         setResetSent(true);
+        addToast(data.message || 'Un lien de réinitialisation vous a été envoyé par e-mail.', 'success');
         if (data.resetToken) {
           setResetToken(data.resetToken);
           setMode('reset');

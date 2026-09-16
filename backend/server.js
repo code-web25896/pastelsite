@@ -45,14 +45,14 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
 const app = express();
 const PUBLIC_APP_URL = String(process.env.PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
 const sendPasswordResetEmail = async ({ email, resetUrl }) => {
-  const smtpHost = String(process.env.SMTP_HOST || '').trim();
+  const smtpHost = String(process.env.SMTP_HOST || 'smtp.hostinger.com').trim();
   const smtpPort = parseInt(process.env.SMTP_PORT || '465', 10);
-  const smtpUser = String(process.env.SMTP_USER || '').trim();
+  const smtpUser = String(process.env.SMTP_USER || 'contact@espacepastel.com').trim();
   const smtpPass = String(process.env.SMTP_PASS || '').trim();
-  const mailFrom = String(process.env.MAIL_FROM || smtpUser).trim();
+  const mailFrom = String(process.env.MAIL_FROM || smtpUser || 'contact@espacepastel.com').trim();
 
-  if (!smtpHost || !smtpUser || !smtpPass) {
-    console.warn('[EMAIL] Variables SMTP manquantes (SMTP_HOST, SMTP_USER, SMTP_PASS). Email non envoyé.');
+  if (!smtpPass) {
+    console.warn('[EMAIL] Variable SMTP_PASS manquante. Email non envoyé.');
     return false;
   }
 
@@ -648,39 +648,132 @@ app.post(['/api/auth/login', '/api/api/auth/login'], route(async (req, res) => {
 
 app.post(['/api/auth/forgot-password', '/api/api/auth/forgot-password'], route(async (req, res) => {
   const { email } = z.object({ email: z.string().email() }).parse(req.body);
-  const normalized = email.toLowerCase();
-  const existsMysql = pool ? await pool.execute('SELECT id FROM users WHERE email = ? LIMIT 1').then(([rows]) => Boolean(rows[0])).catch(() => false) : false;
-  const existsJson = jsonDbState.users.some((u) => u.email.toLowerCase() === normalized);
-  if (!existsMysql && !existsJson) return res.status(404).json({ error: 'Aucun compte ne correspond à cet e-mail.' });
+  const normalized = email.toLowerCase().trim();
+
+  let existsMysql = false;
+  if (pool) {
+    try {
+      const [rows] = await pool.execute(
+        'SELECT id, email, first_name, last_name FROM users WHERE LOWER(TRIM(email)) = ? LIMIT 1',
+        [normalized]
+      );
+      existsMysql = Boolean(rows && rows.length > 0);
+    } catch (err) {
+      console.error('[FORGOT-PASSWORD] MySQL check error:', err.message);
+    }
+  }
+
+  const existsJson = (jsonDbState.users || []).some((u) => u.email.toLowerCase().trim() === normalized);
+  if (!existsMysql && !existsJson) {
+    return res.status(404).json({ error: 'Aucun compte ne correspond à cet e-mail.' });
+  }
+
   const resetToken = crypto.randomBytes(32).toString('hex');
-  jsonDbState.passwordResets = (jsonDbState.passwordResets || []).filter((r) => new Date(r.expiresAt) > new Date());
-  jsonDbState.passwordResets.push({ token: resetToken, email: normalized, expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString() });
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+  // Sauvegarder le token dans MySQL si disponible
+  if (pool) {
+    try {
+      await pool.execute(
+        'CREATE TABLE IF NOT EXISTS password_resets (id INT AUTO_INCREMENT PRIMARY KEY, email VARCHAR(255) NOT NULL, token VARCHAR(255) NOT NULL UNIQUE, expires_at DATETIME NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)'
+      );
+      await pool.execute('DELETE FROM password_resets WHERE email = ? OR expires_at < NOW()', [normalized]);
+      await pool.execute(
+        'INSERT INTO password_resets (email, token, expires_at) VALUES (?, ?, ?)',
+        [normalized, resetToken, expiresAt]
+      );
+    } catch (err) {
+      console.warn('[FORGOT-PASSWORD] MySQL table password_resets error:', err.message);
+    }
+  }
+
+  if (!jsonDbState.passwordResets) jsonDbState.passwordResets = [];
+  jsonDbState.passwordResets = jsonDbState.passwordResets.filter((r) => new Date(r.expiresAt) > new Date());
+  jsonDbState.passwordResets.push({ token: resetToken, email: normalized, expiresAt: expiresAt.toISOString() });
   persistJsonDb();
+
   const resetUrl = `${PUBLIC_APP_URL}/mot-de-passe-oublie?token=${encodeURIComponent(resetToken)}`;
   let emailSent = false;
   try {
     emailSent = await sendPasswordResetEmail({ email: normalized, resetUrl });
   } catch (error) {
     console.error('Password reset email failed:', error.message);
-    if (process.env.NODE_ENV === 'production') return res.status(502).json({ error: 'Le service e-mail est momentanément indisponible. Réessayez dans quelques minutes.' });
+    return res.status(502).json({ error: 'Erreur d\'envoi d\'e-mail: ' + error.message });
   }
-  const response = { success: true, message: emailSent ? 'Un lien de réinitialisation vient d’être envoyé à votre adresse e-mail.' : 'Demande reçue. Configurez RESEND_API_KEY et MAIL_FROM pour activer l’envoi réel.' };
-  if (process.env.NODE_ENV !== 'production') response.resetToken = resetToken;
+
+  const response = {
+    success: true,
+    message: emailSent
+      ? 'Un e-mail contenant le lien de réinitialisation vient d\'être envoyé à ' + normalized + '.'
+      : 'Demande enregistrée. Configurez SMTP_PASS sur le serveur pour activer l\'envoi d\'e-mails.'
+  };
+  if (process.env.NODE_ENV !== 'production' || !emailSent) {
+    response.resetToken = resetToken;
+  }
   return res.json(response);
 }));
+
 app.post(['/api/auth/reset-password', '/api/api/auth/reset-password'], route(async (req, res) => {
   const { token: resetToken, newPassword } = z.object({ token: z.string().min(20), newPassword: passwordSchema }).parse(req.body);
-  const entry = (jsonDbState.passwordResets || []).find((r) => r.token === resetToken && new Date(r.expiresAt) > new Date());
-  if (!entry) return res.status(400).json({ error: 'Lien de rÃƒÂ©initialisation invalide ou expirÃƒÂ©.' });
+
+  let resetEmail = null;
+
+  // 1. Chercher dans la table MySQL password_resets
+  if (pool) {
+    try {
+      const [rows] = await pool.execute(
+        'SELECT email FROM password_resets WHERE token = ? AND expires_at > NOW() LIMIT 1',
+        [resetToken]
+      );
+      if (rows && rows.length > 0) {
+        resetEmail = rows[0].email;
+      }
+    } catch (err) {
+      console.warn('[RESET-PASSWORD] MySQL query error:', err.message);
+    }
+  }
+
+  // 2. Fallback dans jsonDbState
+  if (!resetEmail) {
+    const entry = (jsonDbState.passwordResets || []).find((r) => r.token === resetToken && new Date(r.expiresAt) > new Date());
+    if (entry) resetEmail = entry.email;
+  }
+
+  if (!resetEmail) {
+    return res.status(400).json({ error: 'Lien de réinitialisation invalide ou expiré.' });
+  }
+
+  const normalizedEmail = resetEmail.toLowerCase().trim();
   const hash = await bcrypt.hash(newPassword, 10);
   let updated = false;
-  if (pool) { try { const [result] = await pool.execute('UPDATE users SET password_hash = ? WHERE email = ?', [hash, entry.email]); updated = Number(result.affectedRows || 0) > 0; } catch (err) { console.warn('MySQL password reset failed:', err.message); } }
-  const user = jsonDbState.users.find((u) => u.email.toLowerCase() === entry.email);
-  if (user) { user.passwordHash = hash; updated = true; }
+
+  if (pool) {
+    try {
+      const [result] = await pool.execute(
+        'UPDATE users SET password_hash = ? WHERE LOWER(TRIM(email)) = ?',
+        [hash, normalizedEmail]
+      );
+      updated = Number(result.affectedRows || 0) > 0;
+      await pool.execute('DELETE FROM password_resets WHERE token = ?', [resetToken]).catch(() => {});
+    } catch (err) {
+      console.warn('MySQL password reset failed:', err.message);
+    }
+  }
+
+  const user = (jsonDbState.users || []).find((u) => u.email.toLowerCase().trim() === normalizedEmail);
+  if (user) {
+    user.passwordHash = hash;
+    updated = true;
+  }
+
   jsonDbState.passwordResets = (jsonDbState.passwordResets || []).filter((r) => r.token !== resetToken);
   persistJsonDb();
-  if (!updated) return res.status(404).json({ error: 'Utilisateur introuvable.' });
-  return res.json({ success: true, message: 'Mot de passe rÃƒÂ©initialisÃƒÂ© avec succÃƒÂ¨s.' });
+
+  if (!updated) {
+    return res.status(404).json({ error: 'Utilisateur introuvable.' });
+  }
+
+  return res.json({ success: true, message: 'Mot de passe réinitialisé avec succès.' });
 }));
 
 app.get(['/api/auth/me', '/api/api/auth/me'], auth, route(async (req, res) => {
