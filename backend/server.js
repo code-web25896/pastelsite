@@ -76,9 +76,6 @@ const sendPasswordResetEmail = async ({ email, resetUrl }) => {
     <tr><td align="center">
       <table role="presentation" width="100%" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb">
         <tr><td style="background:#0B1833;padding:28px 32px;text-align:center">
-          <div style="margin-bottom:12px">
-            <img src="https://espacepastel.com/logo.webp" alt="Espace Pastel" width="64" height="64" style="display:inline-block;width:64px;height:64px;object-fit:contain;border-radius:14px;background:#ffffff;padding:4px" />
-          </div>
           <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:900;letter-spacing:-0.5px">Espace Pastel</h1>
           <p style="margin:6px 0 0;color:#8FD8C3;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase">Librairie &amp; Bagagerie — Tunis</p>
         </td></tr>
