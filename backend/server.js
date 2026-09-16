@@ -43,7 +43,7 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
 }
 
 const app = express();
-const PUBLIC_APP_URL = String(process.env.PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+const PUBLIC_APP_URL = String(process.env.PUBLIC_APP_URL || process.env.APP_URL || 'https://espacepastel.com').replace(/\/$/, '');
 const sendPasswordResetEmail = async ({ email, resetUrl }) => {
   const smtpHost = String(process.env.SMTP_HOST || 'smtp.hostinger.com').trim();
   const smtpPort = parseInt(process.env.SMTP_PORT || '465', 10);
@@ -692,7 +692,16 @@ app.post(['/api/auth/forgot-password', '/api/api/auth/forgot-password'], route(a
   jsonDbState.passwordResets.push({ token: resetToken, email: normalized, expiresAt: expiresAt.toISOString() });
   persistJsonDb();
 
-  const resetUrl = `${PUBLIC_APP_URL}/mot-de-passe-oublie?token=${encodeURIComponent(resetToken)}`;
+  const originHeader = req.get('origin');
+  const hostHeader = req.get('x-forwarded-host') || req.get('host');
+  const protoHeader = req.get('x-forwarded-proto') || (req.secure ? 'https' : (hostHeader && !hostHeader.includes('localhost') ? 'https' : 'http'));
+  const appBase = originHeader && !originHeader.includes('localhost')
+    ? originHeader.replace(/\/$/, '')
+    : hostHeader && !hostHeader.includes('localhost')
+      ? `${protoHeader}://${hostHeader}`.replace(/\/$/, '')
+      : PUBLIC_APP_URL;
+
+  const resetUrl = `${appBase}/mot-de-passe-oublie?token=${encodeURIComponent(resetToken)}`;
   let emailSent = false;
   try {
     emailSent = await sendPasswordResetEmail({ email: normalized, resetUrl });
