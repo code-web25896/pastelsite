@@ -246,6 +246,15 @@ app.post('/api/auth/forgot-password', route(async (req, res) => {
   res.json({ success: true, message: 'Instructions de réinitialisation envoyées.', resetToken });
 }));
 
+app.patch('/api/auth/password', auth, route(async (req, res) => {
+  const body = z.object({ newPassword: z.string().min(8).max(128) }).parse(req.body);
+  const user = (state.users || []).find((item) => item.id === req.user?.sub);
+  if (!user) return res.status(404).json({ error: 'Utilisateur introuvable.' });
+  user.passwordHash = await bcrypt.hash(body.newPassword, 10);
+  await persist();
+  res.json({ success: true, message: 'Mot de passe mis à jour avec succès.' });
+}));
+
 app.post('/api/auth/reset-password', route(async (req, res) => {
   const body = z.object({ token: z.string().min(20), newPassword: z.string().min(12).max(128) }).parse(req.body);
   const entry = (state.passwordResets || []).find((item) => item.token === body.token && new Date(item.expiresAt) > new Date());

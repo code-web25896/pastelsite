@@ -93,6 +93,7 @@ interface StoreContextType {
   refreshAdminUsers: () => Promise<void>;
   createAdminUser: (userData: { firstName: string; lastName?: string; email: string; phone?: string; role: UserRole; password: string }) => Promise<Customer>;
   updateAdminUser: (id: string, updates: { firstName: string; lastName?: string; email: string; phone?: string; role: UserRole; password?: string }) => Promise<void>;
+  updateClientPassword: (newPassword: string) => Promise<{ success: boolean; message: string }>;
   deleteAdminUser: (id: string) => Promise<void>;
 
   // Order & Stock Management
@@ -1280,7 +1281,26 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return created;
   };
 
-  const updateAdminUser = async (id: string, updates: { firstName: string; lastName?: string; email: string; phone?: string; role: UserRole; password?: string }) => {
+  const updateClientPassword = async (newPassword: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const res = await fetch(apiPath('/api/auth/password'), {
+        method: 'PATCH',
+        headers: authHeaders(true),
+        body: JSON.stringify({ newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Erreur lors du changement de mot de passe.');
+      }
+      addToast('Mot de passe mis à jour avec succès.', 'success');
+      return { success: true, message: data.message };
+    } catch (err: any) {
+      addToast(err.message || 'Impossible de mettre à jour le mot de passe.', 'error');
+      throw err;
+    }
+  };
+
+    const updateAdminUser = async (id: string, updates: { firstName: string; lastName?: string; email: string; phone?: string; role: UserRole; password?: string }) => {
     const token = localStorage.getItem('espace_pastel_auth_token') || 'dev-admin-token';
     const res = await fetch(apiPath(`/api/admin/users/${id}`), {
       method: 'PATCH',
@@ -1463,6 +1483,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         refreshAdminUsers,
         createAdminUser,
         updateAdminUser,
+        updateClientPassword,
         deleteAdminUser,
         updateOrderStatus,
         deleteOrder,

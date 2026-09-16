@@ -179,7 +179,7 @@ export type ViewType =
   | { type: 'cart' }
   | { type: 'auth'; mode: 'login' | 'register' | 'forgot' }
   | { type: 'checkout' }
-  | { type: 'account'; tab: 'orders' | 'profile' | 'addresses' | 'reviews' }
+  | { type: 'account'; tab: 'orders' | 'profile' | 'addresses' | 'reviews' | 'points' }
   | { type: 'admin'; tab: 'dashboard' | 'products' | 'brands' | 'subcategories' | 'stocks' | 'orders' | 'reviews' }
   | { type: 'about' }
   | { type: 'contact' }

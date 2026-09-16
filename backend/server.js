@@ -76,8 +76,11 @@ const sendPasswordResetEmail = async ({ email, resetUrl }) => {
     <tr><td align="center">
       <table role="presentation" width="100%" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb">
         <tr><td style="background:#0B1833;padding:28px 32px;text-align:center">
+          <div style="margin-bottom:12px">
+            <img src="https://espacepastel.com/logo.webp" alt="Espace Pastel" width="64" height="64" style="display:inline-block;width:64px;height:64px;object-fit:contain;border-radius:14px;background:#ffffff;padding:4px" />
+          </div>
           <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:900;letter-spacing:-0.5px">Espace Pastel</h1>
-          <p style="margin:6px 0 0;color:#8FD8C3;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase">Librairie &amp; Papeterie — Tunis</p>
+          <p style="margin:6px 0 0;color:#8FD8C3;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase">Librairie &amp; Bagagerie — Tunis</p>
         </td></tr>
         <tr><td style="padding:36px 32px">
           <h2 style="margin:0 0 12px;color:#0B1833;font-size:18px;font-weight:800">Réinitialisation de votre mot de passe</h2>
@@ -783,6 +786,38 @@ app.post(['/api/auth/reset-password', '/api/api/auth/reset-password'], route(asy
   }
 
   return res.json({ success: true, message: 'Mot de passe réinitialisé avec succès.' });
+}));
+
+app.patch(['/api/auth/password', '/api/api/auth/password'], auth, route(async (req, res) => {
+  const { newPassword } = z.object({
+    newPassword: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères.').max(128)
+  }).parse(req.body);
+
+  const hash = await bcrypt.hash(newPassword, 10);
+  let updated = false;
+
+  if (pool) {
+    try {
+      const [result] = await pool.execute('UPDATE users SET password_hash = ? WHERE id = ?', [hash, req.user.sub]);
+      updated = Number(result.affectedRows || 0) > 0;
+    } catch (err) {
+      console.error('MySQL update password failed:', err.message);
+      return res.status(500).json({ error: 'Erreur lors de la mise à jour du mot de passe.' });
+    }
+  }
+
+  const u = (jsonDbState.users || []).find((user) => user.id === req.user.sub);
+  if (u) {
+    u.passwordHash = hash;
+    persistJsonDb();
+    updated = true;
+  }
+
+  if (!updated) {
+    return res.status(404).json({ error: 'Utilisateur introuvable.' });
+  }
+
+  return res.json({ success: true, message: 'Mot de passe mis à jour avec succès.' });
 }));
 
 app.get(['/api/auth/me', '/api/api/auth/me'], auth, route(async (req, res) => {
