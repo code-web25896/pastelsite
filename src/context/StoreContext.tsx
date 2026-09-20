@@ -920,9 +920,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       });
       if (response.ok) {
         serverOrder = await response.json();
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Erreur retour serveur commande:', errorData);
+        throw new Error(errorData.error || 'Erreur lors de la validation de la commande par le serveur.');
       }
-    } catch {
-      // local fallback
+    } catch (err) {
+      console.error('Erreur reseau commande:', err);
+      throw err;
     }
 
     const newOrder: Order = {

@@ -1263,19 +1263,64 @@ app.post('/api/orders', optionalAuth, route(async (req, res) => {
     createdAt: now
   };
 
+  let finalUserId = req.user?.sub || null;
+
   if (pool) {
     try {
-      // Ensure user entry exists for FK constraint if needed
-      await pool.execute(
-        'INSERT IGNORE INTO users (id, email, password_hash, role, first_name, last_name, phone) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [userId, x.customer.email.toLowerCase(), '$2a$10$none', 'customer', x.customer.firstName, x.customer.lastName || '', x.customer.phone]
-      );
-      await pool.execute(
-        'INSERT INTO orders (id, order_number, user_id, customer_json, items_json, subtotal, promo_code, discount_amount, shipping_fee, total, payment_method, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [orderId, orderNumber, userId, JSON.stringify(x.customer), JSON.stringify(items), subtotal, appliedPromoCode || null, discountAmount, shippingFee, total, x.paymentMethod, 'pending', now]
-      );
+      // 1. Si utilisateur non connecte, verifier s'il existe deja par email
+      if (!finalUserId && x.customer?.email) {
+        const [existing] = await pool.execute(
+          'SELECT id FROM users WHERE LOWER(TRIM(email)) = LOWER(TRIM(?)) LIMIT 1',
+          [x.customer.email]
+        );
+        if (existing && existing[0]) {
+          finalUserId = existing[0].id;
+        }
+      }
+
+      // 2. Si pas d'utilisateur existant, creer un compte invite
+      if (!finalUserId && x.customer?.email) {
+        const guestId = 'usr-guest-' + crypto.randomUUID().slice(0, 8);
+        try {
+          await pool.execute(
+            'INSERT IGNORE INTO users (id, email, password_hash, role, first_name, last_name, phone) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [guestId, x.customer.email.toLowerCase().trim(), '$2a$10$none', 'customer', x.customer.firstName, x.customer.lastName || '', x.customer.phone || null]
+          );
+          finalUserId = guestId;
+        } catch {
+          finalUserId = null;
+        }
+      }
+
+      // 3. Inserer la commande dans MySQL (avec repli sans user_id si besoin)
+      try {
+        await pool.execute(
+          'INSERT INTO orders (id, order_number, user_id, customer_json, items_json, subtotal, promo_code, discount_amount, shipping_fee, total, payment_method, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [orderId, orderNumber, finalUserId, JSON.stringify(x.customer), JSON.stringify(items), subtotal, appliedPromoCode || null, discountAmount, shippingFee, total, x.paymentMethod, 'pending', now]
+        );
+        console.log(`[ORDERS] Commande #${orderNumber} (${orderId}) enregistree dans MySQL avec succes !`);
+      } catch (insertErr) {
+        console.warn('[ORDERS] Echec insertion avec finalUserId, re-tentative avec user_id NULL:', insertErr.message);
+        await pool.execute(
+          'INSERT INTO orders (id, order_number, user_id, customer_json, items_json, subtotal, promo_code, discount_amount, shipping_fee, total, payment_method, status, created_at) VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [orderId, orderNumber, JSON.stringify(x.customer), JSON.stringify(items), subtotal, appliedPromoCode || null, discountAmount, shippingFee, total, x.paymentMethod, 'pending', now]
+        );
+        console.log(`[ORDERS] Commande #${orderNumber} enregistree dans MySQL (mode invite) !`);
+      }
+
+      // 4. Mettre a jour les stocks dans MySQL
+      for (const it of items) {
+        try {
+          await pool.execute(
+            'UPDATE products SET stock = GREATEST(0, CAST(stock AS SIGNED) - ?) WHERE id = ?',
+            [it.quantity, it.productId]
+          );
+        } catch (stockErr) {
+          console.warn('[ORDERS] Mise a jour stock MySQL ignoree:', stockErr.message);
+        }
+      }
     } catch (err) {
-      console.warn('MySQL order insert failed, saved to JSON DB:', err.message);
+      console.error('CRITICAL: MySQL order insert failed:', err.message);
     }
   }
 
@@ -2022,6 +2067,7 @@ async function bootstrap() {
     try {
       await initializeDatabase(pool);
       await removeDemoProductsFromMysql();
+      await syncJsonOrdersToMysql();
       await consolidateArtsBrand();
       await migrateProductImagesToFiles();
     } catch (error) {

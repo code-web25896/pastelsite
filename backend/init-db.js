@@ -34,7 +34,7 @@ async function migrateCatalogColumns(pool) {
       'ALTER TABLE reviews MODIFY product_id VARCHAR(128) NOT NULL',
       'ALTER TABLE reviews MODIFY user_id VARCHAR(128) NULL',
       'ALTER TABLE orders MODIFY id VARCHAR(128) NOT NULL',
-      'ALTER TABLE orders MODIFY user_id VARCHAR(128) NOT NULL',
+      'ALTER TABLE orders MODIFY user_id VARCHAR(128) NULL',
       'ALTER TABLE orders ADD COLUMN promo_code VARCHAR(80) NULL AFTER subtotal',
       'ALTER TABLE orders ADD COLUMN discount_amount DECIMAL(10,3) NOT NULL DEFAULT 0 AFTER promo_code',
     ];
@@ -47,6 +47,28 @@ async function migrateCatalogColumns(pool) {
         }
       }
     }
+    
+    // Supprimer la contrainte de clé étrangère sur orders.user_id pour que les commandes invités ne soient jamais bloquées
+    try {
+      const [fks] = await pool.query(`
+        SELECT CONSTRAINT_NAME 
+        FROM information_schema.KEY_COLUMN_USAGE 
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'user_id' AND REFERENCED_TABLE_NAME = 'users'
+      `);
+      for (const fk of fks) {
+        if (fk.CONSTRAINT_NAME) {
+          try {
+            await pool.query(`ALTER TABLE orders DROP FOREIGN KEY \`${fk.CONSTRAINT_NAME}\``);
+            console.log(`[DB] Contrainte ${fk.CONSTRAINT_NAME} retiree de orders.`);
+          } catch (e) {
+            console.warn(`[DB] Drop FK ignore:`, e.message);
+          }
+        }
+      }
+    } catch (fkErr) {
+      console.warn('[DB] Verification FK orders ignoree:', fkErr.message);
+    }
+
     await pool.query('SET FOREIGN_KEY_CHECKS = 1');
   } catch (error) {
     console.warn('Migration catalogue ignoree:', error.message || error);
