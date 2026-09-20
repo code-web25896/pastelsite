@@ -1359,6 +1359,7 @@ app.get('/api/admin/orders', auth, admin, route(async (_q, res) => {
   const jsonOrders = jsonDbState.orders || [];
   if (pool) {
     try {
+      await syncJsonOrdersToMysql();
       const [rows] = await pool.execute('SELECT id, order_number AS orderNumber, user_id AS userId, customer_json AS customer, items_json AS items, subtotal, promo_code AS promoCode, discount_amount AS discountAmount, shipping_fee AS shippingFee, total, payment_method AS paymentMethod, status, created_at AS createdAt FROM orders ORDER BY created_at DESC');
       const mysqlOrders = rows.map((x) => ({ ...x, subtotal: Number(x.subtotal), promoCode: x.promoCode || undefined, discountAmount: Number(x.discountAmount || 0), shippingFee: Number(x.shippingFee), total: Number(x.total), customer: json(x.customer), items: json(x.items) }));
       return res.json(mergeOrders(mysqlOrders, jsonOrders));

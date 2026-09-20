@@ -113,18 +113,18 @@ CREATE TABLE reviews (
 CREATE TABLE orders (
   id VARCHAR(128) PRIMARY KEY,
   order_number VARCHAR(40) NOT NULL UNIQUE,
-  user_id VARCHAR(128) NOT NULL,
+  user_id VARCHAR(128) NULL,
   customer_json JSON NOT NULL,
   items_json JSON NOT NULL,
+  subtotal DECIMAL(10,3) NOT NULL DEFAULT 0,
   promo_code VARCHAR(80) NULL,
   discount_amount DECIMAL(10,3) NOT NULL DEFAULT 0,
- DECIMAL(10,3) NOT NULL,
+  shipping_fee DECIMAL(10,3) NOT NULL DEFAULT 0,
   total DECIMAL(10,3) NOT NULL,
-  payment_method ENUM('cod', 'card', 'pickup') NOT NULL,
+  payment_method ENUM('cod', 'card', 'pickup', 'cash', 'transfer') NOT NULL DEFAULT 'cod',
   status ENUM('pending', 'preparing', 'processing', 'shipped', 'delivered', 'cancelled') NOT NULL DEFAULT 'pending',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  CONSTRAINT fk_orders_user FOREIGN KEY (user_id) REFERENCES users(id),
   INDEX idx_orders_user (user_id, created_at),
   INDEX idx_orders_admin (status, created_at)
 );
